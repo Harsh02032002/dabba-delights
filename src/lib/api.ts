@@ -6,17 +6,18 @@
 // Example: VITE_API_URL=http://localhost:5000/api
 // ============================================
 
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+const API_BASE_URL =
+  import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
 // Generic API request helper with JWT auth
 async function apiRequest<T>(
   endpoint: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
 ): Promise<T> {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
 
   const headers: HeadersInit = {
-    'Content-Type': 'application/json',
+    "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };
@@ -27,501 +28,430 @@ async function apiRequest<T>(
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'An error occurred' }));
-    throw new Error(error.message || 'Request failed');
+    const error = await response.json().catch(() => ({}));
+    throw new Error((error as any).message || "API request failed");
   }
 
   return response.json();
 }
 
-// For multipart form data (image uploads via Multer)
+// For file uploads (KYC, images etc.)
 async function apiUpload<T>(endpoint: string, formData: FormData): Promise<T> {
-  const token = localStorage.getItem('token');
+  const token = localStorage.getItem("token");
 
   const headers: HeadersInit = {
     ...(token && { Authorization: `Bearer ${token}` }),
   };
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    method: 'POST',
-    headers,
+    method: "POST",
     body: formData,
+    headers,
   });
 
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Upload failed' }));
-    throw new Error(error.message || 'Upload failed');
+    const error = await response.json().catch(() => ({}));
+    throw new Error((error as any).message || "API upload failed");
   }
 
   return response.json();
 }
 
-// ============================================
-// AUTH APIs
-// ============================================
-export const authAPI = {
-  // POST /auth/login
-  login: (email: string, password: string) =>
-    apiRequest<{ token: string; user: any }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    }),
+// Helper to build query strings without using `any`
+function toQuery(params?: Record<string, unknown>) {
+  if (!params) return "";
+  const entries = Object.entries(params).reduce<Record<string, string>>(
+    (acc, [k, v]) => {
+      if (v !== undefined && v !== null) acc[k] = String(v);
+      return acc;
+    },
+    {},
+  );
+  return new URLSearchParams(entries).toString();
+}
 
-  // POST /auth/register
-  register: (data: { name: string; email: string; password: string; phone: string }) =>
-    apiRequest<{ token: string; user: any }>('/auth/register', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    }),
-
-  // POST /auth/seller/login
-  sellerLogin: (email: string, password: string) =>
-    apiRequest<{ token: string; user: any }>('/auth/seller/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    }),
-
-  // POST /auth/admin/login
-  adminLogin: (email: string, password: string) =>
-    apiRequest<{ token: string; user: any }>('/auth/admin/login', {
-      method: 'POST',
-      body: JSON.stringify({ email, password }),
-    }),
-
-  // GET /auth/me
-  getProfile: () => apiRequest<{ user: any }>('/auth/me'),
-
-  // PUT /auth/profile
-  updateProfile: (data: any) =>
-    apiRequest<{ user: any }>('/auth/profile', {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-};
-
-// ============================================
 // SELLER APIs
-// ============================================
 export const sellerAPI = {
-  // GET /seller/profile
-  getProfile: () => apiRequest<any>('/seller/profile'),
+  // Dashboard
+  getDashboard: () => apiRequest<unknown>("/seller/dashboard"),
 
-  // PUT /seller/profile
-  updateProfile: (data: any) =>
-    apiRequest<any>('/seller/profile', {
-      method: 'PUT',
-      body: JSON.stringify(data),
+  // Orders
+  getOrders: (params?: { status?: string }) => {
+    const query = params?.status ? `?status=${params.status}` : "";
+    return apiRequest<unknown[]>(`/seller/orders${query}`);
+  },
+  updateOrderStatus: (id: string, status: string) =>
+    apiRequest<unknown>(`/seller/orders/${id}/status`, {
+      method: "PATCH",
+      body: JSON.stringify({ status }),
     }),
 
-  // POST /seller/profile/logo
-  uploadLogo: (formData: FormData) =>
-    apiUpload<{ url: string }>('/seller/profile/logo', formData),
-
-  // GET /seller/dashboard
-  getDashboard: () => apiRequest<any>('/seller/dashboard'),
-
-  // --- Menu ---
-  // GET /seller/menu
-  getMenuItems: () => apiRequest<any[]>('/seller/menu'),
-
-  // POST /seller/menu
-  addMenuItem: (data: any) =>
-    apiRequest<any>('/seller/menu', {
-      method: 'POST',
+  // Menu (Products)
+  getMenuItems: () => apiRequest<unknown[]>("/seller/menu"),
+  addMenuItem: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/seller/menu", {
+      method: "POST",
       body: JSON.stringify(data),
     }),
-
-  // PUT /seller/menu/:id
-  updateMenuItem: (id: string, data: any) =>
-    apiRequest<any>(`/seller/menu/${id}`, {
-      method: 'PUT',
-      body: JSON.stringify(data),
-    }),
-
-  // DELETE /seller/menu/:id
   deleteMenuItem: (id: string) =>
-    apiRequest<any>(`/seller/menu/${id}`, { method: 'DELETE' }),
+    apiRequest<unknown>(`/seller/menu/${id}`, { method: "DELETE" }),
 
-  // POST /seller/menu/:id/image
-  uploadMenuImage: (id: string, formData: FormData) =>
-    apiUpload<{ url: string }>(`/seller/menu/${id}/image`, formData),
-
-  // PATCH /seller/menu/:id/availability
-  toggleAvailability: (id: string, isAvailable: boolean) =>
-    apiRequest<any>(`/seller/menu/${id}/availability`, {
-      method: 'PATCH',
-      body: JSON.stringify({ isAvailable }),
+  // Profile
+  getProfile: () => apiRequest<unknown>("/seller/profile"),
+  updateProfile: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/seller/profile", {
+      method: "PUT",
+      body: JSON.stringify(data),
     }),
 
-  // --- Orders ---
-  // GET /seller/orders?status=xxx
-  getOrders: (params?: { status?: string; page?: number; limit?: number }) => {
-    const query = new URLSearchParams();
-    if (params?.status && params.status !== 'all') query.set('status', params.status);
-    if (params?.page) query.set('page', String(params.page));
-    if (params?.limit) query.set('limit', String(params.limit));
-    return apiRequest<{ orders: any[]; total: number }>(`/seller/orders?${query}`);
-  },
+  // Earnings
+  getEarnings: (period: string) =>
+    apiRequest<unknown>(`/seller/earnings?period=${period}`),
 
-  // PATCH /seller/orders/:id/status
-  updateOrderStatus: (id: string, status: string) =>
-    apiRequest<any>(`/seller/orders/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-    }),
+  // Analytics
+  getAnalytics: (period: string) =>
+    apiRequest<unknown>(`/seller/analytics?period=${period}`),
+  getTopItems: () => apiRequest<unknown[]>("/seller/analytics/top-items"),
+  getPeakHours: () => apiRequest<unknown>("/seller/analytics/peak-hours"),
+  getRepeatCustomers: () =>
+    apiRequest<unknown>("/seller/analytics/repeat-customers"),
+  getAISuggestions: () =>
+    apiRequest<unknown>("/seller/analytics/ai-suggestions"),
 
-  // --- Analytics ---
-  // GET /seller/analytics?period=weekly|monthly|yearly
-  getAnalytics: (period: string = 'weekly') =>
-    apiRequest<any>(`/seller/analytics?period=${period}`),
+  // Settlements
+  getSettlements: (status?: string) =>
+    apiRequest<unknown[]>(
+      `/seller/settlements${status ? `?status=${status}` : ""}`,
+    ),
 
-  // GET /seller/analytics/top-items
-  getTopItems: () => apiRequest<any[]>('/seller/analytics/top-items'),
-
-  // GET /seller/analytics/peak-hours
-  getPeakHours: () => apiRequest<any[]>('/seller/analytics/peak-hours'),
-
-  // GET /seller/analytics/repeat-customers
-  getRepeatCustomers: () => apiRequest<any>('/seller/analytics/repeat-customers'),
-
-  // --- Earnings ---
-  // GET /seller/earnings?period=weekly|monthly
-  getEarnings: (period: string = 'monthly') =>
-    apiRequest<any>(`/seller/earnings?period=${period}`),
-
-  // --- Settlements ---
-  // GET /seller/settlements?status=pending|settled
-  getSettlements: (status?: string) => {
-    const query = status ? `?status=${status}` : '';
-    return apiRequest<any[]>(`/seller/settlements${query}`);
-  },
-
-  // --- KYC ---
-  // GET /seller/kyc
-  getKYCStatus: () => apiRequest<any>('/seller/kyc'),
-
-  // POST /seller/kyc/upload
+  // KYC
+  getKYCStatus: () => apiRequest<unknown>("/seller/kyc"),
   uploadKYCDocument: (formData: FormData) =>
-    apiUpload<any>('/seller/kyc/upload', formData),
-
-  // POST /seller/kyc/submit
+    apiUpload<unknown>("/seller/kyc/document", formData),
   submitKYC: () =>
-    apiRequest<any>('/seller/kyc/submit', { method: 'POST' }),
-};
+    apiRequest<unknown>("/seller/kyc/submit", { method: "POST" }),
 
-// ============================================
-// USER / CUSTOMER APIs
-// ============================================
-export const userAPI = {
-  // GET /sellers?type=home_chef|restaurant&city=xxx
-  getSellers: (params?: { type?: string; city?: string }) => {
-    const query = new URLSearchParams();
-    if (params?.type && params.type !== 'all') query.set('type', params.type);
-    if (params?.city) query.set('city', params.city);
-    return apiRequest<any[]>(`/sellers?${query}`);
-  },
-
-  // GET /sellers/:id
-  getSellerById: (id: string) => apiRequest<any>(`/sellers/${id}`),
-
-  // GET /sellers/:id/menu
-  getSellerMenu: (sellerId: string) => apiRequest<any[]>(`/sellers/${sellerId}/menu`),
-
-  // GET /menu/search?q=xxx
-  searchMenu: (query: string) =>
-    apiRequest<any[]>(`/menu/search?q=${encodeURIComponent(query)}`),
-
-  // --- Cart ---
-  // GET /cart
-  getCart: () => apiRequest<any>('/cart'),
-
-  // POST /cart/add
-  addToCart: (menuItemId: string, quantity: number) =>
-    apiRequest<any>('/cart/add', {
-      method: 'POST',
-      body: JSON.stringify({ menuItemId, quantity }),
+  // Notifications
+  getNotifications: () => apiRequest<unknown[]>("/seller/notifications"),
+  markNotificationRead: (id: string) =>
+    apiRequest<unknown>(`/seller/notifications/${id}/read`, {
+      method: "PATCH",
     }),
 
-  // PUT /cart/update
-  updateCartItem: (menuItemId: string, quantity: number) =>
-    apiRequest<any>('/cart/update', {
-      method: 'PUT',
-      body: JSON.stringify({ menuItemId, quantity }),
+  // Low Stock Alerts
+  getLowStockAlerts: () => apiRequest<unknown[]>("/seller/inventory/low-stock"),
+
+  // Referrals
+  getReferrals: () => apiRequest<unknown>("/seller/referrals"),
+  generateReferralCode: () =>
+    apiRequest<unknown>("/seller/referrals/code", { method: "POST" }),
+
+  // Promotions / Offers
+  getPromotions: () => apiRequest<unknown[]>("/seller/promotions"),
+  createPromotion: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/seller/promotions", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  togglePromotion: (id: string, isActive: boolean) =>
+    apiRequest<unknown>(`/seller/promotions/${id}/toggle`, {
+      method: "PATCH",
+      body: JSON.stringify({ isActive }),
     }),
 
-  // DELETE /cart/remove/:menuItemId
-  removeFromCart: (menuItemId: string) =>
-    apiRequest<any>(`/cart/remove/${menuItemId}`, { method: 'DELETE' }),
+  // Reviews & Ratings
+  getReviews: () => apiRequest<unknown[]>("/seller/reviews"),
+  replyToReview: (id: string, message: string) =>
+    apiRequest<unknown>(`/seller/reviews/${id}/reply`, {
+      method: "POST",
+      body: JSON.stringify({ message }),
+    }),
 
-  // DELETE /cart/clear
-  clearCart: () => apiRequest<any>('/cart/clear', { method: 'DELETE' }),
+  // Inventory / Stock
+  getInventory: () => apiRequest<unknown[]>("/seller/inventory"),
+  updateStock: (data: {
+    productId: string;
+    stock: number;
+    expiryDate?: Date;
+  }) =>
+    apiRequest<unknown>("/seller/inventory/update", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  getExpiryAlerts: () =>
+    apiRequest<unknown[]>("/seller/inventory/expiry-alerts"),
 
-  // --- Orders ---
-  // POST /orders
-  createOrder: (data: any) =>
-    apiRequest<any>('/orders', {
-      method: 'POST',
+  // Customers
+  getCustomers: () => apiRequest<unknown[]>("/seller/customers"),
+  awardLoyaltyPoints: (userId: string, points: number) =>
+    apiRequest<unknown>("/seller/customers/award-points", {
+      method: "POST",
+      body: JSON.stringify({ userId, points }),
+    }),
+
+  // Marketing Tools
+  getCampaigns: () => apiRequest<unknown[]>("/seller/marketing/campaigns"),
+  createCampaign: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/seller/marketing/campaigns", {
+      method: "POST",
       body: JSON.stringify(data),
     }),
 
-  // GET /orders
-  getOrders: () => apiRequest<any[]>('/orders'),
-
-  // GET /orders/:id
-  getOrderById: (id: string) => apiRequest<any>(`/orders/${id}`),
-
-  // POST /orders/:id/review
-  submitReview: (orderId: string, data: { rating: number; comment: string }) =>
-    apiRequest<any>(`/orders/${orderId}/review`, {
-      method: 'POST',
-      body: JSON.stringify(data),
+  // Payout History
+  getPayouts: () => apiRequest<unknown[]>("/seller/payouts"),
+  requestPayout: (amount: number, method: string) =>
+    apiRequest<unknown>("/seller/payouts/request", {
+      method: "POST",
+      body: JSON.stringify({ amount, method }),
     }),
 
-  // --- Subscriptions ---
-  // POST /subscriptions
-  createSubscription: (data: any) =>
-    apiRequest<any>('/subscriptions', {
-      method: 'POST',
+  // Performance Insights
+  getPerformanceInsights: () =>
+    apiRequest<unknown>("/seller/performance-insights"),
+
+  // Settings (Notifications + Password)
+  getNotificationPreferences: () =>
+    apiRequest<unknown>("/seller/settings/notifications"),
+  updateNotificationPreferences: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/seller/settings/notifications", {
+      method: "PUT",
       body: JSON.stringify(data),
     }),
-
-  // GET /subscriptions
-  getSubscriptions: () => apiRequest<any[]>('/subscriptions'),
-
-  // PATCH /subscriptions/:id/pause
-  pauseSubscription: (id: string) =>
-    apiRequest<any>(`/subscriptions/${id}/pause`, { method: 'PATCH' }),
-
-  // PATCH /subscriptions/:id/resume
-  resumeSubscription: (id: string) =>
-    apiRequest<any>(`/subscriptions/${id}/resume`, { method: 'PATCH' }),
-
-  // DELETE /subscriptions/:id
-  cancelSubscription: (id: string) =>
-    apiRequest<any>(`/subscriptions/${id}`, { method: 'DELETE' }),
-
-  // --- Wallet ---
-  // GET /wallet
-  getWallet: () => apiRequest<any>('/wallet'),
-
-  // GET /wallet/transactions
-  getWalletTransactions: () => apiRequest<any[]>('/wallet/transactions'),
-
-  // --- Payments ---
-  // POST /payments/create-order (Razorpay)
-  createPaymentOrder: (data: { amount: number; orderId: string }) =>
-    apiRequest<any>('/payments/create-order', {
-      method: 'POST',
-      body: JSON.stringify(data),
+  changePassword: (current: string, newPass: string) =>
+    apiRequest<unknown>("/seller/settings/password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword: current, newPassword: newPass }),
     }),
 
-  // POST /payments/verify
-  verifyPayment: (data: any) =>
-    apiRequest<any>('/payments/verify', {
-      method: 'POST',
+  // Help & Support
+  createSupportTicket: (data: {
+    subject: string;
+    message: string;
+    category?: string;
+  }) =>
+    apiRequest<unknown>("/seller/support/tickets", {
+      method: "POST",
       body: JSON.stringify(data),
     }),
-
-  // POST /payments/stripe-intent
-  createStripeIntent: (data: { amount: number; orderId: string }) =>
-    apiRequest<any>('/payments/stripe-intent', {
-      method: 'POST',
-      body: JSON.stringify(data),
+  getMyTickets: () => apiRequest<unknown[]>("/seller/support/tickets"),
+  addTicketResponse: (ticketId: string, message: string) =>
+    apiRequest<unknown>("/seller/support/tickets/response", {
+      method: "POST",
+      body: JSON.stringify({ ticketId, message }),
     }),
 };
 
-// ============================================
 // ADMIN APIs
-// ============================================
 export const adminAPI = {
-  // GET /admin/dashboard
-  getDashboard: () => apiRequest<any>('/admin/dashboard'),
+  // Dashboard
+  getDashboard: () => apiRequest<unknown>("/admin/dashboard"),
 
-  // --- Sellers ---
-  // GET /admin/sellers?status=xxx&type=xxx
-  getSellers: (params?: { status?: string; type?: string; page?: number }) => {
-    const query = new URLSearchParams();
-    if (params?.status) query.set('status', params.status);
-    if (params?.type) query.set('type', params.type);
-    if (params?.page) query.set('page', String(params.page));
-    return apiRequest<{ sellers: any[]; total: number }>(`/admin/sellers?${query}`);
-  },
+  // Analytics
+  getAnalytics: (period: string) =>
+    apiRequest<unknown>(`/admin/analytics?period=${period}`),
+  getCityWiseRevenue: () => apiRequest<unknown[]>("/admin/analytics/city-wise"),
+  getCategoryWiseSales: () =>
+    apiRequest<unknown[]>("/admin/analytics/category-wise"),
+  getCartDropoffs: () => apiRequest<unknown>("/admin/analytics/cart-dropoffs"),
 
-  // GET /admin/sellers/:id
-  getSellerById: (id: string) => apiRequest<any>(`/admin/sellers/${id}`),
+  // Performance
+  getSellerPerformance: () =>
+    apiRequest<unknown[]>("/admin/performance/sellers"),
+  getPerformanceOverview: () =>
+    apiRequest<unknown>("/admin/performance/overview"),
 
-  // PATCH /admin/sellers/:id/approve
-  approveSeller: (id: string) =>
-    apiRequest<any>(`/admin/sellers/${id}/approve`, { method: 'PATCH' }),
-
-  // PATCH /admin/sellers/:id/reject
-  rejectSeller: (id: string, reason: string) =>
-    apiRequest<any>(`/admin/sellers/${id}/reject`, {
-      method: 'PATCH',
-      body: JSON.stringify({ reason }),
-    }),
-
-  // PATCH /admin/sellers/:id/commission
-  updateSellerCommission: (id: string, commission: number) =>
-    apiRequest<any>(`/admin/sellers/${id}/commission`, {
-      method: 'PATCH',
-      body: JSON.stringify({ commission }),
-    }),
-
-  // PATCH /admin/sellers/:id/toggle-active
-  toggleSellerActive: (id: string) =>
-    apiRequest<any>(`/admin/sellers/${id}/toggle-active`, { method: 'PATCH' }),
-
-  // --- Users ---
-  // GET /admin/users?page=x&search=xxx
-  getUsers: (params?: { page?: number; search?: string; status?: string }) => {
-    const query = new URLSearchParams();
-    if (params?.page) query.set('page', String(params.page));
-    if (params?.search) query.set('search', params.search);
-    if (params?.status) query.set('status', params.status);
-    return apiRequest<{ users: any[]; total: number }>(`/admin/users?${query}`);
-  },
-
-  // PATCH /admin/users/:id/block
-  blockUser: (id: string) =>
-    apiRequest<any>(`/admin/users/${id}/block`, { method: 'PATCH' }),
-
-  // PATCH /admin/users/:id/unblock
-  unblockUser: (id: string) =>
-    apiRequest<any>(`/admin/users/${id}/unblock`, { method: 'PATCH' }),
-
-  // --- Orders ---
-  // GET /admin/orders?status=xxx&page=x
-  getOrders: (params?: { status?: string; page?: number; sellerId?: string }) => {
-    const query = new URLSearchParams();
-    if (params?.status && params.status !== 'all') query.set('status', params.status);
-    if (params?.page) query.set('page', String(params.page));
-    if (params?.sellerId) query.set('sellerId', params.sellerId);
-    return apiRequest<{ orders: any[]; total: number }>(`/admin/orders?${query}`);
-  },
-
-  // PATCH /admin/orders/:id/status
-  updateOrderStatus: (id: string, status: string) =>
-    apiRequest<any>(`/admin/orders/${id}/status`, {
-      method: 'PATCH',
-      body: JSON.stringify({ status }),
-    }),
-
-  // POST /admin/orders/:id/refund
-  refundOrder: (id: string) =>
-    apiRequest<any>(`/admin/orders/${id}/refund`, { method: 'POST' }),
-
-  // --- Settlements ---
-  // GET /admin/settlements?status=pending|settled
-  getSettlements: (status?: string) => {
-    const query = status ? `?status=${status}` : '';
-    return apiRequest<any[]>(`/admin/settlements${query}`);
-  },
-
-  // POST /admin/settlements/:id/process
+  // Settlements
+  getSettlements: (status?: string) =>
+    apiRequest<unknown[]>(
+      `/admin/settlements${status ? `?status=${status}` : ""}`,
+    ),
   processSettlement: (id: string) =>
-    apiRequest<any>(`/admin/settlements/${id}/process`, { method: 'POST' }),
+    apiRequest<unknown>(`/admin/settlements/${id}/process`, { method: "POST" }),
 
-  // POST /admin/settlements/bulk-process
-  bulkProcessSettlements: (ids: string[]) =>
-    apiRequest<any>('/admin/settlements/bulk-process', {
-      method: 'POST',
-      body: JSON.stringify({ ids }),
-    }),
+  // Sellers Management
+  getSellers: (status?: string) =>
+    apiRequest<unknown[]>(`/admin/sellers${status ? `?status=${status}` : ""}`),
+  approveSeller: (id: string) =>
+    apiRequest<unknown>(`/admin/sellers/${id}/approve`, { method: "POST" }),
+  rejectSeller: (id: string) =>
+    apiRequest<unknown>(`/admin/sellers/${id}/reject`, { method: "POST" }),
 
-  // --- Commission ---
-  // GET /admin/commission
-  getCommissionConfig: () => apiRequest<any>('/admin/commission'),
+  // Users Management
+  getUsers: (params?: { search?: string; status?: string }) => {
+    const query = toQuery(params as Record<string, unknown> | undefined);
+    return apiRequest<unknown[]>(`/admin/users?${query}`);
+  },
+  blockUser: (id: string) =>
+    apiRequest<unknown>(`/admin/users/${id}/block`, { method: "POST" }),
+  unblockUser: (id: string) =>
+    apiRequest<unknown>(`/admin/users/${id}/unblock`, { method: "POST" }),
 
-  // PUT /admin/commission
-  updateCommissionConfig: (data: any) =>
-    apiRequest<any>('/admin/commission', {
-      method: 'PUT',
+  // Orders (Admin View)
+  getOrders: (status?: string) =>
+    apiRequest<unknown[]>(`/admin/orders${status ? `?status=${status}` : ""}`),
+  refundOrder: (id: string) =>
+    apiRequest<unknown>(`/admin/orders/${id}/refund`, { method: "POST" }),
+
+  // Commission Config
+  getCommissionConfig: () => apiRequest<unknown>("/admin/commission"),
+  updateCommissionConfig: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/admin/commission", {
+      method: "PUT",
       body: JSON.stringify(data),
     }),
 
-  // --- GST ---
-  // GET /admin/gst
-  getGSTConfig: () => apiRequest<any>('/admin/gst'),
-
-  // PUT /admin/gst
-  updateGSTConfig: (data: any) =>
-    apiRequest<any>('/admin/gst', {
-      method: 'PUT',
+  // GST Config
+  getGSTConfig: () => apiRequest<unknown>("/admin/gst"),
+  updateGSTConfig: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/admin/gst", {
+      method: "PUT",
       body: JSON.stringify(data),
     }),
 
-  // --- Referrals ---
-  // GET /admin/referrals
-  getReferrals: (params?: { status?: string; page?: number }) => {
-    const query = new URLSearchParams();
-    if (params?.status) query.set('status', params.status);
-    if (params?.page) query.set('page', String(params.page));
-    return apiRequest<{ referrals: any[]; total: number }>(`/admin/referrals?${query}`);
+  // Referrals (Admin View)
+  getReferrals: (status?: string) =>
+    apiRequest<unknown[]>(
+      `/admin/referrals${status ? `?status=${status}` : ""}`,
+    ),
+  updateReferralConfig: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/admin/referrals/config", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  // Marketing Campaigns
+  getCampaigns: () => apiRequest<unknown[]>("/admin/marketing/campaigns"),
+  createCampaign: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/admin/marketing/campaigns", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // Platform Settings
+  getPlatformConfig: () => apiRequest<unknown>("/admin/config"),
+  updatePlatformConfig: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/admin/config", {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
+
+  // Disputes
+  getDisputes: () => apiRequest<unknown[]>("/admin/disputes"),
+  resolveDispute: (id: string, status: string, resolution: string) =>
+    apiRequest<unknown>(`/admin/disputes/${id}/resolve`, {
+      method: "POST",
+      body: JSON.stringify({ status, resolution }),
+    }),
+
+  // Audit Logs
+  getAuditLogs: () => apiRequest<unknown[]>("/admin/audit-logs"),
+
+  // Categories Management
+  getCategories: () => apiRequest<unknown[]>("/admin/categories"),
+  createCategory: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/admin/categories", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  deleteCategory: (id: string) =>
+    apiRequest<unknown>(`/admin/categories/${id}`, { method: "DELETE" }),
+};
+
+// USER / CUSTOMER APIs
+export const userAPI = {
+  // Home Page - Sellers
+  getSellers: (params: {
+    type?: string;
+    search?: string;
+    lat?: number;
+    long?: number;
+  }) => {
+    const query = toQuery(params as Record<string, unknown> | undefined);
+    return apiRequest<unknown[]>(`/user/sellers?${query}`);
   },
 
-  // GET /admin/referrals/config
-  getReferralConfig: () => apiRequest<any>('/admin/referrals/config'),
+  // Menu Items
+  getMenuItems: (params: { search?: string; sellerId?: string }) => {
+    const query = toQuery(params as Record<string, unknown> | undefined);
+    return apiRequest<unknown[]>(`/user/menu?${query}`);
+  },
 
-  // PUT /admin/referrals/config
-  updateReferralConfig: (data: any) =>
-    apiRequest<any>('/admin/referrals/config', {
-      method: 'PUT',
+  // AI Recommendations
+  getRecommendations: () => apiRequest<unknown[]>("/user/recommendations"),
+
+  // Cart Operations
+  getCart: () => apiRequest<unknown>("/user/cart"),
+  addToCart: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/user/cart/add", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  updateQuantity: (itemId: string, quantity: number) =>
+    apiRequest<unknown>("/user/cart/update", {
+      method: "PATCH",
+      body: JSON.stringify({ itemId, quantity }),
+    }),
+  removeFromCart: (itemId: string) =>
+    apiRequest<unknown>(`/user/cart/remove/${itemId}`, { method: "DELETE" }),
+
+  // Place Order
+  placeOrder: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/user/orders/place", {
+      method: "POST",
       body: JSON.stringify(data),
     }),
 
-  // --- Marketing ---
-  // GET /admin/marketing/campaigns
-  getCampaigns: () => apiRequest<any[]>('/admin/marketing/campaigns'),
+  // Wishlist
+  addToWishlist: (productId: string) =>
+    apiRequest<unknown>("/user/wishlist/add", {
+      method: "POST",
+      body: JSON.stringify({ productId }),
+    }),
+  getWishlist: () => apiRequest<unknown[]>("/user/wishlist"),
 
-  // POST /admin/marketing/campaigns
-  createCampaign: (data: any) =>
-    apiRequest<any>('/admin/marketing/campaigns', {
-      method: 'POST',
+  // Wallet
+  topupWallet: (amount: number) =>
+    apiRequest<unknown>("/user/wallet/topup", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
+  verifyPayment: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/user/wallet/verify", {
+      method: "POST",
       body: JSON.stringify(data),
     }),
 
-  // PUT /admin/marketing/campaigns/:id
-  updateCampaign: (id: string, data: any) =>
-    apiRequest<any>(`/admin/marketing/campaigns/${id}`, {
-      method: 'PUT',
+  // Notifications
+  getNotifications: () => apiRequest<unknown[]>("/user/notifications"),
+};
+
+const authAPI = {
+  login: (email: string, password: string) =>
+    apiRequest<unknown>("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  register: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/auth/register", {
+      method: "POST",
       body: JSON.stringify(data),
     }),
-
-  // GET /admin/marketing/spend
-  getMarketingSpend: () => apiRequest<any>('/admin/marketing/spend'),
-
-  // --- Analytics ---
-  // GET /admin/analytics?period=weekly|monthly|yearly
-  getAnalytics: (period: string = 'monthly') =>
-    apiRequest<any>(`/admin/analytics?period=${period}`),
-
-  // GET /admin/analytics/city-wise
-  getCityWiseRevenue: () => apiRequest<any[]>('/admin/analytics/city-wise'),
-
-  // GET /admin/analytics/category-wise
-  getCategoryWiseSales: () => apiRequest<any[]>('/admin/analytics/category-wise'),
-
-  // GET /admin/analytics/cart-dropoffs
-  getCartDropoffs: () => apiRequest<any>('/admin/analytics/cart-dropoffs'),
-
-  // --- Performance ---
-  // GET /admin/performance/sellers
-  getSellerPerformance: () => apiRequest<any[]>('/admin/performance/sellers'),
-
-  // GET /admin/performance/overview
-  getPerformanceOverview: () => apiRequest<any>('/admin/performance/overview'),
-
-  // --- Platform Config ---
-  // GET /admin/config
-  getPlatformConfig: () => apiRequest<any>('/admin/config'),
-
-  // PUT /admin/config
-  updatePlatformConfig: (data: any) =>
-    apiRequest<any>('/admin/config', {
-      method: 'PUT',
+  sellerLogin: (email: string, password: string) =>
+    apiRequest<unknown>("/auth/seller/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  adminLogin: (email: string, password: string) =>
+    apiRequest<unknown>("/auth/admin/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  getProfile: () => apiRequest<unknown>("/auth/profile"),
+  updateProfile: (data: Record<string, unknown>) =>
+    apiRequest<unknown>("/auth/profile", {
+      method: "PUT",
       body: JSON.stringify(data),
     }),
 };
 
-export { apiRequest, apiUpload, API_BASE_URL };
+export { apiRequest, apiUpload, API_BASE_URL, authAPI };
