@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { userAPI } from '@/lib/api';
+import { userAPI, apiRequest } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Wallet, Plus, ArrowLeft, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -18,12 +18,12 @@ export default function UserWallet() {
 
   const { data: wallet, isLoading } = useQuery({
     queryKey: ['user-wallet'],
-    queryFn: () => userAPI.getWalletBalance(),
+    queryFn: () => apiRequest('/user/wallet/balance'),
   });
 
   const { data: history = [] } = useQuery({
     queryKey: ['user-wallet-history'],
-    queryFn: () => userAPI.getWalletHistory(),
+    queryFn: () => apiRequest('/user/wallet/history'),
   });
 
   const topupMutation = useMutation({

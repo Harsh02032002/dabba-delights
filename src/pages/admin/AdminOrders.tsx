@@ -20,7 +20,7 @@ export default function AdminOrders() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-orders', statusFilter],
-    queryFn: () => adminAPI.getOrders({ status: statusFilter }),
+    queryFn: () => adminAPI.getOrders(statusFilter === 'all' ? undefined : statusFilter),
   });
 
   const refundMutation = useMutation({
