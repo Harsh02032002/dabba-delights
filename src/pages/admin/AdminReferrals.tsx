@@ -18,7 +18,7 @@ export default function AdminReferrals() {
 
   const { data } = useQuery({
     queryKey: ['admin-referrals', statusFilter],
-    queryFn: () => adminAPI.getReferrals({ status: statusFilter === 'all' ? undefined : statusFilter }),
+    queryFn: () => adminAPI.getReferrals(statusFilter === 'all' ? undefined : statusFilter),
   });
 
   const { data: config } = useQuery({

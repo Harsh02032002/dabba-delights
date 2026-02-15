@@ -3,7 +3,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { userAPI } from '@/lib/api';
+import { userAPI, apiRequest } from '@/lib/api';
 import { Bell, ArrowLeft, CheckCircle2, Package, Wallet, Gift } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
@@ -24,7 +24,7 @@ export default function UserNotifications() {
   });
 
   const markReadMutation = useMutation({
-    mutationFn: (id: string) => userAPI.markNotificationRead(id),
+    mutationFn: (id: string) => apiRequest(`/user/notifications/${id}/read`, { method: 'PATCH' }),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['user-notifications'] }),
   });
 

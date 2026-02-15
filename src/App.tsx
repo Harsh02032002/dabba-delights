@@ -39,6 +39,7 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminPerformance from "./pages/admin/AdminPerformance";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminHelp from "./pages/admin/AdminHelp";
+import AdminProducts from "./pages/admin/AdminProducts";
 
 import NotFound from "./pages/NotFound";
 
@@ -86,6 +87,7 @@ const App = () => (
               <Route path="/admin/performance" element={<AdminPerformance />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
               <Route path="/admin/help" element={<AdminHelp />} />
+              <Route path="/admin/products" element={<AdminProducts />} />
 
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />

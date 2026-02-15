@@ -24,6 +24,7 @@ import {
   FileText,
   Globe,
   Megaphone,
+  UtensilsCrossed,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -59,6 +60,11 @@ const adminNavItems = [
     title: 'Orders',
     icon: ShoppingBag,
     href: '/admin/orders',
+  },
+  {
+    title: 'Products',
+    icon: UtensilsCrossed,
+    href: '/admin/products',
   },
   {
     title: 'divider',

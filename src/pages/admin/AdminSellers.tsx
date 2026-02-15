@@ -19,7 +19,7 @@ export default function AdminSellers() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-sellers', activeTab],
-    queryFn: () => adminAPI.getSellers({ status: activeTab === 'verified' || activeTab === 'pending' ? activeTab : undefined, type: activeTab === 'home_chef' || activeTab === 'restaurant' ? activeTab : undefined }),
+    queryFn: () => adminAPI.getSellers(activeTab === 'all' ? undefined : activeTab),
   });
 
   const approveMutation = useMutation({
@@ -28,7 +28,7 @@ export default function AdminSellers() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (id: string) => adminAPI.rejectSeller(id, 'Rejected by admin'),
+    mutationFn: (id: string) => adminAPI.rejectSeller(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-sellers'] }); toast({ title: 'Seller rejected' }); },
   });
 
