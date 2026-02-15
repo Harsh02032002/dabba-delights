@@ -24,9 +24,10 @@ import {
   FileText,
   Globe,
   Megaphone,
-} from "lucide-react";
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
+  UtensilsCrossed,
+} from 'lucide-react';
+import { useState } from 'react';
+import { Button } from '@/components/ui/button';
 import {
   Tooltip,
   TooltipContent,
@@ -58,22 +59,12 @@ const adminNavItems = [
   {
     title: "Orders",
     icon: ShoppingBag,
-    href: "/admin/orders",
+    href: '/admin/orders',
   },
   {
-    title: "Disputes",
-    icon: FileText,
-    href: "/admin/disputes",
-  },
-  {
-    title: "Audit Logs",
-    icon: Bell,
-    href: "/admin/audit-logs",
-  },
-  {
-    title: "Categories",
-    icon: Globe,
-    href: "/admin/categories",
+    title: 'Products',
+    icon: UtensilsCrossed,
+    href: '/admin/products',
   },
   {
     title: "divider",

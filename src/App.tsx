@@ -47,10 +47,8 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminPerformance from "./pages/admin/AdminPerformance";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminHelp from "./pages/admin/AdminHelp";
-import AdminDisputes from "./pages/admin/AdminDisputes";
-import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
-import AdminCategories from "./pages/admin/AdminCategories";
-import UserWishlist from "./pages/user/UserWishlist";
+import AdminProducts from "./pages/admin/AdminProducts";
+
 import NotFound from "./pages/NotFound";
 import UserNotifications from "./pages/user/UserNotifications";
 import { SocketProvider } from '@/contexts/SocketContext';
@@ -112,6 +110,7 @@ const App = () => (
               <Route path="/admin/performance" element={<AdminPerformance />} />
               <Route path="/admin/settings" element={<AdminSettings />} />
               <Route path="/admin/help" element={<AdminHelp />} />
+              <Route path="/admin/products" element={<AdminProducts />} />
 
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
