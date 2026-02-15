@@ -1,7 +1,7 @@
-import { Link, useLocation } from 'react-router-dom';
-import { cn } from '@/lib/utils';
-import { Logo } from '@/components/shared/Logo';
-import { useAuth } from '@/contexts/AuthContext';
+import { Link, useLocation } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { Logo } from "@/components/shared/Logo";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   LayoutDashboard,
   Users,
@@ -24,107 +24,122 @@ import {
   FileText,
   Globe,
   Megaphone,
-} from 'lucide-react';
-import { useState } from 'react';
-import { Button } from '@/components/ui/button';
+} from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from "@/components/ui/tooltip";
 
 const adminNavItems = [
   {
-    title: 'Dashboard',
+    title: "Dashboard",
     icon: LayoutDashboard,
-    href: '/admin',
+    href: "/admin",
   },
   {
-    title: 'divider',
+    title: "divider",
     icon: null,
-    href: '',
-    label: 'Management',
+    href: "",
+    label: "Management",
   },
   {
-    title: 'Sellers',
+    title: "Sellers",
     icon: Store,
-    href: '/admin/sellers',
+    href: "/admin/sellers",
   },
   {
-    title: 'Users',
+    title: "Users",
     icon: Users,
-    href: '/admin/users',
+    href: "/admin/users",
   },
   {
-    title: 'Orders',
+    title: "Orders",
     icon: ShoppingBag,
-    href: '/admin/orders',
+    href: "/admin/orders",
   },
   {
-    title: 'divider',
-    icon: null,
-    href: '',
-    label: 'Finance',
-  },
-  {
-    title: 'Settlements',
-    icon: Receipt,
-    href: '/admin/settlements',
-  },
-  {
-    title: 'Commission',
-    icon: Percent,
-    href: '/admin/commission',
-  },
-  {
-    title: 'GST Config',
+    title: "Disputes",
     icon: FileText,
-    href: '/admin/gst',
+    href: "/admin/disputes",
   },
   {
-    title: 'divider',
+    title: "Audit Logs",
+    icon: Bell,
+    href: "/admin/audit-logs",
+  },
+  {
+    title: "Categories",
+    icon: Globe,
+    href: "/admin/categories",
+  },
+  {
+    title: "divider",
     icon: null,
-    href: '',
-    label: 'Growth',
+    href: "",
+    label: "Finance",
   },
   {
-    title: 'Referrals',
+    title: "Settlements",
+    icon: Receipt,
+    href: "/admin/settlements",
+  },
+  {
+    title: "Commission",
+    icon: Percent,
+    href: "/admin/commission",
+  },
+  {
+    title: "GST Config",
+    icon: FileText,
+    href: "/admin/gst",
+  },
+  {
+    title: "divider",
+    icon: null,
+    href: "",
+    label: "Growth",
+  },
+  {
+    title: "Referrals",
     icon: Gift,
-    href: '/admin/referrals',
+    href: "/admin/referrals",
   },
   {
-    title: 'Marketing',
+    title: "Marketing",
     icon: Megaphone,
-    href: '/admin/marketing',
+    href: "/admin/marketing",
   },
   {
-    title: 'divider',
+    title: "divider",
     icon: null,
-    href: '',
-    label: 'Analytics',
+    href: "",
+    label: "Analytics",
   },
   {
-    title: 'Analytics',
+    title: "Analytics",
     icon: BarChart3,
-    href: '/admin/analytics',
+    href: "/admin/analytics",
   },
   {
-    title: 'Performance',
+    title: "Performance",
     icon: TrendingUp,
-    href: '/admin/performance',
+    href: "/admin/performance",
   },
 ];
 
 const bottomNavItems = [
   {
-    title: 'Settings',
+    title: "Settings",
     icon: Settings,
-    href: '/admin/settings',
+    href: "/admin/settings",
   },
   {
-    title: 'Help',
+    title: "Help",
     icon: HelpCircle,
-    href: '/admin/help',
+    href: "/admin/help",
   },
 ];
 
@@ -134,8 +149,8 @@ export function AdminSidebar() {
   const { user, logout } = useAuth();
 
   const isActive = (href: string) => {
-    if (href === '/admin') {
-      return location.pathname === '/admin';
+    if (href === "/admin") {
+      return location.pathname === "/admin";
     }
     return location.pathname.startsWith(href);
   };
@@ -143,19 +158,26 @@ export function AdminSidebar() {
   return (
     <aside
       className={cn(
-        'fixed left-0 top-0 h-screen bg-sidebar gradient-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300 z-40',
-        collapsed ? 'w-[72px]' : 'w-[260px]'
+        "fixed left-0 top-0 h-screen bg-sidebar gradient-sidebar border-r border-sidebar-border flex flex-col transition-all duration-300 z-40",
+        collapsed ? "w-[72px]" : "w-[260px]",
       )}
     >
       {/* Header */}
-      <div className={cn('p-4 border-b border-sidebar-border', collapsed && 'px-3')}>
+      <div
+        className={cn(
+          "p-4 border-b border-sidebar-border",
+          collapsed && "px-3",
+        )}
+      >
         <Link to="/admin" className="flex items-center">
-          <Logo size={collapsed ? 'sm' : 'md'} showText={!collapsed} />
+          <Logo size={collapsed ? "sm" : "md"} showText={!collapsed} />
         </Link>
         {!collapsed && (
           <div className="mt-2 flex items-center gap-2">
             <Shield size={14} className="text-primary" />
-            <span className="text-xs font-medium text-primary">Admin Panel</span>
+            <span className="text-xs font-medium text-primary">
+              Admin Panel
+            </span>
           </div>
         )}
       </div>
@@ -174,10 +196,15 @@ export function AdminSidebar() {
       <nav className="flex-1 p-3 overflow-y-auto">
         <ul className="space-y-1">
           {adminNavItems.map((item, index) => {
-            if (item.title === 'divider') {
+            if (item.title === "divider") {
               return (
                 <li key={index} className="py-2">
-                  <div className={cn('border-t border-sidebar-border', collapsed && 'mx-2')} />
+                  <div
+                    className={cn(
+                      "border-t border-sidebar-border",
+                      collapsed && "mx-2",
+                    )}
+                  />
                   {!collapsed && item.label && (
                     <p className="mt-3 mb-1 px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
                       {item.label}
@@ -194,12 +221,12 @@ export function AdminSidebar() {
               <Link
                 to={item.href}
                 className={cn(
-                  'sidebar-link',
-                  active && 'sidebar-link-active',
-                  collapsed && 'justify-center px-3'
+                  "sidebar-link",
+                  active && "sidebar-link-active",
+                  collapsed && "justify-center px-3",
                 )}
               >
-                <Icon size={20} className={active ? 'text-primary' : ''} />
+                <Icon size={20} className={active ? "text-primary" : ""} />
                 {!collapsed && <span>{item.title}</span>}
               </Link>
             );
@@ -233,9 +260,9 @@ export function AdminSidebar() {
               <Link
                 to={item.href}
                 className={cn(
-                  'sidebar-link',
-                  active && 'sidebar-link-active',
-                  collapsed && 'justify-center px-3'
+                  "sidebar-link",
+                  active && "sidebar-link-active",
+                  collapsed && "justify-center px-3",
                 )}
               >
                 <Icon size={20} />
@@ -261,15 +288,25 @@ export function AdminSidebar() {
         </ul>
 
         {/* User Profile */}
-        <div className={cn('mt-4 pt-4 border-t border-sidebar-border', collapsed && 'px-0')}>
-          <div className={cn('flex items-center gap-3', collapsed && 'justify-center')}>
+        <div
+          className={cn(
+            "mt-4 pt-4 border-t border-sidebar-border",
+            collapsed && "px-0",
+          )}
+        >
+          <div
+            className={cn(
+              "flex items-center gap-3",
+              collapsed && "justify-center",
+            )}
+          >
             <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shrink-0">
               <Shield size={18} className="text-primary-foreground" />
             </div>
             {!collapsed && (
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-sidebar-foreground truncate">
-                  {user?.name || 'Admin'}
+                  {user?.name || "Admin"}
                 </p>
                 <p className="text-xs text-muted-foreground truncate">
                   Super Admin

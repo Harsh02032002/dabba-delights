@@ -23,6 +23,14 @@ import SellerKYC from "./pages/seller/SellerKYC";
 import SellerProfile from "./pages/seller/SellerProfile";
 import SellerSettings from "./pages/seller/SellerSettings";
 import SellerHelp from "./pages/seller/SellerHelp";
+import SellerReferrals from "./pages/seller/SellerReferrals";
+import SellerPromotions from "./pages/seller/SellerPromotions";
+import SellerReviews from "./pages/seller/SellerReviews";
+import SellerInventory from "./pages/seller/SellerInventory";
+import SellerCustomers from "./pages/seller/SellerCustomers";
+import SellerMarketing from "./pages/seller/SellerMarketing";
+import SellerPayouts from "./pages/seller/SellerPayouts";
+import SellerPerformanceInsights from "./pages/seller/SellerPerformanceInsights";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -39,8 +47,13 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminPerformance from "./pages/admin/AdminPerformance";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminHelp from "./pages/admin/AdminHelp";
-
+import AdminDisputes from "./pages/admin/AdminDisputes";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
+import AdminCategories from "./pages/admin/AdminCategories";
+import UserWishlist from "./pages/user/UserWishlist";
 import NotFound from "./pages/NotFound";
+import UserNotifications from "./pages/user/UserNotifications";
+import { SocketProvider } from '@/contexts/SocketContext';
 
 const queryClient = new QueryClient();
 
@@ -48,7 +61,8 @@ const App = () => (
   <QueryClientProvider client={queryClient}>
     <AuthProvider>
       <CartProvider>
-        <TooltipProvider>
+        <SocketProvider>
+          <TooltipProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -57,7 +71,8 @@ const App = () => (
               <Route path="/" element={<UserHome />} />
               <Route path="/login" element={<UserLogin />} />
               <Route path="/cart" element={<CartPage />} />
-
+                <Route path="/wishlist" element={<UserWishlist />} />
+                <Route path="/notifications" element={<UserNotifications />} />
               {/* Seller Routes */}
               <Route path="/seller/login" element={<SellerLogin />} />
               <Route path="/seller" element={<SellerDashboard />} />
@@ -70,6 +85,14 @@ const App = () => (
               <Route path="/seller/profile" element={<SellerProfile />} />
               <Route path="/seller/settings" element={<SellerSettings />} />
               <Route path="/seller/help" element={<SellerHelp />} />
+              <Route path="/seller/referrals" element={<SellerReferrals />} />
+              <Route path="/seller/promotions" element={<SellerPromotions />} />
+              <Route path="/seller/reviews" element={<SellerReviews />} />
+              <Route path="/seller/inventory" element={<SellerInventory />} />
+              <Route path="/seller/customers" element={<SellerCustomers />} />
+              <Route path="/seller/marketing" element={<SellerMarketing />} />
+              <Route path="/seller/payouts" element={<SellerPayouts />} />
+              <Route path="/seller/performance" element={<SellerPerformanceInsights />} />
 
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
@@ -77,6 +100,9 @@ const App = () => (
               <Route path="/admin/sellers" element={<AdminSellers />} />
               <Route path="/admin/users" element={<AdminUsers />} />
               <Route path="/admin/orders" element={<AdminOrders />} />
+              <Route path="/admin/disputes" element={<AdminDisputes />} />
+              <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
+              <Route path="/admin/categories" element={<AdminCategories />} />
               <Route path="/admin/settlements" element={<AdminSettlements />} />
               <Route path="/admin/commission" element={<AdminCommission />} />
               <Route path="/admin/gst" element={<AdminGST />} />
@@ -91,7 +117,8 @@ const App = () => (
               <Route path="*" element={<NotFound />} />
             </Routes>
           </BrowserRouter>
-        </TooltipProvider>
+          </TooltipProvider>
+        </SocketProvider>
       </CartProvider>
     </AuthProvider>
   </QueryClientProvider>
