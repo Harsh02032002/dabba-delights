@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { User, UserRole } from '@/types';
 import { authAPI } from '@/lib/api';
 
@@ -15,30 +15,38 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('user');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const initRef = useRef(false);
 
   useEffect(() => {
-    // Check for existing token and user data
+    if (initRef.current) return;
+    initRef.current = true;
+    // Token exists but no user → try to restore (non-blocking)
     const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    
-    if (token && savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-      }
+    if (token && !user) {
+      authAPI.getProfile()
+        .then((res: any) => {
+          const u = res.user || res;
+          setUser(u);
+          localStorage.setItem('user', JSON.stringify(u));
+        })
+        .catch(() => {
+          // Do NOT logout on single failed auth/me — token may still be valid
+          // Only clear if 401 explicitly
+        });
     }
-    setIsLoading(false);
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const login = async (email: string, password: string, role: 'customer' | 'seller' | 'admin' = 'customer') => {
     setIsLoading(true);
     try {
-      let response;
-      
+      let response: any;
       if (role === 'seller') {
         response = await authAPI.sellerLogin(email, password);
       } else if (role === 'admin') {
@@ -46,7 +54,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } else {
         response = await authAPI.login(email, password);
       }
-      
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
       setUser(response.user);
@@ -58,7 +65,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const register = async (data: { name: string; email: string; password: string; phone: string }) => {
     setIsLoading(true);
     try {
-      const response = await authAPI.register(data);
+      const response: any = await authAPI.register(data);
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
       setUser(response.user);
