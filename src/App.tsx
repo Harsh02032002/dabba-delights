@@ -5,11 +5,16 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { SocketProvider } from "@/contexts/SocketContext";
 
 // User Pages
 import UserHome from "./pages/user/UserHome";
 import UserLogin from "./pages/user/UserLogin";
 import CartPage from "./pages/user/CartPage";
+import UserWishlist from "./pages/user/UserWishlist";
+import UserNotifications from "./pages/user/UserNotifications";
+import UserWallet from "./pages/user/UserWallet";
+import AllProducts from "./pages/user/AllProducts";
 
 // Seller Pages
 import SellerLogin from "./pages/seller/SellerLogin";
@@ -48,12 +53,23 @@ import AdminPerformance from "./pages/admin/AdminPerformance";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminHelp from "./pages/admin/AdminHelp";
 import AdminProducts from "./pages/admin/AdminProducts";
+import AdminDisputes from "./pages/admin/AdminDisputes";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
+import AdminCategories from "./pages/admin/AdminCategories";
 
 import NotFound from "./pages/NotFound";
-import UserNotifications from "./pages/user/UserNotifications";
-import { SocketProvider } from '@/contexts/SocketContext';
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000,
+      gcTime: 10 * 60 * 1000,
+      refetchOnWindowFocus: false,
+      refetchOnMount: false,
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -69,8 +85,11 @@ const App = () => (
               <Route path="/" element={<UserHome />} />
               <Route path="/login" element={<UserLogin />} />
               <Route path="/cart" element={<CartPage />} />
-                <Route path="/wishlist" element={<UserWishlist />} />
-                <Route path="/notifications" element={<UserNotifications />} />
+              <Route path="/wishlist" element={<UserWishlist />} />
+              <Route path="/notifications" element={<UserNotifications />} />
+              <Route path="/wallet" element={<UserWallet />} />
+              <Route path="/all-products" element={<AllProducts />} />
+
               {/* Seller Routes */}
               <Route path="/seller/login" element={<SellerLogin />} />
               <Route path="/seller" element={<SellerDashboard />} />

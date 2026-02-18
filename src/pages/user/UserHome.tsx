@@ -14,13 +14,14 @@ import {
   Truck,
   Star,
 } from "lucide-react";
-import { LoadingSpinner } from "@/components/shared/LoadingSpinner"; // Assuming you have this
+import { Skeleton } from "@/components/ui/skeleton";
+import { useNavigate } from "react-router-dom";
 
 export default function UserHome() {
   const [foodType, setFoodType] = useState<SellerType | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
+  const navigate = useNavigate();
 
-  // Sellers Query – Fixed to v5 object format
   const { 
     data: sellersData = [], 
     isLoading: sellersLoading 
@@ -31,23 +32,21 @@ export default function UserHome() {
         type: foodType === "all" ? undefined : foodType,
         search: searchQuery || undefined,
       }),
-    keepPreviousData: true, // Optional: keeps old data while fetching new
+    placeholderData: (prev) => prev,
   });
 
-  // Menu Items Query – Fixed to v5 object format
   const { 
     data: menuData = [], 
     isLoading: menuLoading 
   } = useQuery({
     queryKey: ["menu-items", searchQuery],
     queryFn: () => userAPI.getMenuItems({ search: searchQuery || undefined }),
-    keepPreviousData: true,
+    placeholderData: (prev) => prev,
   });
 
   const sellers = (sellersData as any[]) || [];
   const menuItems = (menuData as any[]) || [];
 
-  // Filter sellers (client-side)
   const filteredSellers = sellers.filter((s: any) => {
     if (foodType !== "all" && s.type !== foodType) return false;
     if (!searchQuery) return true;
@@ -58,7 +57,6 @@ export default function UserHome() {
     );
   });
 
-  // Featured items filter
   const featuredItems = menuItems.filter((item: any) => {
     const seller = sellers.find((s: any) => s._id === item.sellerId);
     if (!seller) return false;
@@ -74,16 +72,19 @@ export default function UserHome() {
     return true;
   });
 
-  // Loading state
-  if (sellersLoading || menuLoading) {
-    return (
-      <UserLayout>
-        <div className="flex justify-center items-center min-h-[60vh]">
-          <LoadingSpinner />
+  const SkeletonCards = () => (
+    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+      {Array.from({ length: 4 }).map((_, i) => (
+        <div key={i} className="rounded-2xl overflow-hidden">
+          <Skeleton className="aspect-[4/3] w-full" />
+          <div className="p-4 space-y-2">
+            <Skeleton className="h-4 w-3/4" />
+            <Skeleton className="h-3 w-1/2" />
+          </div>
         </div>
-      </UserLayout>
-    );
-  }
+      ))}
+    </div>
+  );
 
   return (
     <UserLayout onSearch={setSearchQuery}>
@@ -105,9 +106,7 @@ export default function UserHome() {
             <p className="mb-8 text-lg text-muted-foreground">
               Discover authentic home-cooked meals from local chefs or order from your favorite restaurants. Fresh, delicious, and delivered to your doorstep.
             </p>
-            {/* Food Type Toggle */}
             <FoodToggle value={foodType} onChange={setFoodType} />
-            {/* Stats */}
             <div className="mt-10 flex flex-wrap gap-8">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
@@ -154,15 +153,17 @@ export default function UserHome() {
             </h2>
             <p className="text-muted-foreground">Discover the best food near your location</p>
           </div>
-          <Button variant="ghost" className="gap-2">
+          <Button variant="ghost" className="gap-2" onClick={() => navigate("/all-products")}>
             View All <ChevronRight size={16} />
           </Button>
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {filteredSellers.map((seller) => (
-            <SellerCard key={seller._id} seller={seller} />
-          ))}
-        </div>
+        {sellersLoading ? <SkeletonCards /> : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {filteredSellers.map((seller) => (
+              <SellerCard key={seller._id} seller={seller} />
+            ))}
+          </div>
+        )}
       </section>
 
       {/* Featured Dishes */}
@@ -174,17 +175,19 @@ export default function UserHome() {
             </h2>
             <p className="text-muted-foreground">{featuredItems.length} dishes available</p>
           </div>
-          <Button variant="ghost" className="gap-2">
+          <Button variant="ghost" className="gap-2" onClick={() => navigate("/all-products")}>
             View All <ChevronRight size={16} />
           </Button>
         </div>
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-          {featuredItems.slice(0, 8).map((item) => {
-            const seller = sellers.find((s: any) => s._id === item.sellerId);
-            if (!seller) return null;
-            return <FoodCard key={item._id} item={item} seller={seller} />;
-          })}
-        </div>
+        {menuLoading ? <SkeletonCards /> : (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+            {featuredItems.slice(0, 8).map((item) => {
+              const seller = sellers.find((s: any) => s._id === item.sellerId);
+              if (!seller) return null;
+              return <FoodCard key={item._id} item={item} seller={seller} />;
+            })}
+          </div>
+        )}
       </section>
 
       {/* Subscription Banner */}
