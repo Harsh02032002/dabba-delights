@@ -46,7 +46,7 @@ function toQuery(params?: Record<string, unknown>) {
   if (!params) return "";
   const entries = Object.entries(params).reduce<Record<string, string>>(
     (acc, [k, v]) => {
-      if (v !== undefined && v !== null) acc[k] = String(v);
+      if (v !== undefined && v !== null && v !== "") acc[k] = String(v);
       return acc;
     },
     {},
@@ -55,101 +55,164 @@ function toQuery(params?: Record<string, unknown>) {
   return qs ? `?${qs}` : "";
 }
 
-// ─── PRODUCT API (shared by seller & admin) ────────────────────────────────
+// ─── PRODUCT API — matches product.routes.js exactly ───────────────────────
 export const productAPI = {
-  // CRUD
+  // A — BASIC CRUD
+  // GET /products  (query: search, category, isVeg, isAvailable, page, limit, sort)
   getProducts: (params?: Record<string, unknown>) =>
     apiRequest(`/products${toQuery(params)}`),
+  // POST /products  (multipart — handleImageUpload middleware)
   createProduct: (formData: FormData) =>
     apiUpload("/products", formData),
+  // PUT /products/:id  (multipart — handleImageUpload middleware)
   updateProduct: (id: string, formData: FormData) =>
-    apiUpload(`/products/${id}`, formData, "PATCH"),
-  deleteProduct: (id: string) =>
-    apiRequest(`/products/${id}`, { method: "DELETE" }),
-
-  // Status / Availability
+    apiUpload(`/products/${id}`, formData, "PUT"),
+  
+  // B — STATUS / AVAILABILITY
+  // PATCH /products/:id/toggle
   toggleAvailability: (id: string) =>
-    apiRequest(`/products/${id}/toggle-availability`, { method: "PATCH" }),
+    apiRequest(`/products/${id}/toggle`, { method: "PATCH" }),
+  // PATCH /products/:id/out-of-stock
   markOutOfStock: (id: string) =>
     apiRequest(`/products/${id}/out-of-stock`, { method: "PATCH" }),
+  // PATCH /products/:id/in-stock
   markInStock: (id: string) =>
     apiRequest(`/products/${id}/in-stock`, { method: "PATCH" }),
 
-  // Quick edits
+  // C — QUICK EDIT
+  // PATCH /products/:id/price
   updatePrice: (id: string, price: number) =>
     apiRequest(`/products/${id}/price`, { method: "PATCH", body: JSON.stringify({ price }) }),
+  // PATCH /products/:id/category
   updateCategory: (id: string, category: string) =>
     apiRequest(`/products/${id}/category`, { method: "PATCH", body: JSON.stringify({ category }) }),
+  // PATCH /products/:id/veg-toggle
   toggleVeg: (id: string) =>
-    apiRequest(`/products/${id}/toggle-veg`, { method: "PATCH" }),
+    apiRequest(`/products/${id}/veg-toggle`, { method: "PATCH" }),
 
-  // Bulk JSON
+  // D — BULK JSON
+  // POST /products/bulk/create
   bulkCreate: (items: any[]) =>
-    apiRequest("/products/bulk", { method: "POST", body: JSON.stringify(items) }),
+    apiRequest("/products/bulk/create", { method: "POST", body: JSON.stringify(items) }),
+  // PUT /products/bulk/update
   bulkUpdate: (items: any[]) =>
-    apiRequest("/products/bulk", { method: "PATCH", body: JSON.stringify(items) }),
+    apiRequest("/products/bulk/update", { method: "PUT", body: JSON.stringify(items) }),
 
-  // Bulk CSV
+  // E — CSV BULK
+  // POST /products/bulk/csv  (multipart, field: "file")
   bulkCSV: (formData: FormData) =>
     apiUpload("/products/bulk/csv", formData),
 
-  // Duplicate
+  // F — DUPLICATE
+  // POST /products/:id/duplicate
   duplicateProduct: (id: string) =>
     apiRequest(`/products/${id}/duplicate`, { method: "POST" }),
 
-  // Archive / Delete
+  // I — ARCHIVE / DELETE
+  // PATCH /products/:id/archive
   archiveProduct: (id: string) =>
     apiRequest(`/products/${id}/archive`, { method: "PATCH" }),
+  // PATCH /products/:id/restore
   restoreProduct: (id: string) =>
     apiRequest(`/products/${id}/restore`, { method: "PATCH" }),
+  // DELETE /products/:id
   hardDeleteProduct: (id: string) =>
-    apiRequest(`/products/${id}/hard-delete`, { method: "DELETE" }),
+    apiRequest(`/products/${id}`, { method: "DELETE" }),
 
-  // Images
+  // J — IMAGE
+  // PATCH /products/:id/image  (multipart — handleImageUpload)
   replaceImage: (id: string, formData: FormData) =>
-    apiUpload(`/products/${id}/image/replace`, formData, "PATCH"),
+    apiUpload(`/products/${id}/image`, formData, "PATCH"),
+  // DELETE /products/:id/image
   removeImage: (id: string) =>
     apiRequest(`/products/${id}/image`, { method: "DELETE" }),
 
-  // AI Optimize
-  suggestOptimisation: (id?: string) =>
-    apiRequest(id ? `/products/${id}/optimize` : "/products/optimize", { method: "POST" }),
-
-  // Preview
-  generatePreviewLink: () =>
-    apiRequest("/products/preview-link", { method: "POST" }),
-
-  // Metrics
+  // K — METRICS
+  // GET /products/metrics
   getInvestorMetrics: () =>
-    apiRequest("/products/investor-metrics"),
-  getProductPerformance: (id: string) =>
-    apiRequest(`/products/${id}/performance`),
-
-  // Smart bulk
+    apiRequest("/products/metrics"),
+  
+  // L — SMART BULK + HAPPY HOUR
+  // POST /products/bulk/smart-rule
   applySmartBulkRule: (data: any) =>
-    apiRequest("/products/smart-bulk-rule", { method: "PATCH", body: JSON.stringify(data) }),
+    apiRequest("/products/bulk/smart-rule", { method: "POST", body: JSON.stringify(data) }),
+  // PATCH /products/happy-hour
   setHappyHourDiscount: (data: any) =>
     apiRequest("/products/happy-hour", { method: "PATCH", body: JSON.stringify(data) }),
 
-  // Inventory sync
-  syncInventory: (items: { id: string; stock: number }[]) =>
-    apiRequest("/products/sync-inventory", { method: "PATCH", body: JSON.stringify(items) }),
+  // M — MENU VERSIONING
+  // PATCH /products/menu-version
+  switchMenuVersion: (version: number) =>
+    apiRequest("/products/menu-version", { method: "PATCH", body: JSON.stringify({ version }) }),
 
-  // Bulk action (mass action bar)
-  bulkAction: (data: { ids: string[]; action: string; value?: any }) =>
-    apiRequest("/products/bulk-action", { method: "POST", body: JSON.stringify(data) }),
-
-  // Menu health
-  menuHealthScore: () =>
-    apiRequest("/products/menu-health"),
-
-  // Publish draft
+  // N — DRAFT / PUBLISH
+  // PATCH /products/:id/publish
   publishProduct: (id: string) =>
     apiRequest(`/products/${id}/publish`, { method: "PATCH" }),
 
-  // Low stock
+  // O & X — AI OPTIMISATION
+  // GET /products/optimise-suggestions
+  suggestOptimisation: () =>
+    apiRequest("/products/optimise-suggestions"),
+
+  // P — HEALTH SCORE
+  // GET /products/health-score
+  menuHealthScore: () =>
+    apiRequest("/products/health-score"),
+
+  // Q — INVENTORY
+  // POST /products/inventory/auto-check
+  autoStockCheck: () =>
+    apiRequest("/products/inventory/auto-check", { method: "POST" }),
+  // GET /products/inventory/low-stock
   getLowStockProducts: () =>
-    apiRequest("/products/low-stock"),
+    apiRequest("/products/inventory/low-stock"),
+  // PATCH /products/:id/stock
+  updateStock: (id: string, stock: number) =>
+    apiRequest(`/products/${id}/stock`, { method: "PATCH", body: JSON.stringify({ stock }) }),
+  // POST /products/inventory/sync
+  syncInventory: (items: { id: string; stock: number }[]) =>
+    apiRequest("/products/inventory/sync", { method: "POST", body: JSON.stringify(items) }),
+
+  // R — MULTI-OUTLET
+  // PATCH /products/:id/outlet
+  assignOutlet: (id: string, outletId: string) =>
+    apiRequest(`/products/${id}/outlet`, { method: "PATCH", body: JSON.stringify({ outletId }) }),
+
+  // S — PRODUCT PERFORMANCE
+  // GET /products/:id/performance
+  getProductPerformance: (id: string) =>
+    apiRequest(`/products/${id}/performance`),
+
+  // T — TEMPLATE / CLONE
+  // POST /products/from-template
+  createFromTemplate: (templateId: string) =>
+    apiRequest("/products/from-template", { method: "POST", body: JSON.stringify({ templateId }) }),
+
+  // U — MASS ACTION
+  // POST /products/bulk/action
+  bulkAction: (data: { ids: string[]; action: string; value?: any }) =>
+    apiRequest("/products/bulk/action", { method: "POST", body: JSON.stringify(data) }),
+
+  // V — ROLLBACK
+  // POST /products/rollback
+  rollbackLastUpdate: () =>
+    apiRequest("/products/rollback", { method: "POST" }),
+
+  // W — PREVIEW LINK
+  // POST /products/preview-link
+  generatePreviewLink: () =>
+    apiRequest("/products/preview-link", { method: "POST" }),
+
+  // Y — BACKGROUND JOBS
+  // POST /products/bulk/background
+  startBackgroundBulkJob: (data: any) =>
+    apiRequest("/products/bulk/background", { method: "POST", body: JSON.stringify(data) }),
+
+  // Z — INVESTOR DASHBOARD
+  // GET /products/investor-dashboard
+  getInvestorDashboard: () =>
+    apiRequest("/products/investor-dashboard"),
 };
 
 // SELLER APIs
@@ -161,12 +224,6 @@ export const sellerAPI = {
   },
   updateOrderStatus: (id: string, status: string) =>
     apiRequest(`/seller/orders/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
-  getMenuItems: (params?: Record<string, unknown>) =>
-    apiRequest(`/products${toQuery(params)}`),
-  addMenuItem: (data: Record<string, unknown>) =>
-    apiRequest("/products", { method: "POST", body: JSON.stringify(data) }),
-  deleteMenuItem: (id: string) =>
-    apiRequest(`/products/${id}`, { method: "DELETE" }),
   getProfile: () => apiRequest("/seller/profile"),
   updateProfile: (data: Record<string, unknown>) =>
     apiRequest("/seller/profile", { method: "PUT", body: JSON.stringify(data) }),
@@ -187,7 +244,6 @@ export const sellerAPI = {
   getNotifications: () => apiRequest("/seller/notifications"),
   markNotificationRead: (id: string) =>
     apiRequest(`/seller/notifications/${id}/read`, { method: "PATCH" }),
-  getLowStockAlerts: () => apiRequest("/seller/inventory/low-stock"),
   getReferrals: () => apiRequest("/seller/referrals"),
   generateReferralCode: () =>
     apiRequest("/seller/referrals/code", { method: "POST" }),
@@ -200,8 +256,6 @@ export const sellerAPI = {
   replyToReview: (id: string, message: string) =>
     apiRequest(`/seller/reviews/${id}/reply`, { method: "POST", body: JSON.stringify({ message }) }),
   getInventory: () => apiRequest("/seller/inventory"),
-  updateStock: (data: { productId: string; stock: number; expiryDate?: Date }) =>
-    apiRequest("/seller/inventory/update", { method: "POST", body: JSON.stringify(data) }),
   getExpiryAlerts: () => apiRequest("/seller/inventory/expiry-alerts"),
   getCustomers: () => apiRequest("/seller/customers"),
   awardLoyaltyPoints: (userId: string, points: number) =>

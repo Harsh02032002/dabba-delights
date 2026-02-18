@@ -84,7 +84,7 @@ export default function AdminProducts() {
   });
 
   const deleteMutation = useMutation({
-    mutationFn: (id: string) => productAPI.deleteProduct(id),
+    mutationFn: (id: string) => productAPI.hardDeleteProduct(id),
     onSuccess: () => { toast({ title: 'Deleted' }); invalidate(); },
   });
 

@@ -1,12 +1,6 @@
-import React, {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from "react";
-import { User } from "@/types";
-import { authAPI } from "@/lib/api";
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import { User, UserRole } from '@/types';
+import { authAPI } from '@/lib/api';
 
 interface AuthContextType {
   user: User | null;
@@ -28,48 +22,50 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const saved = localStorage.getItem('user');
+      return saved ? JSON.parse(saved) : null;
+    } catch { return null; }
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const initRef = useRef(false);
 
   // 🔹 Load user on refresh using token
   useEffect(() => {
-    const loadUser = async () => {
-      const token = localStorage.getItem("token");
-
-      if (!token) {
-        setIsLoading(false);
-        return;
-      }
-
-      try {
-        const res = await authAPI.getProfile(); // /auth/me
-        setUser(res.user);
-      } catch (err) {
-        console.log("Token expired");
-        localStorage.removeItem("token");
-        setUser(null);
-      }
-
-      setIsLoading(false);
-    };
-
-    loadUser();
-  }, []);
+    if (initRef.current) return;
+    initRef.current = true;
+    // Token exists but no user → try to restore (non-blocking)
+    const token = localStorage.getItem('token');
+    if (token && !user) {
+      authAPI.getProfile()
+        .then((res: any) => {
+          const u = res.user || res;
+          setUser(u);
+          localStorage.setItem('user', JSON.stringify(u));
+        })
+        .catch(() => {
+          // Do NOT logout on single failed auth/me — token may still be valid
+          // Only clear if 401 explicitly
+        });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 🔹 UNIVERSAL LOGIN (seller/admin/user sab yahi se)
   const login = async (email: string, password: string) => {
     setIsLoading(true);
-
     try {
-      const res = await authAPI.login(email, password);
-
-      localStorage.setItem("token", res.token);
-      setUser(res.user);
-
-      return res; // ⭐ VERY IMPORTANT role check ke liye
-    } catch (err) {
-      console.error("Login failed", err);
-      throw err;
+      let response: any;
+      if (role === 'seller') {
+        response = await authAPI.sellerLogin(email, password);
+      } else if (role === 'admin') {
+        response = await authAPI.adminLogin(email, password);
+      } else {
+        response = await authAPI.login(email, password);
+      }
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      setUser(response.user);
     } finally {
       setIsLoading(false);
     }
@@ -87,11 +83,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setIsLoading(true);
 
     try {
-      await authAPI.register(data);
-      // register ke baad login nahi — user manually login kare
-    } catch (err) {
-      console.error("Register failed", err);
-      throw err;
+      const response: any = await authAPI.register(data);
+      localStorage.setItem('token', response.token);
+      localStorage.setItem('user', JSON.stringify(response.user));
+      setUser(response.user);
     } finally {
       setIsLoading(false);
     }
