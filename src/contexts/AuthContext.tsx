@@ -1,13 +1,26 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, UserRole } from '@/types';
-import { authAPI } from '@/lib/api';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  ReactNode,
+} from "react";
+import { User } from "@/types";
+import { authAPI } from "@/lib/api";
 
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
-  isAuthenticated: boolean;
-  login: (email: string, password: string, role?: 'customer' | 'seller' | 'admin') => Promise<void>;
-  register: (data: { name: string; email: string; password: string; phone: string }) => Promise<void>;
+  isLoggedIn: boolean;
+  login: (email: string, password: string) => Promise<any>;
+  register: (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone: string;
+    businessName?: string;
+    address?: string;
+  }) => Promise<void>;
   logout: () => void;
   updateUser: (user: Partial<User>) => void;
 }
@@ -18,67 +31,81 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // 🔹 Load user on refresh using token
   useEffect(() => {
-    // Check for existing token and user data
-    const token = localStorage.getItem('token');
-    const savedUser = localStorage.getItem('user');
-    
-    if (token && savedUser) {
-      try {
-        setUser(JSON.parse(savedUser));
-      } catch (e) {
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
+    const loadUser = async () => {
+      const token = localStorage.getItem("token");
+
+      if (!token) {
+        setIsLoading(false);
+        return;
       }
-    }
-    setIsLoading(false);
+
+      try {
+        const res = await authAPI.getProfile(); // /auth/me
+        setUser(res.user);
+      } catch (err) {
+        console.log("Token expired");
+        localStorage.removeItem("token");
+        setUser(null);
+      }
+
+      setIsLoading(false);
+    };
+
+    loadUser();
   }, []);
 
-  const login = async (email: string, password: string, role: 'customer' | 'seller' | 'admin' = 'customer') => {
+  // 🔹 UNIVERSAL LOGIN (seller/admin/user sab yahi se)
+  const login = async (email: string, password: string) => {
     setIsLoading(true);
+
     try {
-      let response;
-      
-      if (role === 'seller') {
-        response = await authAPI.sellerLogin(email, password);
-      } else if (role === 'admin') {
-        response = await authAPI.adminLogin(email, password);
-      } else {
-        response = await authAPI.login(email, password);
-      }
-      
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      setUser(response.user);
+      const res = await authAPI.login(email, password);
+
+      localStorage.setItem("token", res.token);
+      setUser(res.user);
+
+      return res; // ⭐ VERY IMPORTANT role check ke liye
+    } catch (err) {
+      console.error("Login failed", err);
+      throw err;
     } finally {
       setIsLoading(false);
     }
   };
 
-  const register = async (data: { name: string; email: string; password: string; phone: string }) => {
+  // 🔹 REGISTER
+  const register = async (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone: string;
+    businessName?: string;
+    address?: string;
+  }) => {
     setIsLoading(true);
+
     try {
-      const response = await authAPI.register(data);
-      localStorage.setItem('token', response.token);
-      localStorage.setItem('user', JSON.stringify(response.user));
-      setUser(response.user);
+      await authAPI.register(data);
+      // register ke baad login nahi — user manually login kare
+    } catch (err) {
+      console.error("Register failed", err);
+      throw err;
     } finally {
       setIsLoading(false);
     }
   };
 
+  // 🔹 LOGOUT
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
+    localStorage.removeItem("token");
     setUser(null);
   };
 
+  // 🔹 UPDATE USER
   const updateUser = (updates: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...updates };
-      setUser(updatedUser);
-      localStorage.setItem('user', JSON.stringify(updatedUser));
-    }
+    if (user) setUser({ ...user, ...updates });
   };
 
   return (
@@ -86,7 +113,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       value={{
         user,
         isLoading,
-        isAuthenticated: !!user,
+        isLoggedIn: !!user,
         login,
         register,
         logout,
@@ -98,10 +125,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 }
 
+// hook
 export function useAuth() {
   const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
+  if (!context) throw new Error("useAuth must be used within AuthProvider");
   return context;
 }

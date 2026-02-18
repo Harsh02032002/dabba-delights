@@ -2,14 +2,18 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "@/contexts/AuthContext";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
+import { SocketProvider } from "@/contexts/SocketContext";
 
 // User Pages
 import UserHome from "./pages/user/UserHome";
 import UserLogin from "./pages/user/UserLogin";
 import CartPage from "./pages/user/CartPage";
+import UserWishlist from "./pages/user/UserWishlist";
+import UserNotifications from "./pages/user/UserNotifications";
+import UserRegister from "./pages/user/UserRegister"; // Added
 
 // Seller Pages
 import SellerLogin from "./pages/seller/SellerLogin";
@@ -31,6 +35,7 @@ import SellerCustomers from "./pages/seller/SellerCustomers";
 import SellerMarketing from "./pages/seller/SellerMarketing";
 import SellerPayouts from "./pages/seller/SellerPayouts";
 import SellerPerformanceInsights from "./pages/seller/SellerPerformanceInsights";
+import SellerRegister from "./pages/seller/SellerRegister"; // Added
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -48,79 +53,356 @@ import AdminPerformance from "./pages/admin/AdminPerformance";
 import AdminSettings from "./pages/admin/AdminSettings";
 import AdminHelp from "./pages/admin/AdminHelp";
 import AdminProducts from "./pages/admin/AdminProducts";
+import AdminDisputes from "./pages/admin/AdminDisputes";
+import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
+import AdminCategories from "./pages/admin/AdminCategories";
 
+// Other
 import NotFound from "./pages/NotFound";
-import UserNotifications from "./pages/user/UserNotifications";
-import { SocketProvider } from '@/contexts/SocketContext';
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <CartProvider>
-        <SocketProvider>
-          <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* User Routes */}
-              <Route path="/" element={<UserHome />} />
-              <Route path="/login" element={<UserLogin />} />
-              <Route path="/cart" element={<CartPage />} />
-                <Route path="/wishlist" element={<UserWishlist />} />
-                <Route path="/notifications" element={<UserNotifications />} />
-              {/* Seller Routes */}
-              <Route path="/seller/login" element={<SellerLogin />} />
-              <Route path="/seller" element={<SellerDashboard />} />
-              <Route path="/seller/menu" element={<SellerMenu />} />
-              <Route path="/seller/orders" element={<SellerOrders />} />
-              <Route path="/seller/analytics" element={<SellerAnalytics />} />
-              <Route path="/seller/earnings" element={<SellerEarnings />} />
-              <Route path="/seller/settlements" element={<SellerSettlements />} />
-              <Route path="/seller/kyc" element={<SellerKYC />} />
-              <Route path="/seller/profile" element={<SellerProfile />} />
-              <Route path="/seller/settings" element={<SellerSettings />} />
-              <Route path="/seller/help" element={<SellerHelp />} />
-              <Route path="/seller/referrals" element={<SellerReferrals />} />
-              <Route path="/seller/promotions" element={<SellerPromotions />} />
-              <Route path="/seller/reviews" element={<SellerReviews />} />
-              <Route path="/seller/inventory" element={<SellerInventory />} />
-              <Route path="/seller/customers" element={<SellerCustomers />} />
-              <Route path="/seller/marketing" element={<SellerMarketing />} />
-              <Route path="/seller/payouts" element={<SellerPayouts />} />
-              <Route path="/seller/performance" element={<SellerPerformanceInsights />} />
+function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <CartProvider>
+          <SocketProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Sonner />
+              <BrowserRouter>
+                <AppRoutes />
+              </BrowserRouter>
+            </TooltipProvider>
+          </SocketProvider>
+        </CartProvider>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+}
 
-              {/* Admin Routes */}
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/sellers" element={<AdminSellers />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/orders" element={<AdminOrders />} />
-              <Route path="/admin/disputes" element={<AdminDisputes />} />
-              <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-              <Route path="/admin/categories" element={<AdminCategories />} />
-              <Route path="/admin/settlements" element={<AdminSettlements />} />
-              <Route path="/admin/commission" element={<AdminCommission />} />
-              <Route path="/admin/gst" element={<AdminGST />} />
-              <Route path="/admin/referrals" element={<AdminReferrals />} />
-              <Route path="/admin/marketing" element={<AdminMarketing />} />
-              <Route path="/admin/analytics" element={<AdminAnalytics />} />
-              <Route path="/admin/performance" element={<AdminPerformance />} />
-              <Route path="/admin/settings" element={<AdminSettings />} />
-              <Route path="/admin/help" element={<AdminHelp />} />
-              <Route path="/admin/products" element={<AdminProducts />} />
+// Protected Routes Logic
+function AppRoutes() {
+  const { isLoggedIn, user } = useAuth();
 
-              {/* Catch-all */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-          </TooltipProvider>
-        </SocketProvider>
-      </CartProvider>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+  // Seller Protected Wrapper
+  const SellerProtected = ({ children }: { children: JSX.Element }) => {
+    if (!isLoggedIn) return <Navigate to="/seller/login" replace />;
+    if (user?.role !== "seller") return <Navigate to="/" replace />;
+    return children;
+  };
+
+  // Admin Protected Wrapper
+  const AdminProtected = ({ children }: { children: JSX.Element }) => {
+    if (!isLoggedIn) return <Navigate to="/admin/login" replace />;
+    if (user?.role !== "admin") return <Navigate to="/" replace />;
+    return children;
+  };
+
+  return (
+    <Routes>
+      {/* Public User Routes */}
+      <Route path="/" element={<UserHome />} />
+      <Route path="/login" element={<UserLogin />} />
+      <Route path="/register" element={<UserRegister />} />
+      <Route path="/cart" element={<CartPage />} />
+      <Route path="/wishlist" element={<UserWishlist />} />
+      <Route path="/notifications" element={<UserNotifications />} />
+
+      {/* Seller Routes - Protected */}
+      <Route path="/seller/login" element={<SellerLogin />} />
+      <Route path="/seller/register" element={<SellerRegister />} />
+
+      <Route
+        path="/seller"
+        element={
+          <SellerProtected>
+            <SellerDashboard />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/menu"
+        element={
+          <SellerProtected>
+            <SellerMenu />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/orders"
+        element={
+          <SellerProtected>
+            <SellerOrders />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/analytics"
+        element={
+          <SellerProtected>
+            <SellerAnalytics />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/earnings"
+        element={
+          <SellerProtected>
+            <SellerEarnings />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/settlements"
+        element={
+          <SellerProtected>
+            <SellerSettlements />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/kyc"
+        element={
+          <SellerProtected>
+            <SellerKYC />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/profile"
+        element={
+          <SellerProtected>
+            <SellerProfile />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/settings"
+        element={
+          <SellerProtected>
+            <SellerSettings />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/help"
+        element={
+          <SellerProtected>
+            <SellerHelp />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/referrals"
+        element={
+          <SellerProtected>
+            <SellerReferrals />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/promotions"
+        element={
+          <SellerProtected>
+            <SellerPromotions />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/reviews"
+        element={
+          <SellerProtected>
+            <SellerReviews />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/inventory"
+        element={
+          <SellerProtected>
+            <SellerInventory />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/customers"
+        element={
+          <SellerProtected>
+            <SellerCustomers />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/marketing"
+        element={
+          <SellerProtected>
+            <SellerMarketing />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/payouts"
+        element={
+          <SellerProtected>
+            <SellerPayouts />
+          </SellerProtected>
+        }
+      />
+      <Route
+        path="/seller/performance"
+        element={
+          <SellerProtected>
+            <SellerPerformanceInsights />
+          </SellerProtected>
+        }
+      />
+
+      {/* Admin Routes - Protected */}
+      <Route path="/admin/login" element={<AdminLogin />} />
+
+      <Route
+        path="/admin"
+        element={
+          <AdminProtected>
+            <AdminDashboard />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/sellers"
+        element={
+          <AdminProtected>
+            <AdminSellers />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <AdminProtected>
+            <AdminUsers />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/orders"
+        element={
+          <AdminProtected>
+            <AdminOrders />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/disputes"
+        element={
+          <AdminProtected>
+            <AdminDisputes />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/audit-logs"
+        element={
+          <AdminProtected>
+            <AdminAuditLogs />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/categories"
+        element={
+          <AdminProtected>
+            <AdminCategories />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/settlements"
+        element={
+          <AdminProtected>
+            <AdminSettlements />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/commission"
+        element={
+          <AdminProtected>
+            <AdminCommission />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/gst"
+        element={
+          <AdminProtected>
+            <AdminGST />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/referrals"
+        element={
+          <AdminProtected>
+            <AdminReferrals />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/marketing"
+        element={
+          <AdminProtected>
+            <AdminMarketing />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/analytics"
+        element={
+          <AdminProtected>
+            <AdminAnalytics />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/performance"
+        element={
+          <AdminProtected>
+            <AdminPerformance />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/settings"
+        element={
+          <AdminProtected>
+            <AdminSettings />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/help"
+        element={
+          <AdminProtected>
+            <AdminHelp />
+          </AdminProtected>
+        }
+      />
+      <Route
+        path="/admin/products"
+        element={
+          <AdminProtected>
+            <AdminProducts />
+          </AdminProtected>
+        }
+      />
+
+      {/* Catch-all */}
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 export default App;

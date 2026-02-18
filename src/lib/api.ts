@@ -314,16 +314,49 @@ export const userAPI = {
 
 const authAPI = {
   login: (email: string, password: string) =>
-    apiRequest("/auth/login", { method: "POST", body: JSON.stringify({ email, password }) }),
-  register: (data: Record<string, unknown>) =>
-    apiRequest("/auth/register", { method: "POST", body: JSON.stringify(data) }),
+    apiRequest("/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
+  
   sellerLogin: (email: string, password: string) =>
-    apiRequest("/auth/seller/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+    apiRequest("/auth/seller/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
   adminLogin: (email: string, password: string) =>
-    apiRequest("/auth/admin/login", { method: "POST", body: JSON.stringify({ email, password }) }),
+    apiRequest("/auth/admin/login", {
+      method: "POST",
+      body: JSON.stringify({ email, password }),
+    }),
   getProfile: () => apiRequest("/auth/profile"),
   updateProfile: (data: Record<string, unknown>) =>
     apiRequest("/auth/profile", { method: "PUT", body: JSON.stringify(data) }),
+  register: (data: Record<string, unknown>) =>
+    apiRequest("/auth/register", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+
+  // Convenience methods for each role
+  userRegister: (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone?: string;
+  }) => authAPI.register({ ...data, role: "user" }),
+
+  sellerRegister: (data: {
+    name: string;
+    email: string;
+    password: string;
+    phone: string;
+    businessName: string;
+    address: string;
+  }) => authAPI.register({ ...data, role: "seller" }),
+
+  adminRegister: (data: { name: string; email: string; password: string }) =>
+    authAPI.register({ ...data, role: "admin" }),
 };
 
 export { apiRequest, apiUpload, API_BASE_URL, authAPI };
