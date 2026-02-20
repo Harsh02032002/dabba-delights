@@ -19,14 +19,13 @@ export default function SellerLogin() {
   const navigate = useNavigate();
 
   // ---------- SUBMIT ----------
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
 
     try {
-
       // 🔥 universal login hit hoga (/auth/login)
-      const res = await login(email, password);
+      const res = await login(email, password, 'seller');
 
       // 🧠 role check
       if (res.user.role !== "seller") {
@@ -45,7 +44,7 @@ export default function SellerLogin() {
 
       navigate('/seller'); // dashboard
 
-    } catch (error) {
+    } catch (error: any) {
 
       toast({
         title: "Login failed",

@@ -6,7 +6,7 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isLoggedIn: boolean;
-  login: (email: string, password: string) => Promise<any>;
+  login: (email: string, password: string, role?: string) => Promise<any>;
   register: (data: {
     name: string;
     email: string;
@@ -52,7 +52,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // 🔹 UNIVERSAL LOGIN (seller/admin/user sab yahi se)
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, role?: string) => {
     setIsLoading(true);
     try {
       let response: any;
@@ -66,6 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem('token', response.token);
       localStorage.setItem('user', JSON.stringify(response.user));
       setUser(response.user);
+      return response;
     } finally {
       setIsLoading(false);
     }

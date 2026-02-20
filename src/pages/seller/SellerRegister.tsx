@@ -32,10 +32,9 @@ export default function SellerRegister() {
 
   const [showPass, setShowPass] = useState(false);
 
-  // ✅ FIXED mutation
   const mutation = useMutation({
     mutationFn: async () => {
-      console.log("Sending Data:", form); // debugging
+      console.log("Sending Data:", form);
       return await authAPI.sellerRegister(form);
     },
 
@@ -44,7 +43,7 @@ export default function SellerRegister() {
       navigate("/seller/login");
     },
 
-    onError: (err) => {
+    onError: (err: any) => {
       toast({
         title: "Error",
         description:
@@ -54,7 +53,7 @@ export default function SellerRegister() {
     },
   });
 
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
 
     setForm((prev) => ({
@@ -63,7 +62,7 @@ export default function SellerRegister() {
     }));
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     mutation.mutate();
   };
@@ -84,91 +83,102 @@ export default function SellerRegister() {
         <form className="space-y-6" onSubmit={handleSubmit}>
           <div>
             <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              icon={<User size={16} />}
-              required
-            />
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                id="name"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
 
           <div>
             <Label htmlFor="email">Email address</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              icon={<Mail size={16} />}
-              required
-            />
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
 
           <div>
             <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              icon={<Phone size={16} />}
-              required
-            />
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={form.phone}
+                onChange={handleChange}
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
 
           <div>
             <Label htmlFor="businessName">Business / Kitchen Name</Label>
-            <Input
-              id="businessName"
-              name="businessName"
-              value={form.businessName}
-              onChange={handleChange}
-              icon={<Store size={16} />}
-              required
-            />
+            <div className="relative">
+              <Store className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                id="businessName"
+                name="businessName"
+                value={form.businessName}
+                onChange={handleChange}
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
 
           <div>
             <Label htmlFor="address">Full Address</Label>
-            <Input
-              id="address"
-              name="address"
-              value={form.address}
-              onChange={handleChange}
-              icon={<MapPin size={16} />}
-              required
-            />
+            <div className="relative">
+              <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                id="address"
+                name="address"
+                value={form.address}
+                onChange={handleChange}
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
 
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type={showPass ? "text" : "password"}
-              value={form.password}
-              onChange={handleChange}
-              icon={<Lock size={16} />}
-              endIcon={
-                showPass ? (
-                  <EyeOff
-                    size={16}
-                    onClick={() => setShowPass(false)}
-                    className="cursor-pointer"
-                  />
-                ) : (
-                  <Eye
-                    size={16}
-                    onClick={() => setShowPass(true)}
-                    className="cursor-pointer"
-                  />
-                )
-              }
-              required
-            />
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                id="password"
+                name="password"
+                type={showPass ? "text" : "password"}
+                value={form.password}
+                onChange={handleChange}
+                className="pl-10 pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass(!showPass)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <Button

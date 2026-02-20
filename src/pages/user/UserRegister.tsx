@@ -5,10 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useMutation } from "@tanstack/react-query";
-import { userAPI } from "@/lib/api";
+import { authAPI } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
-import { Mail, Lock, User, Phone, ArrowLeft } from "lucide-react";
-import { Eye, EyeOff } from "lucide-react";
+import { Mail, Lock, User, Phone, Eye, EyeOff } from "lucide-react";
 
 export default function UserRegister() {
   const [form, setForm] = useState({
@@ -21,12 +20,12 @@ export default function UserRegister() {
   const navigate = useNavigate();
 
   const mutation = useMutation({
-    mutationFn: () => userAPI.register({ ...form, role: "user" }),
+    mutationFn: () => authAPI.userRegister(form),
     onSuccess: () => {
       toast({ title: "Registered successfully!" });
       navigate("/login");
     },
-    onError: (err) =>
+    onError: (err: any) =>
       toast({
         title: "Error",
         description: err.message,
@@ -34,7 +33,7 @@ export default function UserRegister() {
       }),
   });
 
-  const handleChange = (e) =>
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) =>
     setForm({ ...form, [e.target.name]: e.target.value });
 
   return (
@@ -57,58 +56,71 @@ export default function UserRegister() {
         >
           <div>
             <Label htmlFor="name">Full Name</Label>
-            <Input
-              id="name"
-              name="name"
-              value={form.name}
-              onChange={handleChange}
-              icon={<User size={16} />}
-              required
-            />
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                id="name"
+                name="name"
+                value={form.name}
+                onChange={handleChange}
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
 
           <div>
             <Label htmlFor="email">Email address</Label>
-            <Input
-              id="email"
-              name="email"
-              type="email"
-              value={form.email}
-              onChange={handleChange}
-              icon={<Mail size={16} />}
-              required
-            />
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={form.email}
+                onChange={handleChange}
+                className="pl-10"
+                required
+              />
+            </div>
           </div>
 
           <div>
             <Label htmlFor="phone">Phone Number</Label>
-            <Input
-              id="phone"
-              name="phone"
-              value={form.phone}
-              onChange={handleChange}
-              icon={<Phone size={16} />}
-            />
+            <div className="relative">
+              <Phone className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                id="phone"
+                name="phone"
+                type="tel"
+                value={form.phone}
+                onChange={handleChange}
+                className="pl-10"
+              />
+            </div>
           </div>
 
           <div>
             <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              name="password"
-              type={showPass ? "text" : "password"}
-              value={form.password}
-              onChange={handleChange}
-              icon={<Lock size={16} />}
-              endIcon={
-                showPass ? (
-                  <EyeOff size={16} onClick={() => setShowPass(false)} />
-                ) : (
-                  <Eye size={16} onClick={() => setShowPass(true)} />
-                )
-              }
-              required
-            />
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                id="password"
+                name="password"
+                type={showPass ? "text" : "password"}
+                value={form.password}
+                onChange={handleChange}
+                className="pl-10 pr-10"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPass(!showPass)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground cursor-pointer"
+              >
+                {showPass ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
           </div>
 
           <Button

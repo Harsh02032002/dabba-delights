@@ -374,18 +374,22 @@ const authAPI = {
     }),
   
   sellerLogin: (email: string, password: string) =>
-    apiRequest("/auth/seller/login", {
+    apiRequest("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
+  
   adminLogin: (email: string, password: string) =>
-    apiRequest("/auth/admin/login", {
+    apiRequest("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
     }),
-  getProfile: () => apiRequest("/auth/profile"),
+  
+  getProfile: () => apiRequest("/auth/me"),
+  
   updateProfile: (data: Record<string, unknown>) =>
     apiRequest("/auth/profile", { method: "PUT", body: JSON.stringify(data) }),
+  
   register: (data: Record<string, unknown>) =>
     apiRequest("/auth/register", {
       method: "POST",

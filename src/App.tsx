@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { SocketProvider } from "@/contexts/SocketContext";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // User Pages
 import UserHome from "./pages/user/UserHome";
@@ -15,7 +16,7 @@ import UserWishlist from "./pages/user/UserWishlist";
 import UserNotifications from "./pages/user/UserNotifications";
 import UserWallet from "./pages/user/UserWallet";
 import AllProducts from "./pages/user/AllProducts";
-
+import UserRegister from "./pages/user/UserRegister.tsx";
 // Seller Pages
 import SellerLogin from "./pages/seller/SellerLogin";
 import SellerDashboard from "./pages/seller/SellerDashboard";
@@ -36,7 +37,7 @@ import SellerCustomers from "./pages/seller/SellerCustomers";
 import SellerMarketing from "./pages/seller/SellerMarketing";
 import SellerPayouts from "./pages/seller/SellerPayouts";
 import SellerPerformanceInsights from "./pages/seller/SellerPerformanceInsights";
-import SellerRegister from "./pages/seller/SellerRegister"; // Added
+import SellerRegister from "./pages/seller/SellerRegister.tsx";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -91,47 +92,47 @@ const App = () => (
               <Route path="/notifications" element={<UserNotifications />} />
               <Route path="/wallet" element={<UserWallet />} />
               <Route path="/all-products" element={<AllProducts />} />
-
+              <Route path="/register" element={<UserRegister />} />
               {/* Seller Routes */}
               <Route path="/seller/login" element={<SellerLogin />} />
-              <Route path="/seller" element={<SellerDashboard />} />
-              <Route path="/seller/menu" element={<SellerMenu />} />
-              <Route path="/seller/orders" element={<SellerOrders />} />
-              <Route path="/seller/analytics" element={<SellerAnalytics />} />
-              <Route path="/seller/earnings" element={<SellerEarnings />} />
-              <Route path="/seller/settlements" element={<SellerSettlements />} />
-              <Route path="/seller/kyc" element={<SellerKYC />} />
-              <Route path="/seller/profile" element={<SellerProfile />} />
-              <Route path="/seller/settings" element={<SellerSettings />} />
-              <Route path="/seller/help" element={<SellerHelp />} />
-              <Route path="/seller/referrals" element={<SellerReferrals />} />
-              <Route path="/seller/promotions" element={<SellerPromotions />} />
-              <Route path="/seller/reviews" element={<SellerReviews />} />
-              <Route path="/seller/inventory" element={<SellerInventory />} />
-              <Route path="/seller/customers" element={<SellerCustomers />} />
-              <Route path="/seller/marketing" element={<SellerMarketing />} />
-              <Route path="/seller/payouts" element={<SellerPayouts />} />
-              <Route path="/seller/performance" element={<SellerPerformanceInsights />} />
-
+              <Route path="/seller/register" element={<SellerRegister />} />
+              <Route path="/seller" element={<ProtectedRoute requiredRole="seller"><SellerDashboard /></ProtectedRoute>} />
+              <Route path="/seller/menu" element={<ProtectedRoute requiredRole="seller"><SellerMenu /></ProtectedRoute>} />
+              <Route path="/seller/orders" element={<ProtectedRoute requiredRole="seller"><SellerOrders /></ProtectedRoute>} />
+              <Route path="/seller/analytics" element={<ProtectedRoute requiredRole="seller"><SellerAnalytics /></ProtectedRoute>} />
+              <Route path="/seller/earnings" element={<ProtectedRoute requiredRole="seller"><SellerEarnings /></ProtectedRoute>} />
+              <Route path="/seller/settlements" element={<ProtectedRoute requiredRole="seller"><SellerSettlements /></ProtectedRoute>} />
+              <Route path="/seller/kyc" element={<ProtectedRoute requiredRole="seller"><SellerKYC /></ProtectedRoute>} />
+              <Route path="/seller/profile" element={<ProtectedRoute requiredRole="seller"><SellerProfile /></ProtectedRoute>} />
+              <Route path="/seller/settings" element={<ProtectedRoute requiredRole="seller"><SellerSettings /></ProtectedRoute>} />
+              <Route path="/seller/help" element={<ProtectedRoute requiredRole="seller"><SellerHelp /></ProtectedRoute>} />
+              <Route path="/seller/referrals" element={<ProtectedRoute requiredRole="seller"><SellerReferrals /></ProtectedRoute>} />
+              <Route path="/seller/promotions" element={<ProtectedRoute requiredRole="seller"><SellerPromotions /></ProtectedRoute>} />
+              <Route path="/seller/reviews" element={<ProtectedRoute requiredRole="seller"><SellerReviews /></ProtectedRoute>} />
+              <Route path="/seller/inventory" element={<ProtectedRoute requiredRole="seller"><SellerInventory /></ProtectedRoute>} />
+              <Route path="/seller/customers" element={<ProtectedRoute requiredRole="seller"><SellerCustomers /></ProtectedRoute>} />
+              <Route path="/seller/marketing" element={<ProtectedRoute requiredRole="seller"><SellerMarketing /></ProtectedRoute>} />
+              <Route path="/seller/payouts" element={<ProtectedRoute requiredRole="seller"><SellerPayouts /></ProtectedRoute>} />
+              <Route path="/seller/performance" element={<ProtectedRoute requiredRole="seller"><SellerPerformanceInsights /></ProtectedRoute>} />
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/sellers" element={<AdminSellers />} />
-              <Route path="/admin/users" element={<AdminUsers />} />
-              <Route path="/admin/orders" element={<AdminOrders />} />
-              <Route path="/admin/disputes" element={<AdminDisputes />} />
-              <Route path="/admin/audit-logs" element={<AdminAuditLogs />} />
-              <Route path="/admin/categories" element={<AdminCategories />} />
-              <Route path="/admin/settlements" element={<AdminSettlements />} />
-              <Route path="/admin/commission" element={<AdminCommission />} />
-              <Route path="/admin/gst" element={<AdminGST />} />
-              <Route path="/admin/referrals" element={<AdminReferrals />} />
-              <Route path="/admin/marketing" element={<AdminMarketing />} />
-              <Route path="/admin/analytics" element={<AdminAnalytics />} />
-              <Route path="/admin/performance" element={<AdminPerformance />} />
-              <Route path="/admin/settings" element={<AdminSettings />} />
-              <Route path="/admin/help" element={<AdminHelp />} />
-              <Route path="/admin/products" element={<AdminProducts />} />
+              <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
+              <Route path="/admin/sellers" element={<ProtectedRoute requiredRole="admin"><AdminSellers /></ProtectedRoute>} />
+              <Route path="/admin/users" element={<ProtectedRoute requiredRole="admin"><AdminUsers /></ProtectedRoute>} />
+              <Route path="/admin/orders" element={<ProtectedRoute requiredRole="admin"><AdminOrders /></ProtectedRoute>} />
+              <Route path="/admin/disputes" element={<ProtectedRoute requiredRole="admin"><AdminDisputes /></ProtectedRoute>} />
+              <Route path="/admin/audit-logs" element={<ProtectedRoute requiredRole="admin"><AdminAuditLogs /></ProtectedRoute>} />
+              <Route path="/admin/categories" element={<ProtectedRoute requiredRole="admin"><AdminCategories /></ProtectedRoute>} />
+              <Route path="/admin/settlements" element={<ProtectedRoute requiredRole="admin"><AdminSettlements /></ProtectedRoute>} />
+              <Route path="/admin/commission" element={<ProtectedRoute requiredRole="admin"><AdminCommission /></ProtectedRoute>} />
+              <Route path="/admin/gst" element={<ProtectedRoute requiredRole="admin"><AdminGST /></ProtectedRoute>} />
+              <Route path="/admin/referrals" element={<ProtectedRoute requiredRole="admin"><AdminReferrals /></ProtectedRoute>} />
+              <Route path="/admin/marketing" element={<ProtectedRoute requiredRole="admin"><AdminMarketing /></ProtectedRoute>} />
+              <Route path="/admin/analytics" element={<ProtectedRoute requiredRole="admin"><AdminAnalytics /></ProtectedRoute>} />
+              <Route path="/admin/performance" element={<ProtectedRoute requiredRole="admin"><AdminPerformance /></ProtectedRoute>} />
+              <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminSettings /></ProtectedRoute>} />
+              <Route path="/admin/help" element={<ProtectedRoute requiredRole="admin"><AdminHelp /></ProtectedRoute>} />
+              <Route path="/admin/products" element={<ProtectedRoute requiredRole="admin"><AdminProducts /></ProtectedRoute>} />
 
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />

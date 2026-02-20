@@ -43,6 +43,25 @@ export default function SellerMenu() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
   const editImageRef = useRef<HTMLInputElement>(null);
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [editSelectedImage, setEditSelectedImage] = useState<File | null>(null);
+
+  const handleImageDrop = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    const f = e.dataTransfer?.files?.[0];
+    if (f && f.type.startsWith('image/')) setSelectedImage(f);
+  };
+
+  const handleImagePaste = (e: React.ClipboardEvent<HTMLDivElement>) => {
+    const items = e.clipboardData.items;
+    for (let i = 0; i < items.length; i++) {
+      const it = items[i];
+      if (it.type.startsWith('image/')) {
+        const file = it.getAsFile();
+        if (file) setSelectedImage(file);
+      }
+    }
+  };
 
   // ─── Queries ──────────────────────────────────────────────────
   const { data: productsData, isLoading } = useQuery({
@@ -186,8 +205,12 @@ export default function SellerMenu() {
     fd.append('preparationTime', (form.elements.namedItem('preparationTime') as HTMLInputElement).value);
     fd.append('stock', (form.elements.namedItem('stock') as HTMLInputElement).value || '100');
     fd.append('isVeg', String((form.elements.namedItem('isVeg') as HTMLInputElement)?.checked || false));
-    const fileInput = imageInputRef.current;
-    if (fileInput?.files?.[0]) fd.append('image', fileInput.files[0]);
+    // prefer selectedImage (drag/drop or paste) else file input
+    if (selectedImage) fd.append('image', selectedImage);
+    else {
+      const fileInput = imageInputRef.current;
+      if (fileInput?.files?.[0]) fd.append('image', fileInput.files[0]);
+    }
     createMutation.mutate(fd);
   };
 
@@ -203,8 +226,12 @@ export default function SellerMenu() {
     fd.append('preparationTime', (form.elements.namedItem('editPrepTime') as HTMLInputElement).value);
     fd.append('stock', (form.elements.namedItem('editStock') as HTMLInputElement).value || '0');
     fd.append('isVeg', String((form.elements.namedItem('editIsVeg') as HTMLInputElement)?.checked || false));
-    const fileInput = editImageRef.current;
-    if (fileInput?.files?.[0]) fd.append('image', fileInput.files[0]);
+    // prefer editSelectedImage else file input
+    if (editSelectedImage) fd.append('image', editSelectedImage);
+    else {
+      const fileInput = editImageRef.current;
+      if (fileInput?.files?.[0]) fd.append('image', fileInput.files[0]);
+    }
     updateMutation.mutate({ id: editItem._id, fd });
   };
 
@@ -393,13 +420,28 @@ export default function SellerMenu() {
                 </div>
                 <div className="space-y-2">
                   <Label>Item Image</Label>
-                  <input type="file" ref={imageInputRef} accept="image/*" className="hidden" />
+                  <input type="file" ref={imageInputRef} accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) setSelectedImage(f); }} />
                   <div
                     onClick={() => imageInputRef.current?.click()}
-                    className="border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-primary transition-colors"
+                    onDrop={handleImageDrop}
+                    onDragOver={(e) => e.preventDefault()}
+                    onPaste={handleImagePaste}
+                    className="border-2 border-dashed border-border rounded-xl p-4 text-center cursor-pointer hover:border-primary transition-colors"
                   >
-                    <ImagePlus size={32} className="mx-auto text-muted-foreground mb-2" />
-                    <p className="text-sm text-muted-foreground">Click to upload image</p>
+                    {selectedImage ? (
+                      <div className="flex flex-col items-center gap-2">
+                        <img src={URL.createObjectURL(selectedImage)} alt="preview" className="max-h-40 object-contain rounded-md" />
+                        <div className="text-sm text-muted-foreground">{selectedImage.name}</div>
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={(e) => { e.stopPropagation(); setSelectedImage(null); }}>Remove</Button>
+                        </div>
+                      </div>
+                    ) : (
+                      <div>
+                        <ImagePlus size={32} className="mx-auto text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">Click, drag & drop or paste an image</p>
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -557,10 +599,23 @@ export default function SellerMenu() {
               </div>
               <div className="space-y-2">
                 <Label>Replace Image</Label>
-                <input type="file" ref={editImageRef} accept="image/*" className="hidden" />
-                <Button type="button" variant="outline" size="sm" onClick={() => editImageRef.current?.click()}>
-                  <ImagePlus size={14} className="mr-1" /> Choose Image
-                </Button>
+                <input type="file" ref={editImageRef} accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) setEditSelectedImage(f); }} />
+                <div
+                  onDrop={(e) => { e.preventDefault(); const f = (e.dataTransfer?.files?.[0]); if (f && f.type.startsWith('image/')) setEditSelectedImage(f); }}
+                  onDragOver={(e) => e.preventDefault()}
+                  onPaste={(e) => { const items = e.clipboardData.items; for (let i = 0; i < items.length; i++) { const it = items[i]; if (it.type.startsWith('image/')) { const file = it.getAsFile(); if (file) setEditSelectedImage(file); } } }}
+                  className="flex items-center gap-2"
+                >
+                  <Button type="button" variant="outline" size="sm" onClick={() => editImageRef.current?.click()}>
+                    <ImagePlus size={14} className="mr-1" /> Choose Image
+                  </Button>
+                  {editSelectedImage && (
+                    <div className="flex items-center gap-2">
+                      <img src={URL.createObjectURL(editSelectedImage)} alt="edit-preview" className="h-12 w-12 object-cover rounded" />
+                      <Button type="button" size="sm" variant="ghost" onClick={() => setEditSelectedImage(null)}>Remove</Button>
+                    </div>
+                  )}
+                </div>
               </div>
               <div className="flex items-center gap-3">
                 <Switch name="editIsVeg" id="editIsVeg" defaultChecked={editItem.isVeg} />

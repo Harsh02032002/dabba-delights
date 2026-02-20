@@ -1,20 +1,22 @@
 // User Types
-export type UserRole = 'customer' | 'seller' | 'admin' | 'super_admin';
+export type UserRole = 'user' | 'seller' | 'admin' | 'super_admin';
 
 export interface User {
-  _id: string;
+  id?: string;
+  _id?: string;
   name: string;
   email: string;
-  phone: string;
+  phone?: string;
   role: UserRole;
   avatar?: string;
   address?: Address[];
-  wallet: number;
-  referralCode: string;
+  wallet?: number;
+  referralCode?: string;
   referredBy?: string;
-  isVerified: boolean;
-  createdAt: string;
-  updatedAt: string;
+  isVerified?: boolean;
+  businessName?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface Address {
