@@ -31,7 +31,7 @@ interface UserNavbarProps {
 }
 
 export function UserNavbar({ onSearch }: UserNavbarProps) {
-  const { user, isAuthenticated, logout } = useAuth();
+  const { user, isLoggedIn, logout } = useAuth();
   const { itemCount } = useCart();
   const location = useLocation();
   const [query, setQuery] = useState("");
@@ -107,7 +107,7 @@ export function UserNavbar({ onSearch }: UserNavbarProps) {
             </Link>
 
             {/* User menu / Login */}
-            {isAuthenticated ? (
+            {isLoggedIn ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="gap-2 px-3">
