@@ -6,6 +6,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useQuery } from '@tanstack/react-query';
 import { adminAPI } from '@/lib/api';
 import { Search, FileText } from 'lucide-react';
+import { safeArray } from '@/utils/safeArray';
 
 export default function AdminAuditLogs() {
   const [search, setSearch] = useState('');
@@ -15,7 +16,7 @@ export default function AdminAuditLogs() {
     queryFn: () => adminAPI.getAuditLogs({ search: search || undefined }),
   });
 
-  const logs = data?.logs || data || [];
+  const logs = safeArray(data?.logs || data);
 
   return (
     <AdminLayout title="Audit Logs" subtitle="Track all admin actions on the platform">

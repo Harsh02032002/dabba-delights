@@ -20,8 +20,18 @@ const GST_PERCENTAGE = 5;
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart>(() => {
-    const saved = localStorage.getItem('cart');
-    return saved ? JSON.parse(saved) : { items: [], sellerId: null, sellerName: null };
+    try {
+      const saved = localStorage.getItem('cart');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return {
+          items: Array.isArray(parsed?.items) ? parsed.items : [],
+          sellerId: parsed?.sellerId || null,
+          sellerName: parsed?.sellerName || null,
+        };
+      }
+    } catch { /* corrupted localStorage */ }
+    return { items: [], sellerId: null, sellerName: null };
   });
 
   useEffect(() => {
