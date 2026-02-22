@@ -21,7 +21,7 @@ export default function AllProducts() {
   const [sortBy, setSortBy] = useState('popular');
   const [page, setPage] = useState(1);
 
-  const { data, isLoading } = useQuery({
+  const { data: response, isLoading } = useQuery({
     queryKey: ['all-products', search, category, vegOnly, sortBy, page],
     queryFn: async () => {
       const res = await userAPI.getMenuItems({
@@ -32,120 +32,119 @@ export default function AllProducts() {
         page,
         limit: 20,
       });
-      return res?.data || res;
+      return res;
     },
     placeholderData: (previousData) => previousData,
   });
 
-  const items = safeArray(data?.items || data);
-  const totalPages = data?.totalPages || 1;
+  // Extract items safely
+  const items = safeArray(
+    response?.products ||
+    response?.data ||
+    response?.data?.products ||
+    []
+  );
+
+  const totalItems = response?.total || items.length;
+  const totalPages = Math.ceil(totalItems / 20);
 
   return (
     <UserLayout>
       <div className="container mx-auto px-4 py-8">
-        <div className="flex items-center gap-4 mb-6">
+        <div className="flex items-center gap-4 mb-8">
           <Button variant="ghost" size="icon" onClick={() => navigate(-1)}>
             <ArrowLeft size={20} />
           </Button>
-          <div>
-            <h1 className="text-2xl font-display font-bold text-foreground">All Products</h1>
-            <p className="text-muted-foreground">Browse all available dishes</p>
-          </div>
+          <h1 className="text-2xl font-display font-bold text-foreground">
+            All Products
+          </h1>
         </div>
 
         {/* Filters */}
-        <div className="flex flex-wrap gap-4 mb-8 p-4 bg-card rounded-2xl shadow-card">
-          <div className="relative flex-1 min-w-[200px]">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
-            <Input
-              placeholder="Search dishes..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
-            />
+        <div className="flex flex-col sm:flex-row gap-4 mb-8">
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                placeholder="Search products..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="pl-10"
+              />
+            </div>
           </div>
 
           <Select value={category} onValueChange={setCategory}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Category" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Categories</SelectItem>
-              <SelectItem value="Main Course">Main Course</SelectItem>
-              <SelectItem value="Starters">Starters</SelectItem>
-              <SelectItem value="Rice">Rice</SelectItem>
-              <SelectItem value="Biryani">Biryani</SelectItem>
-              <SelectItem value="Breads">Breads</SelectItem>
-              <SelectItem value="Desserts">Desserts</SelectItem>
-              <SelectItem value="Beverages">Beverages</SelectItem>
-              <SelectItem value="Thali">Thali</SelectItem>
-            </SelectContent>
-          </Select>
-
-          <Select value={sortBy} onValueChange={setSortBy}>
-            <SelectTrigger className="w-[140px]">
-              <SelectValue placeholder="Sort by" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="popular">Popular</SelectItem>
-              <SelectItem value="price_low">Price: Low-High</SelectItem>
-              <SelectItem value="price_high">Price: High-Low</SelectItem>
-              <SelectItem value="rating">Rating</SelectItem>
+              <SelectItem value="indian">Indian</SelectItem>
+              <SelectItem value="chinese">Chinese</SelectItem>
+              <SelectItem value="healthy">Healthy</SelectItem>
             </SelectContent>
           </Select>
 
           <div className="flex items-center gap-2">
-            <Switch checked={vegOnly} onCheckedChange={setVegOnly} id="veg-filter" />
-            <Label htmlFor="veg-filter" className="text-sm">Veg Only</Label>
+            <Switch
+              id="veg-only"
+              checked={vegOnly}
+              onCheckedChange={setVegOnly}
+            />
+            <Label htmlFor="veg-only">Veg Only</Label>
           </div>
+
+          <Select value={sortBy} onValueChange={setSortBy}>
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Sort by" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="popular">Popular</SelectItem>
+              <SelectItem value="price-low">Price: Low to High</SelectItem>
+              <SelectItem value="price-high">Price: High to Low</SelectItem>
+              <SelectItem value="rating">Rating</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
 
         {isLoading ? (
-          <LoadingSpinner text="Loading products..." />
+          <LoadingSpinner />
         ) : (
           <>
-            <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
               {items.map((item: any) => (
-                <div key={item._id} className="food-card overflow-hidden group">
+                <div key={item._id} className="food-card overflow-hidden rounded-xl border bg-card shadow-sm hover:shadow-md transition-all">
                   <div className="relative aspect-[4/3] overflow-hidden">
                     <img
                       src={item.image}
                       alt={item.name}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                      className="w-full h-full object-cover"
                     />
-                    <div className="absolute top-3 right-3">
-                      <VegBadge isVeg={item.isVeg} />
-                    </div>
-
-                    {item.discountPrice && (
-                      <div className="absolute bottom-3 left-3 bg-success text-success-foreground px-2 py-1 rounded-lg text-xs font-bold">
-                        {Math.round(((item.price - item.discountPrice) / item.price) * 100)}% OFF
-                      </div>
+                    {item.isVeg && (
+                      <VegBadge 
+                        isVeg={true} 
+                        className="absolute top-3 left-3" 
+                      />
                     )}
                   </div>
 
                   <div className="p-4">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <h3 className="font-semibold text-foreground line-clamp-1">
-                        {item.name}
-                      </h3>
-                      <div className="flex items-center gap-1 text-sm text-muted-foreground shrink-0">
-                        <Clock size={14} />
-                        <span>{item.preparationTime}m</span>
-                      </div>
-                    </div>
+                    <h3 className="font-semibold text-foreground line-clamp-1 mb-1">
+                      {item.name}
+                    </h3>
 
                     <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
                       {item.description}
                     </p>
 
                     <div className="flex items-center justify-between">
-                      <div className="flex items-baseline gap-2">
+                      <div>
                         <span className="text-lg font-bold text-foreground">
-                          ₹{item.discountPrice || item.price}
+                          ₹{item.discountPrice || item.price || 0}
                         </span>
-                        {item.discountPrice && (
-                          <span className="text-sm text-muted-foreground line-through">
+                        {item.discountPrice && item.price && (
+                          <span className="text-sm text-muted-foreground line-through ml-2">
                             ₹{item.price}
                           </span>
                         )}
