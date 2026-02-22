@@ -9,6 +9,7 @@ import { adminAPI } from '@/lib/api';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { toast } from '@/hooks/use-toast';
 import { Receipt, CheckCircle2, Clock, DollarSign, Send } from 'lucide-react';
+import { safeArray } from '@/utils/safeArray';
 
 export default function AdminSettlements() {
   const queryClient = useQueryClient();
@@ -26,7 +27,7 @@ export default function AdminSettlements() {
 
   const bulkProcessMutation = useMutation({
     mutationFn: () => {
-      const pendingIds = (settlements || []).filter((s: any) => s.status === 'pending').map((s: any) => s._id);
+      const pendingIds = safeArray(settlements).filter((s: any) => s.status === 'pending').map((s: any) => s._id);
       return adminAPI.bulkProcessSettlements(pendingIds);
     },
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-settlements'] }); toast({ title: 'All pending settlements processed' }); },
@@ -49,7 +50,7 @@ export default function AdminSettlements() {
 
       {isLoading ? <LoadingSpinner /> : (
         <div className="space-y-4">
-          {(settlements || []).map((s: any) => (
+          {safeArray(settlements).map((s: any) => (
             <Card key={s._id}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -76,7 +77,7 @@ export default function AdminSettlements() {
               </CardContent>
             </Card>
           ))}
-          {(!settlements || settlements.length === 0) && (
+          {safeArray(settlements).length === 0 && (
             <div className="text-center py-12"><p className="text-muted-foreground">No settlements found</p></div>
           )}
         </div>

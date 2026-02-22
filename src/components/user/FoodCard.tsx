@@ -63,7 +63,7 @@ export function FoodCard({ item, seller, className }: FoodCardProps) {
         <div className="flex items-center gap-2 mb-3">
           <RatingStars rating={seller.rating} size="sm" />
           <span className="text-xs text-muted-foreground">
-            {seller.totalOrders.toLocaleString()} orders
+            {(seller.totalOrders || 0).toLocaleString()} orders
           </span>
         </div>
         
@@ -129,7 +129,7 @@ export function SellerCard({ seller, className }: SellerCardProps) {
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-foreground line-clamp-1">{seller.businessName}</h3>
             <p className="text-sm text-muted-foreground line-clamp-1">
-              {seller.cuisines.join(' • ')}
+              {(seller.cuisines || []).join(' • ')}
             </p>
           </div>
         </div>
@@ -141,12 +141,12 @@ export function SellerCard({ seller, className }: SellerCardProps) {
           </div>
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <MapPin size={14} />
-            <span className="line-clamp-1">{seller.address.city}</span>
+            <span className="line-clamp-1">{seller.address?.city}</span>
           </div>
         </div>
         
         <div className="flex flex-wrap gap-1 mt-3">
-          {seller.tags.slice(0, 3).map(tag => (
+          {(seller.tags || []).slice(0, 3).map((tag: string) => (
             <span
               key={tag}
               className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full text-xs"

@@ -10,6 +10,7 @@ import { Search, Filter, Clock, CheckCircle2, AlertCircle, Phone, MapPin } from 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sellerAPI } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
+import { safeArray } from '@/utils/safeArray';
 
 const orderStatuses = ['all', 'pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'];
 
@@ -31,8 +32,8 @@ export default function SellerOrders() {
     },
   });
 
-  const orders = (data?.orders || []).filter((order: any) =>
-    order.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase())
+  const orders = safeArray(data?.orders || data).filter((order: any) =>
+    order?.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
