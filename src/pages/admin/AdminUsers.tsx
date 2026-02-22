@@ -9,6 +9,7 @@ import { adminAPI } from '@/lib/api';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { toast } from '@/hooks/use-toast';
 import { Search, Filter, Users, Ban, CheckCircle2, Mail, Phone, Calendar } from 'lucide-react';
+import { safeArray } from '@/utils/safeArray';
 
 export default function AdminUsers() {
   const queryClient = useQueryClient();
@@ -39,11 +40,11 @@ export default function AdminUsers() {
         </div>
         <div className="bg-success/10 rounded-xl p-4">
           <p className="text-sm text-success">Active</p>
-          <p className="text-2xl font-bold text-success">{(data?.users || []).filter((u: any) => !u.isBlocked).length}</p>
+          <p className="text-2xl font-bold text-success">{safeArray(data?.users || data).filter((u: any) => !u.isBlocked).length}</p>
         </div>
         <div className="bg-destructive/10 rounded-xl p-4">
           <p className="text-sm text-destructive">Blocked</p>
-          <p className="text-2xl font-bold text-destructive">{(data?.users || []).filter((u: any) => u.isBlocked).length}</p>
+          <p className="text-2xl font-bold text-destructive">{safeArray(data?.users || data).filter((u: any) => u.isBlocked).length}</p>
         </div>
       </div>
 
@@ -63,7 +64,7 @@ export default function AdminUsers() {
 
       {isLoading ? <LoadingSpinner /> : (
         <div className="space-y-4">
-          {(data?.users || []).map((user: any) => (
+          {safeArray(data?.users || data).map((user: any) => (
             <Card key={user._id}>
               <CardContent className="p-6">
                 <div className="flex items-center gap-6">
@@ -97,7 +98,7 @@ export default function AdminUsers() {
               </CardContent>
             </Card>
           ))}
-          {(!data?.users || data.users.length === 0) && (
+          {safeArray(data?.users || data).length === 0 && (
             <div className="text-center py-12"><p className="text-muted-foreground">No users found</p></div>
           )}
         </div>

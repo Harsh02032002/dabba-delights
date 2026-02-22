@@ -24,6 +24,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productAPI } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
+import { safeArray } from '@/utils/safeArray';
 
 const categories = ['Main Course', 'Starters', 'Rice', 'Breads', 'Desserts', 'Beverages', 'Snacks', 'Thali'];
 
@@ -94,10 +95,10 @@ export default function SellerMenu() {
     queryFn: () => productAPI.menuHealthScore(),
   });
 
-  const products = productsData?.products || [];
-  const totalProducts = productsData?.total || 0;
-  const archivedProducts = archivedData?.products || [];
-  const lowStockProducts = lowStockData?.products || [];
+  const products = safeArray(productsData?.products || productsData?.data || productsData);
+  const totalProducts = productsData?.total || products.length;
+  const archivedProducts = safeArray(archivedData?.products || archivedData?.data || archivedData);
+  const lowStockProducts = safeArray(lowStockData?.products || lowStockData?.data || lowStockData);
 
   // ─── Mutations ────────────────────────────────────────────────
   const invalidate = () => {

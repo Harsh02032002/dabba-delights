@@ -8,16 +8,18 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sellerAPI } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Users, Gift, Search } from 'lucide-react';
+import { safeArray } from '@/utils/safeArray';
 
 export default function SellerCustomers() {
   const queryClient = useQueryClient();
   const [search, setSearch] = useState('');
   const [pointsInput, setPointsInput] = useState<Record<string, string>>({});
 
-  const { data: customers = [], isLoading } = useQuery({
+  const { data: customersRaw, isLoading } = useQuery({
     queryKey: ['seller-customers'],
     queryFn: () => sellerAPI.getCustomers(),
   });
+  const customers = safeArray(customersRaw);
 
   const awardMutation = useMutation({
     mutationFn: ({ userId, points }: { userId: string; points: number }) => sellerAPI.awardLoyaltyPoints(userId, points),
