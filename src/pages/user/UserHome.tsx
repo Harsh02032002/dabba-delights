@@ -14,39 +14,48 @@ import {
   Truck,
   Star,
 } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
-import { useNavigate } from "react-router-dom";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { safeArray } from "@/utils/safeArray";
 
 export default function UserHome() {
   const [foodType, setFoodType] = useState<SellerType | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const navigate = useNavigate();
 
-  const { 
-    data: sellersData = [], 
-    isLoading: sellersLoading 
+  // Sellers Query – React Query v5 Fixed
+  const {
+    data: sellersData = [],
+    isLoading: sellersLoading,
   } = useQuery({
     queryKey: ["sellers", foodType, searchQuery],
-    queryFn: () =>
-      userAPI.getSellers({
+    queryFn: async () => {
+      const res = await userAPI.getSellers({
         type: foodType === "all" ? undefined : foodType,
         search: searchQuery || undefined,
-      }),
-    placeholderData: (prev) => prev,
+      });
+      return safeArray(res?.data || res);
+    },
+    placeholderData: (previousData) => previousData,
   });
 
-  const { 
-    data: menuData = [], 
-    isLoading: menuLoading 
+  // Menu Items Query – React Query v5 Fixed
+  const {
+    data: menuData = [],
+    isLoading: menuLoading,
   } = useQuery({
     queryKey: ["menu-items", searchQuery],
-    queryFn: () => userAPI.getMenuItems({ search: searchQuery || undefined }),
-    placeholderData: (prev) => prev,
+    queryFn: async () => {
+      const res = await userAPI.getMenuItems({
+        search: searchQuery || undefined,
+      });
+      return safeArray(res?.data || res);
+    },
+    placeholderData: (previousData) => previousData,
   });
 
-  const sellers = (sellersData as any[]) || [];
-  const menuItems = (menuData as any[]) || [];
+  const sellers = safeArray(sellersData);
+  const menuItems = safeArray(menuData);
 
+  // Filter sellers (client-side)
   const filteredSellers = sellers.filter((s: any) => {
     if (foodType !== "all" && s.type !== foodType) return false;
     if (!searchQuery) return true;
@@ -57,6 +66,7 @@ export default function UserHome() {
     );
   });
 
+  // Featured items filter
   const featuredItems = menuItems.filter((item: any) => {
     const seller = sellers.find((s: any) => s._id === item.sellerId);
     if (!seller) return false;
@@ -72,19 +82,16 @@ export default function UserHome() {
     return true;
   });
 
-  const SkeletonCards = () => (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-      {Array.from({ length: 4 }).map((_, i) => (
-        <div key={i} className="rounded-2xl overflow-hidden">
-          <Skeleton className="aspect-[4/3] w-full" />
-          <div className="p-4 space-y-2">
-            <Skeleton className="h-4 w-3/4" />
-            <Skeleton className="h-3 w-1/2" />
-          </div>
+  // Loading state
+  if (sellersLoading || menuLoading) {
+    return (
+      <UserLayout>
+        <div className="flex justify-center items-center min-h-[60vh]">
+          <LoadingSpinner />
         </div>
-      ))}
-    </div>
-  );
+      </UserLayout>
+    );
+  }
 
   return (
     <UserLayout onSearch={setSearchQuery}>
@@ -101,12 +108,17 @@ export default function UserHome() {
               Fresh & Authentic Food Delivered
             </div>
             <h1 className="mb-6 font-display text-5xl font-bold leading-tight text-foreground md:text-6xl">
-              Home-Cooked Meals & <span className="text-primary">Restaurant Delights</span>
+              Home-Cooked Meals &{" "}
+              <span className="text-primary">Restaurant Delights</span>
             </h1>
             <p className="mb-8 text-lg text-muted-foreground">
-              Discover authentic home-cooked meals from local chefs or order from your favorite restaurants. Fresh, delicious, and delivered to your doorstep.
+              Discover authentic home-cooked meals from local chefs or order
+              from your favorite restaurants. Fresh, delicious, and delivered to
+              your doorstep.
             </p>
             <FoodToggle value={foodType} onChange={setFoodType} />
+
+            {/* Stats */}
             <div className="mt-10 flex flex-wrap gap-8">
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
@@ -114,25 +126,33 @@ export default function UserHome() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">4.8</p>
-                  <p className="text-sm text-muted-foreground">Average Rating</p>
+                  <p className="text-sm text-muted-foreground">
+                    Average Rating
+                  </p>
                 </div>
               </div>
+
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10">
                   <Truck className="text-success" size={24} />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">30min</p>
-                  <p className="text-sm text-muted-foreground">Avg. Delivery</p>
+                  <p className="text-sm text-muted-foreground">
+                    Avg. Delivery
+                  </p>
                 </div>
               </div>
+
               <div className="flex items-center gap-3">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10">
                   <Shield className="text-warning" size={24} />
                 </div>
                 <div>
                   <p className="text-2xl font-bold text-foreground">100%</p>
-                  <p className="text-sm text-muted-foreground">Safe & Hygenic</p>
+                  <p className="text-sm text-muted-foreground">
+                    Safe & Hygenic
+                  </p>
                 </div>
               </div>
             </div>
@@ -151,19 +171,20 @@ export default function UserHome() {
                 ? "Home Chefs Near You"
                 : "Top Restaurants"}
             </h2>
-            <p className="text-muted-foreground">Discover the best food near your location</p>
+            <p className="text-muted-foreground">
+              Discover the best food near your location
+            </p>
           </div>
-          <Button variant="ghost" className="gap-2" onClick={() => navigate("/all-products")}>
+          <Button variant="ghost" className="gap-2">
             View All <ChevronRight size={16} />
           </Button>
         </div>
-        {sellersLoading ? <SkeletonCards /> : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {filteredSellers.map((seller) => (
-              <SellerCard key={seller._id} seller={seller} />
-            ))}
-          </div>
-        )}
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {filteredSellers.map((seller: any) => (
+            <SellerCard key={seller._id} seller={seller} />
+          ))}
+        </div>
       </section>
 
       {/* Featured Dishes */}
@@ -171,23 +192,30 @@ export default function UserHome() {
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h2 className="font-display text-2xl font-bold text-foreground">
-              {searchQuery ? `Search Results for "${searchQuery}"` : "Popular Dishes"}
+              {searchQuery
+                ? `Search Results for "${searchQuery}"`
+                : "Popular Dishes"}
             </h2>
-            <p className="text-muted-foreground">{featuredItems.length} dishes available</p>
+            <p className="text-muted-foreground">
+              {featuredItems.length} dishes available
+            </p>
           </div>
-          <Button variant="ghost" className="gap-2" onClick={() => navigate("/all-products")}>
+          <Button variant="ghost" className="gap-2">
             View All <ChevronRight size={16} />
           </Button>
         </div>
-        {menuLoading ? <SkeletonCards /> : (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-            {featuredItems.slice(0, 8).map((item) => {
-              const seller = sellers.find((s: any) => s._id === item.sellerId);
-              if (!seller) return null;
-              return <FoodCard key={item._id} item={item} seller={seller} />;
-            })}
-          </div>
-        )}
+
+        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          {featuredItems.slice(0, 8).map((item: any) => {
+            const seller = sellers.find(
+              (s: any) => s._id === item.sellerId
+            );
+            if (!seller) return null;
+            return (
+              <FoodCard key={item._id} item={item} seller={seller} />
+            );
+          })}
+        </div>
       </section>
 
       {/* Subscription Banner */}
@@ -203,9 +231,13 @@ export default function UserHome() {
               Subscribe & Save Up to 20%
             </h2>
             <p className="mb-6 text-white/80">
-              Get your favorite meals delivered daily with our subscription plans. Perfect for busy professionals and families.
+              Get your favorite meals delivered daily with our subscription
+              plans. Perfect for busy professionals and families.
             </p>
-            <Button size="lg" className="bg-white text-primary hover:bg-white/90">
+            <Button
+              size="lg"
+              className="bg-white text-primary hover:bg-white/90"
+            >
               Explore Subscriptions
             </Button>
           </div>
@@ -219,33 +251,42 @@ export default function UserHome() {
             How Dabba Nation Works
           </h2>
           <p className="mx-auto max-w-2xl text-muted-foreground">
-            Getting delicious food delivered to your doorstep has never been easier
+            Getting delicious food delivered to your doorstep has never been
+            easier
           </p>
         </div>
+
         <div className="grid gap-8 md:grid-cols-3">
           {[
             {
               step: "01",
               title: "Choose Your Meal",
-              description: "Browse through home chefs or restaurants. Filter by cuisine, ratings, and dietary preferences.",
+              description:
+                "Browse through home chefs or restaurants. Filter by cuisine, ratings, and dietary preferences.",
             },
             {
               step: "02",
               title: "Place Your Order",
-              description: "Add items to cart, apply offers, and choose your preferred payment method.",
+              description:
+                "Add items to cart, apply offers, and choose your preferred payment method.",
             },
             {
               step: "03",
               title: "Enjoy Fresh Food",
-              description: "Track your order in real-time and enjoy freshly prepared meals at your doorstep.",
+              description:
+                "Track your order in real-time and enjoy freshly prepared meals at your doorstep.",
             },
           ].map((item) => (
             <div key={item.step} className="relative text-center">
               <div className="mb-4 font-display text-6xl font-bold text-primary/10">
                 {item.step}
               </div>
-              <h3 className="mb-2 text-xl font-semibold text-foreground">{item.title}</h3>
-              <p className="text-muted-foreground">{item.description}</p>
+              <h3 className="mb-2 text-xl font-semibold text-foreground">
+                {item.title}
+              </h3>
+              <p className="text-muted-foreground">
+                {item.description}
+              </p>
             </div>
           ))}
         </div>
