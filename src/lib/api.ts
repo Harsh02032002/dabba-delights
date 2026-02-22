@@ -417,4 +417,22 @@ const authAPI = {
     authAPI.register({ ...data, role: "admin" }),
 };
 
+export const paymentAPI = {
+  createRazorpayOrder: (data: Record<string, any>) =>
+    apiRequest<any>("/payment/razorpay/create-order", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  verifyRazorpayPayment: (data: Record<string, any>) =>
+    apiRequest<any>("/payment/razorpay/verify", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+  createStripeIntent: (data: Record<string, any>) =>
+    apiRequest<any>("/payment/stripe/create-intent", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
+};
+
 export { apiRequest, apiUpload, API_BASE_URL, authAPI };
