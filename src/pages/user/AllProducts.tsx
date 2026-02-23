@@ -37,13 +37,8 @@ export default function AllProducts() {
     placeholderData: (previousData) => previousData,
   });
 
-  // Extract items safely
-  const items = safeArray(
-    response?.products ||
-    response?.data ||
-    response?.data?.products ||
-    []
-  );
+  // Products are now normalized by API layer — always an array
+  const items = Array.isArray(response?.products) ? response.products : [];
 
   const totalItems = response?.total || items.length;
   const totalPages = Math.ceil(totalItems / 20);

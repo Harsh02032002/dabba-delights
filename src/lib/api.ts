@@ -342,10 +342,18 @@ export const adminAPI = {
 
 // USER / CUSTOMER APIs
 export const userAPI = {
-  getSellers: (params?: Record<string, unknown>) =>
-    apiRequest(`/user/sellers${toQuery(params)}`),
-  getMenuItems: (params?: Record<string, unknown>) =>
-    apiRequest(`/user/menu${toQuery(params)}`),
+  getSellers: async (params?: Record<string, unknown>) => {
+    const res = await apiRequest<any>(`/user/sellers${toQuery(params)}`);
+    // Normalize: always return { sellers: [], ...rest }
+    const sellers = Array.isArray(res) ? res : Array.isArray(res?.sellers) ? res.sellers : Array.isArray(res?.data) ? res.data : [];
+    return { sellers, total: res?.total || sellers.length, success: true };
+  },
+  getMenuItems: async (params?: Record<string, unknown>) => {
+    const res = await apiRequest<any>(`/user/menu${toQuery(params)}`);
+    // Normalize: always return { products: [], ...rest }
+    const products = Array.isArray(res) ? res : Array.isArray(res?.products) ? res.products : Array.isArray(res?.data) ? res.data : Array.isArray(res?.menu) ? res.menu : [];
+    return { products, total: res?.total || products.length, page: res?.page, limit: res?.limit, success: true };
+  },
   getRecommendations: () => apiRequest("/user/recommendations"),
   getCart: () => apiRequest("/user/cart"),
   addToCart: (data: Record<string, unknown>) =>

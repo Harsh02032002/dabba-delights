@@ -23,7 +23,7 @@ export default function UserHome() {
 
   // Sellers Query – Updated to handle {success: true, sellers: [...]}
   const {
-    data: sellersResponse = {},
+    data: sellersResponse = {} as any,
     isLoading: sellersLoading,
   } = useQuery({
     queryKey: ["sellers", foodType, searchQuery],
@@ -37,17 +37,12 @@ export default function UserHome() {
     placeholderData: (previousData) => previousData,
   });
 
-  // Extract sellers array safely – yeh line fix kar di
-  const sellers = safeArray(
-    sellersResponse?.sellers ||           // backend mein "sellers" key hai
-    sellersResponse?.data ||              // agar kabhi data key aaye
-    sellersResponse?.data?.sellers ||     // nested case
-    []                                    // fallback empty array
-  );
+  // Sellers are now normalized by API layer — always an array
+  const sellers = Array.isArray(sellersResponse?.sellers) ? sellersResponse.sellers : [];
 
-  // Menu Items Query – Updated to handle {success: true, products: [...]}
+  // Menu Items Query
   const {
-    data: menuResponse = {},
+    data: menuResponse = {} as any,
     isLoading: menuLoading,
   } = useQuery({
     queryKey: ["menu-items", searchQuery],
@@ -60,14 +55,8 @@ export default function UserHome() {
     placeholderData: (previousData) => previousData,
   });
 
-  // Extract menuItems array safely – yeh line fix kar di
-  const menuItems = safeArray(
-    menuResponse?.products ||             // backend mein "products" key hai
-    menuResponse?.data ||                 // agar kabhi data key aaye
-    menuResponse?.data?.products ||       // nested case
-    menuResponse?.menu ||                 // agar menu key ho
-    []                                    // fallback empty array
-  );
+  // Products are now normalized by API layer — always an array
+  const menuItems = Array.isArray(menuResponse?.products) ? menuResponse.products : [];
 
   return (
     <UserLayout>
