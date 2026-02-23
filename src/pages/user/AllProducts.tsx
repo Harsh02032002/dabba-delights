@@ -23,24 +23,22 @@ export default function AllProducts() {
 
   const { data: response, isLoading } = useQuery({
     queryKey: ['all-products', search, category, vegOnly, sortBy, page],
-    queryFn: async () => {
-      const res = await userAPI.getMenuItems({
+    queryFn: () =>
+      userAPI.getMenuItems({
         search: search || undefined,
         category: category === 'all' ? undefined : category,
         isVeg: vegOnly || undefined,
         sortBy,
         page,
         limit: 20,
-      });
-      return res;
-    },
+      }),
     placeholderData: (previousData) => previousData,
   });
 
-  // Products are now normalized by API layer — always an array
-  const items = Array.isArray(response?.products) ? response.products : [];
+  // Bulletproof: extract array no matter what shape response is
+  const items = Array.isArray((response as any)?.products) ? (response as any).products : Array.isArray((response as any)?.data) ? (response as any).data : Array.isArray(response) ? response as any[] : [];
 
-  const totalItems = response?.total || items.length;
+  const totalItems = (response as any)?.total || items.length;
   const totalPages = Math.ceil(totalItems / 20);
 
   return (

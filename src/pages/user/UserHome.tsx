@@ -21,42 +21,45 @@ export default function UserHome() {
   const [foodType, setFoodType] = useState<SellerType | "all">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
-  // Sellers Query – Updated to handle {success: true, sellers: [...]}
+  // Sellers Query — select guarantees array output, NEVER an object
   const {
-    data: sellersResponse = {} as any,
+    data: sellers = [] as any[],
     isLoading: sellersLoading,
   } = useQuery({
     queryKey: ["sellers", foodType, searchQuery],
-    queryFn: async () => {
-      const res = await userAPI.getSellers({
+    queryFn: () =>
+      userAPI.getSellers({
         type: foodType === "all" ? undefined : foodType,
         search: searchQuery || undefined,
-      });
-      return res;
+      }),
+    select: (res: any): any[] => {
+      if (Array.isArray(res)) return res;
+      if (Array.isArray(res?.sellers)) return res.sellers;
+      if (Array.isArray(res?.data)) return res.data;
+      return [];
     },
     placeholderData: (previousData) => previousData,
   });
 
-  // Sellers are now normalized by API layer — always an array
-  const sellers = Array.isArray(sellersResponse?.sellers) ? sellersResponse.sellers : [];
-
-  // Menu Items Query
+  // Menu Items Query — select guarantees array output
   const {
-    data: menuResponse = {} as any,
+    data: menuItems = [] as any[],
     isLoading: menuLoading,
   } = useQuery({
     queryKey: ["menu-items", searchQuery],
-    queryFn: async () => {
-      const res = await userAPI.getMenuItems({
+    queryFn: () =>
+      userAPI.getMenuItems({
         search: searchQuery || undefined,
-      });
-      return res;
+      }),
+    select: (res: any): any[] => {
+      if (Array.isArray(res)) return res;
+      if (Array.isArray(res?.products)) return res.products;
+      if (Array.isArray(res?.data)) return res.data;
+      if (Array.isArray(res?.menu)) return res.menu;
+      return [];
     },
     placeholderData: (previousData) => previousData,
   });
-
-  // Products are now normalized by API layer — always an array
-  const menuItems = Array.isArray(menuResponse?.products) ? menuResponse.products : [];
 
   return (
     <UserLayout>
