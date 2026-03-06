@@ -16,10 +16,11 @@ export default function SellerPromotions() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const { data: promotions = [], isLoading } = useQuery({
+  const { data: promotionsRaw, isLoading } = useQuery({
     queryKey: ['seller-promotions'],
     queryFn: () => sellerAPI.getPromotions(),
   });
+  const promotions = Array.isArray(promotionsRaw) ? promotionsRaw : Array.isArray((promotionsRaw as any)?.promotions) ? (promotionsRaw as any).promotions : [];
 
   const createMutation = useMutation({
     mutationFn: (data: any) => sellerAPI.createPromotion(data),

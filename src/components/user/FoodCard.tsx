@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { MenuItem, SellerProfile, SellerType } from '@/types';
+import { MenuItem, SellerProfile } from '@/types';
 import { SellerBadge, VegBadge } from '@/components/shared/Badge';
 import { RatingStars } from '@/components/shared/RatingStars';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
-import { Clock, Plus, MapPin, ChefHat } from 'lucide-react';
+import { Clock, Plus, MapPin, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toast } from '@/hooks/use-toast';
 
 interface FoodCardProps {
   item: MenuItem;
@@ -17,10 +18,27 @@ interface FoodCardProps {
 export function FoodCard({ item, seller, className }: FoodCardProps) {
   const { addToCart } = useCart();
   const navigate = useNavigate();
+  const [wishlisted, setWishlisted] = useState(false);
 
   const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
     addToCart(item, seller._id, seller.businessName, seller.type);
+  };
+
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setWishlisted(!wishlisted);
+    toast({ title: wishlisted ? 'Removed from wishlist' : 'Added to wishlist' });
+    // API call (fire & forget)
+    try {
+      import('@/lib/api').then(({ userAPI }) => {
+        if (wishlisted) {
+          userAPI.removeFromWishlist(item._id);
+        } else {
+          userAPI.addToWishlist(item._id);
+        }
+      });
+    } catch {}
   };
 
   return (
@@ -29,15 +47,17 @@ export function FoodCard({ item, seller, className }: FoodCardProps) {
       onClick={() => navigate(`/seller/${seller._id}`)}
     >
       <div className="relative aspect-[4/3] overflow-hidden">
-        <img
-          src={item.image}
-          alt={item.name}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-        />
+        <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
         <div className="absolute top-3 left-3 flex gap-2">
           <SellerBadge type={seller.type} />
         </div>
-        <div className="absolute top-3 right-3">
+        <div className="absolute top-3 right-3 flex items-center gap-2">
+          <button onClick={handleWishlist} className={cn(
+            "w-8 h-8 rounded-full flex items-center justify-center transition-all",
+            wishlisted ? "bg-destructive text-destructive-foreground" : "bg-card/80 text-muted-foreground hover:text-destructive"
+          )}>
+            <Heart size={16} className={wishlisted ? "fill-current" : ""} />
+          </button>
           <VegBadge isVeg={item.isVeg} />
         </div>
         {item.discountPrice && (
@@ -56,37 +76,20 @@ export function FoodCard({ item, seller, className }: FoodCardProps) {
           </div>
         </div>
         
-        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">
-          {item.description}
-        </p>
+        <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{item.description}</p>
         
         <div className="flex items-center gap-2 mb-3">
           <RatingStars rating={seller.rating} size="sm" />
-          <span className="text-xs text-muted-foreground">
-            {(seller.totalOrders || 0).toLocaleString()} orders
-          </span>
+          <span className="text-xs text-muted-foreground">{(seller.totalOrders || 0).toLocaleString()} orders</span>
         </div>
         
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold text-foreground">
-              ₹{item.discountPrice || item.price}
-            </span>
-            {item.discountPrice && (
-              <span className="text-sm text-muted-foreground line-through">
-                ₹{item.price}
-              </span>
-            )}
+            <span className="text-lg font-bold text-foreground">₹{item.discountPrice || item.price}</span>
+            {item.discountPrice && <span className="text-sm text-muted-foreground line-through">₹{item.price}</span>}
           </div>
-          
-          <Button
-            size="sm"
-            variant="gradient"
-            onClick={handleAddToCart}
-            className="h-9 px-4"
-          >
-            <Plus size={16} />
-            Add
+          <Button size="sm" variant="gradient" onClick={handleAddToCart} className="h-9 px-4">
+            <Plus size={16} /> Add
           </Button>
         </div>
       </div>
@@ -103,16 +106,9 @@ export function SellerCard({ seller, className }: SellerCardProps) {
   const navigate = useNavigate();
 
   return (
-    <div
-      className={cn('food-card overflow-hidden cursor-pointer group', className)}
-      onClick={() => navigate(`/seller/${seller._id}`)}
-    >
+    <div className={cn('food-card overflow-hidden cursor-pointer group', className)} onClick={() => navigate(`/seller/${seller._id}`)}>
       <div className="relative h-32 overflow-hidden">
-        <img
-          src={seller.coverImage}
-          alt={seller.businessName}
-          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-        />
+        <img src={seller.coverImage} alt={seller.businessName} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="absolute bottom-3 left-3 right-3">
           <SellerBadge type={seller.type} />
@@ -121,16 +117,10 @@ export function SellerCard({ seller, className }: SellerCardProps) {
       
       <div className="p-4">
         <div className="flex items-start gap-3">
-          <img
-            src={seller.logo}
-            alt={seller.businessName}
-            className="w-12 h-12 rounded-xl object-cover shadow-md -mt-8 border-2 border-card"
-          />
+          <img src={seller.logo} alt={seller.businessName} className="w-12 h-12 rounded-xl object-cover shadow-md -mt-8 border-2 border-card" />
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-foreground line-clamp-1">{seller.businessName}</h3>
-            <p className="text-sm text-muted-foreground line-clamp-1">
-              {(seller.cuisines || []).join(' • ')}
-            </p>
+            <p className="text-sm text-muted-foreground line-clamp-1">{(seller.cuisines || []).join(' • ')}</p>
           </div>
         </div>
         
@@ -147,12 +137,7 @@ export function SellerCard({ seller, className }: SellerCardProps) {
         
         <div className="flex flex-wrap gap-1 mt-3">
           {(seller.tags || []).slice(0, 3).map((tag: string) => (
-            <span
-              key={tag}
-              className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full text-xs"
-            >
-              {tag}
-            </span>
+            <span key={tag} className="bg-secondary text-secondary-foreground px-2 py-0.5 rounded-full text-xs">{tag}</span>
           ))}
         </div>
       </div>

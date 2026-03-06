@@ -10,6 +10,8 @@ interface UserLayoutProps {
 }
 
 export function UserLayout({ children, onSearch }: UserLayoutProps) {
+  const currentYear = new Date().getFullYear();
+
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <UserNavbar onSearch={onSearch} />
@@ -52,9 +54,7 @@ export function UserLayout({ children, onSearch }: UserLayoutProps) {
               <ul className="space-y-2 text-sm text-background/70">
                 <li><Link to="/" className="hover:text-background transition-colors">Home</Link></li>
                 <li><Link to="/about" className="hover:text-background transition-colors">About Us</Link></li>
-                <li><Link to="/restaurants" className="hover:text-background transition-colors">Restaurants</Link></li>
-                <li><Link to="/home-chefs" className="hover:text-background transition-colors">Home Chefs</Link></li>
-                <li><Link to="/subscriptions" className="hover:text-background transition-colors">Subscriptions</Link></li>
+                <li><Link to="/all-products" className="hover:text-background transition-colors">Browse Menu</Link></li>
               </ul>
             </div>
 
@@ -65,7 +65,6 @@ export function UserLayout({ children, onSearch }: UserLayoutProps) {
                 <li><Link to="/seller/register" className="hover:text-background transition-colors">Register as Seller</Link></li>
                 <li><Link to="/seller/login" className="hover:text-background transition-colors">Seller Login</Link></li>
                 <li><a href="#" className="hover:text-background transition-colors">Delivery Partner</a></li>
-                <li><a href="#" className="hover:text-background transition-colors">Corporate Orders</a></li>
               </ul>
             </div>
 
@@ -91,12 +90,12 @@ export function UserLayout({ children, onSearch }: UserLayoutProps) {
 
           <div className="border-t border-background/10 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center gap-4">
             <p className="text-sm text-background/50">
-              © 2024 Dabba Nation. All rights reserved.
+              © {currentYear} Dabba Nation. All rights reserved.
             </p>
             <div className="flex gap-6 text-sm text-background/50">
-              <a href="#" className="hover:text-background transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-background transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-background transition-colors">Refund Policy</a>
+              <Link to="/privacy-policy" className="hover:text-background transition-colors">Privacy Policy</Link>
+              <Link to="/terms-of-service" className="hover:text-background transition-colors">Terms of Service</Link>
+              <Link to="/refund-policy" className="hover:text-background transition-colors">Refund Policy</Link>
             </div>
           </div>
         </div>

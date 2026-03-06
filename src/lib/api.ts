@@ -108,13 +108,19 @@ export const productAPI = {
   duplicateProduct: (id: string) =>
     apiRequest(`/products/${id}/duplicate`, { method: "POST" }),
 
-  // I — ARCHIVE / DELETE
+  // I — ARCHIVE / DELETE / RECYCLE BIN
   // PATCH /products/:id/archive
   archiveProduct: (id: string) =>
     apiRequest(`/products/${id}/archive`, { method: "PATCH" }),
   // PATCH /products/:id/restore
   restoreProduct: (id: string) =>
     apiRequest(`/products/${id}/restore`, { method: "PATCH" }),
+  // GET /products/recycle-bin
+  getRecycleBin: () =>
+    apiRequest("/products/recycle-bin"),
+  // DELETE /products/recycle-bin/empty
+  emptyRecycleBin: () =>
+    apiRequest("/products/recycle-bin/empty", { method: "DELETE" }),
   // DELETE /products/:id
   hardDeleteProduct: (id: string) =>
     apiRequest(`/products/${id}`, { method: "DELETE" }),
@@ -338,6 +344,39 @@ export const adminAPI = {
     apiRequest(`/admin/categories/${id}`, { method: "DELETE" }),
   bulkProcessSettlements: (ids: string[]) =>
     apiRequest("/admin/settlements/bulk-process", { method: "POST", body: JSON.stringify({ ids }) }),
+  // Warehouse & Delivery Management
+  getDeliveryDashboard: () => apiRequest("/admin/delivery-dashboard"),
+  getWarehouses: (params?: Record<string, unknown>) =>
+    apiRequest(`/admin/warehouses${toQuery(params)}`),
+  getWarehouseById: (id: string) => apiRequest(`/admin/warehouses/${id}`),
+  createWarehouse: (data: Record<string, unknown>) =>
+    apiRequest("/admin/warehouses", { method: "POST", body: JSON.stringify(data) }),
+  updateWarehouse: (id: string, data: Record<string, unknown>) =>
+    apiRequest(`/admin/warehouses/${id}`, { method: "PUT", body: JSON.stringify(data) }),
+  deleteWarehouse: (id: string) =>
+    apiRequest(`/admin/warehouses/${id}`, { method: "DELETE" }),
+  toggleWarehouseStatus: (id: string) =>
+    apiRequest(`/admin/warehouses/${id}/toggle`, { method: "PATCH" }),
+  mapSellerToWarehouse: (warehouseId: string, sellerId: string) =>
+    apiRequest(`/admin/warehouses/${warehouseId}/map-seller`, { method: "POST", body: JSON.stringify({ sellerId }) }),
+  unmapSellerFromWarehouse: (warehouseId: string, sellerId: string) =>
+    apiRequest(`/admin/warehouses/${warehouseId}/unmap-seller/${sellerId}`, { method: "DELETE" }),
+  getDeliveryPartners: (params?: Record<string, unknown>) =>
+    apiRequest(`/admin/partners${toQuery(params)}`),
+  getDeliveryPartnerById: (id: string) => apiRequest(`/admin/partners/${id}`),
+  approveDeliveryPartner: (id: string) =>
+    apiRequest(`/admin/partners/${id}/approve`, { method: "POST" }),
+  rejectDeliveryPartner: (id: string, reason?: string) =>
+    apiRequest(`/admin/partners/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }),
+  assignPartnerToWarehouse: (partnerId: string, warehouseId: string) =>
+    apiRequest(`/admin/partners/${partnerId}/assign-warehouse`, { method: "POST", body: JSON.stringify({ warehouseId }) }),
+  getDeliveryPayConfig: () => apiRequest("/admin/pay-config"),
+  updateDeliveryPayConfig: (data: Record<string, unknown>) =>
+    apiRequest("/admin/pay-config", { method: "PUT", body: JSON.stringify(data) }),
+  getDeliverySettlements: (status?: string) =>
+    apiRequest(`/admin/settlements${status ? `?status=${status}` : ""}`),
+  processDeliverySettlement: (id: string) =>
+    apiRequest(`/admin/settlements/${id}/process`, { method: "POST" }),
 };
 
 // USER / CUSTOMER APIs
@@ -362,16 +401,36 @@ export const userAPI = {
     apiRequest("/user/cart/update", { method: "PATCH", body: JSON.stringify({ itemId, quantity }) }),
   removeFromCart: (itemId: string) =>
     apiRequest(`/user/cart/remove/${itemId}`, { method: "DELETE" }),
-  placeOrder: (data: Record<string, unknown>) =>
-    apiRequest("/user/orders/place", { method: "POST", body: JSON.stringify(data) }),
-  addToWishlist: (productId: string) =>
-    apiRequest("/user/wishlist/add", { method: "POST", body: JSON.stringify({ productId }) }),
-  getWishlist: () => apiRequest("/user/wishlist"),
+  // Wallet
+  getWalletTransactions: () => apiRequest("/user/wallet/transactions"),
   topupWallet: (amount: number) =>
     apiRequest("/user/wallet/topup", { method: "POST", body: JSON.stringify({ amount }) }),
   verifyPayment: (data: Record<string, unknown>) =>
     apiRequest("/user/wallet/verify", { method: "POST", body: JSON.stringify(data) }),
+  placeOrder: (data: Record<string, unknown>) =>
+    apiRequest("/user/orders/place", { method: "POST", body: JSON.stringify(data) }),
+  getOrders: (status?: string) =>
+    apiRequest(`/user/orders${status ? `?status=${status}` : ""}`),
+  getOrderById: (id: string) =>
+    apiRequest(`/user/orders/${id}`),
+  rateOrder: (orderId: string, rating: number, review: string) =>
+    apiRequest(`/user/orders/${orderId}/rate`, { method: "POST", body: JSON.stringify({ rating, review }) }),
+  cancelOrder: (orderId: string) =>
+    apiRequest(`/user/orders/${orderId}/cancel`, { method: "POST" }),
+  downloadInvoice: (orderId: string) => {
+    const token = localStorage.getItem("token");
+    window.open(`${API_BASE_URL}/invoice/download/${orderId}?token=${token}`, '_blank');
+  },
+  addToWishlist: (productId: string) =>
+    apiRequest("/user/wishlist/add", { method: "POST", body: JSON.stringify({ productId }) }),
+  removeFromWishlist: (productId: string) =>
+    apiRequest(`/user/wishlist/remove/${productId}`, { method: "DELETE" }),
+  getWishlist: () => apiRequest("/user/wishlist"),
   getNotifications: () => apiRequest("/user/notifications"),
+  markNotificationRead: (id: string) => apiRequest(`/user/notifications/${id}/read`, { method: 'PATCH' }),
+  markAllNotificationsRead: () => apiRequest('/user/notifications/mark-all-read', { method: 'PATCH' }),
+  deleteNotification: (id: string) => apiRequest(`/user/notifications/${id}`, { method: 'DELETE' }),
+  getActiveBanners: () => apiRequest("/user/banners"),
 };
 
 const authAPI = {
@@ -402,6 +461,24 @@ const authAPI = {
     apiRequest("/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+
+  verifyEmail: (email: string, code: string) =>
+    apiRequest("/auth/verify-email", {
+      method: "POST",
+      body: JSON.stringify({ email, code }),
+    }),
+
+  forgotPassword: (email: string) =>
+    apiRequest("/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify({ email }),
+    }),
+
+  resetPassword: (email: string, code: string, newPassword: string) =>
+    apiRequest("/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify({ email, code, newPassword }),
     }),
 
   // Convenience methods for each role

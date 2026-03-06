@@ -36,6 +36,18 @@ export default function AdminAnalytics() {
     queryFn: () => adminAPI.getCartDropoffs(),
   });
 
+  const citySeries = (cityData?.cityData || []).map((c: any) => ({
+    city: c._id || 'Unknown',
+    revenue: c.revenue,
+    orders: c.orders,
+  }));
+
+  const categorySeries = (categoryData?.categoryData || []).map((c: any) => ({
+    category: c._id || 'Unknown',
+    sales: c.quantity,
+    revenue: c.revenue,
+  }));
+
   return (
     <AdminLayout title="Analytics" subtitle="Platform-wide analytics and insights">
       <Tabs value={period} onValueChange={setPeriod} className="mb-6">
@@ -80,8 +92,8 @@ export default function AdminAnalytics() {
                 <div className="h-48">
                   <ResponsiveContainer width="100%" height="100%">
                     <PieChart>
-                      <Pie data={cityData || []} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={4} dataKey="revenue" nameKey="city">
-                        {(cityData || []).map((_: any, i: number) => (
+                      <Pie data={citySeries} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={4} dataKey="revenue" nameKey="city">
+                        {citySeries.map((_: any, i: number) => (
                           <Cell key={i} fill={COLORS[i % COLORS.length]} />
                         ))}
                       </Pie>
@@ -90,7 +102,7 @@ export default function AdminAnalytics() {
                   </ResponsiveContainer>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-4">
-                  {(cityData || []).map((c: any, i: number) => (
+                  {citySeries.map((c: any, i: number) => (
                     <div key={c.city} className="flex items-center gap-2">
                       <div className="w-3 h-3 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                       <span className="text-sm text-muted-foreground">{c.city}</span>
@@ -107,7 +119,7 @@ export default function AdminAnalytics() {
               <CardContent>
                 <div className="h-64">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={categoryData || []} layout="vertical">
+                    <BarChart data={categorySeries} layout="vertical">
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="hsl(30, 20%, 90%)" />
                       <XAxis type="number" axisLine={false} tickLine={false} />
                       <YAxis type="category" dataKey="category" axisLine={false} tickLine={false} width={100} />

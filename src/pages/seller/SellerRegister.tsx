@@ -28,6 +28,7 @@ export default function SellerRegister() {
     phone: "",
     businessName: "",
     address: "",
+    type: "home_chef",
   });
 
   const [showPass, setShowPass] = useState(false);
@@ -39,8 +40,11 @@ export default function SellerRegister() {
     },
 
     onSuccess: () => {
-      toast({ title: "Seller account created successfully!" });
-      navigate("/seller/login");
+      toast({
+        title: "Seller account created successfully!",
+        description: "Please verify your email to activate your seller account.",
+      });
+      navigate(`/verify-email?email=${encodeURIComponent(form.email)}&role=seller`);
     },
 
     onError: (err: any) => {
@@ -141,6 +145,22 @@ export default function SellerRegister() {
                 required
               />
             </div>
+          </div>
+
+          <div>
+            <Label htmlFor="type">Business Type</Label>
+            <select
+              id="type"
+              name="type"
+              value={form.type}
+              onChange={(e) => setForm(prev => ({ ...prev, type: e.target.value }))}
+              className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+            >
+              <option value="home_chef">Home Chef</option>
+              <option value="restaurant">Restaurant</option>
+              <option value="cloud_kitchen">Cloud Kitchen</option>
+              <option value="catering">Catering</option>
+            </select>
           </div>
 
           <div>

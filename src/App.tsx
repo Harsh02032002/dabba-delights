@@ -2,23 +2,36 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
-
+import { KYCGate } from "@/components/seller/KYCGate";
 // User Pages
+import LandingPage from "./pages/user/LandingPage";
 import UserHome from "./pages/user/UserHome";
 import UserLogin from "./pages/user/UserLogin";
+import UserRegister from "./pages/user/UserRegister";
+import VerifyEmail from "./pages/auth/VerifyEmail";
 import CartPage from "./pages/user/CartPage";
+import CheckoutPage from "./pages/user/CheckoutPage";
 import UserWishlist from "./pages/user/UserWishlist";
 import UserNotifications from "./pages/user/UserNotifications";
 import UserWallet from "./pages/user/UserWallet";
 import AllProducts from "./pages/user/AllProducts";
-import UserRegister from "./pages/user/UserRegister.tsx";
+import MyOrders from "./pages/user/MyOrders";
+import SellerDetail from "./pages/user/SellerDetail";
+
+// Static Pages
+import AboutUs from "./pages/static/AboutUs";
+import PrivacyPolicy from "./pages/static/PrivacyPolicy";
+import TermsOfService from "./pages/static/TermsOfService";
+import RefundPolicy from "./pages/static/RefundPolicy";
+
 // Seller Pages
 import SellerLogin from "./pages/seller/SellerLogin";
+import SellerRegister from "./pages/seller/SellerRegister";
 import SellerDashboard from "./pages/seller/SellerDashboard";
 import SellerMenu from "./pages/seller/SellerMenu";
 import SellerOrders from "./pages/seller/SellerOrders";
@@ -37,7 +50,7 @@ import SellerCustomers from "./pages/seller/SellerCustomers";
 import SellerMarketing from "./pages/seller/SellerMarketing";
 import SellerPayouts from "./pages/seller/SellerPayouts";
 import SellerPerformanceInsights from "./pages/seller/SellerPerformanceInsights";
-import SellerRegister from "./pages/seller/SellerRegister.tsx";
+import SellerRecycleBin from "./pages/seller/SellerRecycleBin";
 
 // Admin Pages
 import AdminLogin from "./pages/admin/AdminLogin";
@@ -58,6 +71,9 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminDisputes from "./pages/admin/AdminDisputes";
 import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
 import AdminCategories from "./pages/admin/AdminCategories";
+import AdminWarehouses from "./pages/admin/AdminWarehouses";
+import AdminDeliveryPartners from "./pages/admin/AdminDeliveryPartners";
+import AdminDeliveryPayConfig from "./pages/admin/AdminDeliveryPayConfig";
 
 // Other
 import NotFound from "./pages/NotFound";
@@ -85,35 +101,49 @@ const App = () => (
           <BrowserRouter>
             <Routes>
               {/* User Routes */}
-              <Route path="/" element={<UserHome />} />
+              <Route path="/" element={<LandingPage />} />
+              <Route path="/home" element={<UserHome />} />
               <Route path="/login" element={<UserLogin />} />
+              <Route path="/register" element={<UserRegister />} />
+              <Route path="/verify-email" element={<VerifyEmail />} />
               <Route path="/cart" element={<CartPage />} />
+              <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/wishlist" element={<UserWishlist />} />
               <Route path="/notifications" element={<UserNotifications />} />
               <Route path="/wallet" element={<UserWallet />} />
               <Route path="/all-products" element={<AllProducts />} />
-              <Route path="/register" element={<UserRegister />} />
+              <Route path="/orders" element={<MyOrders />} />
+              <Route path="/seller/:id" element={<SellerDetail />} />
+
+              {/* Static Pages */}
+              <Route path="/about" element={<AboutUs />} />
+              <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/refund-policy" element={<RefundPolicy />} />
+
               {/* Seller Routes */}
               <Route path="/seller/login" element={<SellerLogin />} />
               <Route path="/seller/register" element={<SellerRegister />} />
-              <Route path="/seller" element={<ProtectedRoute requiredRole="seller"><SellerDashboard /></ProtectedRoute>} />
-              <Route path="/seller/menu" element={<ProtectedRoute requiredRole="seller"><SellerMenu /></ProtectedRoute>} />
-              <Route path="/seller/orders" element={<ProtectedRoute requiredRole="seller"><SellerOrders /></ProtectedRoute>} />
-              <Route path="/seller/analytics" element={<ProtectedRoute requiredRole="seller"><SellerAnalytics /></ProtectedRoute>} />
-              <Route path="/seller/earnings" element={<ProtectedRoute requiredRole="seller"><SellerEarnings /></ProtectedRoute>} />
-              <Route path="/seller/settlements" element={<ProtectedRoute requiredRole="seller"><SellerSettlements /></ProtectedRoute>} />
+              <Route path="/seller" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerDashboard /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/menu" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerMenu /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/orders" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerOrders /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/analytics" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerAnalytics /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/earnings" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerEarnings /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/settlements" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerSettlements /></KYCGate></ProtectedRoute>} />
               <Route path="/seller/kyc" element={<ProtectedRoute requiredRole="seller"><SellerKYC /></ProtectedRoute>} />
               <Route path="/seller/profile" element={<ProtectedRoute requiredRole="seller"><SellerProfile /></ProtectedRoute>} />
               <Route path="/seller/settings" element={<ProtectedRoute requiredRole="seller"><SellerSettings /></ProtectedRoute>} />
               <Route path="/seller/help" element={<ProtectedRoute requiredRole="seller"><SellerHelp /></ProtectedRoute>} />
-              <Route path="/seller/referrals" element={<ProtectedRoute requiredRole="seller"><SellerReferrals /></ProtectedRoute>} />
-              <Route path="/seller/promotions" element={<ProtectedRoute requiredRole="seller"><SellerPromotions /></ProtectedRoute>} />
-              <Route path="/seller/reviews" element={<ProtectedRoute requiredRole="seller"><SellerReviews /></ProtectedRoute>} />
-              <Route path="/seller/inventory" element={<ProtectedRoute requiredRole="seller"><SellerInventory /></ProtectedRoute>} />
-              <Route path="/seller/customers" element={<ProtectedRoute requiredRole="seller"><SellerCustomers /></ProtectedRoute>} />
-              <Route path="/seller/marketing" element={<ProtectedRoute requiredRole="seller"><SellerMarketing /></ProtectedRoute>} />
-              <Route path="/seller/payouts" element={<ProtectedRoute requiredRole="seller"><SellerPayouts /></ProtectedRoute>} />
-              <Route path="/seller/performance" element={<ProtectedRoute requiredRole="seller"><SellerPerformanceInsights /></ProtectedRoute>} />
+              <Route path="/seller/referrals" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerReferrals /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/promotions" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerPromotions /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/reviews" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerReviews /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/inventory" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerInventory /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/customers" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerCustomers /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/marketing" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerMarketing /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/payouts" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerPayouts /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/performance" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerPerformanceInsights /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/recycle-bin" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerRecycleBin /></KYCGate></ProtectedRoute>} />
+
               {/* Admin Routes */}
               <Route path="/admin/login" element={<AdminLogin />} />
               <Route path="/admin" element={<ProtectedRoute requiredRole="admin"><AdminDashboard /></ProtectedRoute>} />
@@ -133,6 +163,9 @@ const App = () => (
               <Route path="/admin/settings" element={<ProtectedRoute requiredRole="admin"><AdminSettings /></ProtectedRoute>} />
               <Route path="/admin/help" element={<ProtectedRoute requiredRole="admin"><AdminHelp /></ProtectedRoute>} />
               <Route path="/admin/products" element={<ProtectedRoute requiredRole="admin"><AdminProducts /></ProtectedRoute>} />
+              <Route path="/admin/warehouses" element={<ProtectedRoute requiredRole="admin"><AdminWarehouses /></ProtectedRoute>} />
+              <Route path="/admin/delivery-partners" element={<ProtectedRoute requiredRole="admin"><AdminDeliveryPartners /></ProtectedRoute>} />
+              <Route path="/admin/delivery-pay-config" element={<ProtectedRoute requiredRole="admin"><AdminDeliveryPayConfig /></ProtectedRoute>} />
 
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />

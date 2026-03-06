@@ -138,7 +138,7 @@ export interface Order {
   gstAmount: number;
   discount: number;
   total: number;
-  paymentMethod: 'razorpay' | 'stripe' | 'wallet';
+  paymentMethod: 'razorpay' | 'stripe' | 'wallet' | 'cod';
   paymentStatus: 'pending' | 'paid' | 'failed' | 'refunded';
   paymentId?: string;
   specialInstructions?: string;

@@ -9,7 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAPI } from '@/lib/api';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { toast } from '@/hooks/use-toast';
-import { Search, Clock, MapPin, RefreshCw, Eye } from 'lucide-react';
+import { Search, Clock, MapPin, RefreshCw, Eye, Download } from 'lucide-react';
 
 const statuses = ['all', 'pending', 'confirmed', 'preparing', 'ready', 'out_for_delivery', 'delivered', 'cancelled'];
 
@@ -65,7 +65,7 @@ export default function AdminOrders() {
                     <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1"><Clock size={14} />{new Date(order.createdAt).toLocaleString()}</span>
                       <span className="flex items-center gap-1"><MapPin size={14} />{order.deliveryAddress?.city}</span>
-                      <span>Seller: {order.sellerName || order.sellerId}</span>
+                      <span>Seller: {order.sellerName || (typeof order.sellerId === 'object' ? order.sellerId?.businessName || order.sellerId?._id : order.sellerId)}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-4">
@@ -76,6 +76,13 @@ export default function AdminOrders() {
                     </div>
                     <div className="flex flex-col gap-2">
                       <Button variant="outline" size="sm" className="gap-1"><Eye size={14} /> Details</Button>
+                      {order.status === 'delivered' && (
+                        <Button variant="ghost" size="sm" className="gap-1" onClick={() => {
+                          try { window.open(`${import.meta.env.VITE_API_URL || '/api'}/invoice/download/${order.invoiceId || order._id}`, '_blank'); } catch {}
+                        }}>
+                          <Download size={14} /> Invoice
+                        </Button>
+                      )}
                       {order.status === 'delivered' && order.paymentStatus === 'paid' && (
                         <Button variant="soft-destructive" size="sm" className="gap-1" onClick={() => refundMutation.mutate(order._id)}>
                           <RefreshCw size={14} /> Refund

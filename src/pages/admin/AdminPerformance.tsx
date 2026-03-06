@@ -18,6 +18,8 @@ export default function AdminPerformance() {
     queryFn: () => adminAPI.getPerformanceOverview(),
   });
 
+  const sellerList = (sellers as any)?.sellers || sellers || [];
+
   return (
     <AdminLayout title="Performance" subtitle="Seller performance metrics and comparisons">
       {/* Overview Stats */}
@@ -50,13 +52,13 @@ export default function AdminPerformance() {
       </div>
 
       {/* Seller Performance Chart */}
-      {sellers && sellers.length > 0 && (
+      {sellerList.length > 0 && (
         <Card className="mb-8">
           <CardHeader><CardTitle className="font-display text-lg">Seller Revenue Comparison</CardTitle></CardHeader>
           <CardContent>
             <div className="h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={sellers.slice(0, 10)}>
+                <BarChart data={sellerList.slice(0, 10)}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(30, 20%, 90%)" />
                   <XAxis dataKey="businessName" axisLine={false} tickLine={false} angle={-15} textAnchor="end" height={60} />
                   <YAxis axisLine={false} tickLine={false} tickFormatter={(v) => `₹${(v / 1000).toFixed(0)}K`} />
@@ -75,7 +77,7 @@ export default function AdminPerformance() {
           <CardHeader><CardTitle className="font-display text-lg flex items-center gap-2"><Award size={20} /> Seller Rankings</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {(sellers || []).map((seller: any, index: number) => (
+              {sellerList.map((seller: any, index: number) => (
                 <div key={seller._id} className="flex items-center gap-4 p-3 rounded-xl bg-secondary/50">
                   <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold ${
                     index === 0 ? 'bg-warning/20 text-warning' :
@@ -99,7 +101,7 @@ export default function AdminPerformance() {
                   </div>
                 </div>
               ))}
-              {(!sellers || sellers.length === 0) && (
+              {sellerList.length === 0 && (
                 <p className="text-muted-foreground text-center py-8">No performance data available</p>
               )}
             </div>

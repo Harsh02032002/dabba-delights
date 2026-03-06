@@ -16,10 +16,11 @@ export default function SellerMarketing() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const { data: campaigns = [], isLoading } = useQuery({
+  const { data: campaignsRaw, isLoading } = useQuery({
     queryKey: ['seller-campaigns'],
     queryFn: () => sellerAPI.getCampaigns(),
   });
+  const campaigns = Array.isArray(campaignsRaw) ? campaignsRaw : Array.isArray((campaignsRaw as any)?.campaigns) ? (campaignsRaw as any).campaigns : [];
 
   const createMutation = useMutation({
     mutationFn: (data: any) => sellerAPI.createCampaign(data),

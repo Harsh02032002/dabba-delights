@@ -48,13 +48,14 @@ export default function SellerKYC() {
   };
 
   const statusConfig: Record<string, { icon: any; color: string; text: string }> = {
-    pending: { icon: AlertCircle, color: 'text-warning', text: 'KYC documents not yet submitted' },
-    submitted: { icon: FileCheck, color: 'text-info', text: 'Under review. We will verify within 48 hours.' },
+    pending: { icon: AlertCircle, color: 'text-warning', text: 'Upload your documents and then submit for admin approval.' },
+    submitted: { icon: FileCheck, color: 'text-info', text: 'All documents uploaded. Waiting for admin to verify your account.' },
     verified: { icon: CheckCircle2, color: 'text-success', text: 'Your KYC is verified. You can start selling!' },
     rejected: { icon: AlertCircle, color: 'text-destructive', text: 'KYC was rejected. Please re-upload documents.' },
   };
 
   const status = kyc?.kycStatus || 'pending';
+  const documents = kyc?.documents || [];
   const config = statusConfig[status];
   const Icon = config?.icon || AlertCircle;
 
@@ -122,29 +123,49 @@ export default function SellerKYC() {
             </Card>
           )}
 
-          {/* Uploaded Documents */}
+          {/* Uploaded Documents — show from kycDocuments object too */}
           <Card>
             <CardHeader><CardTitle className="font-display text-lg">Uploaded Documents</CardTitle></CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {(kyc?.kycDocuments || []).map((doc: any, i: number) => (
+                {/* Show documents from array */}
+                {documents.map((doc: any, i: number) => (
                   <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
                     <div className="flex items-center gap-3">
                       <FileCheck size={20} className="text-primary" />
                       <div>
-                        <p className="font-medium text-foreground capitalize">{doc.type}</p>
-                        <p className="text-xs text-muted-foreground">{new Date(doc.uploadedAt).toLocaleDateString()}</p>
+                        <p className="font-medium text-foreground capitalize">{doc.type || 'Document'}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'Just uploaded'}
+                        </p>
                       </div>
                     </div>
-                    <Button variant="ghost" size="sm">View</Button>
+                    {doc.url && <Button variant="ghost" size="sm" onClick={() => window.open(doc.url, '_blank')}>View</Button>}
                   </div>
                 ))}
-                {(!kyc?.kycDocuments || kyc.kycDocuments.length === 0) && (
+                {/* Show from kycDocuments object (aadhaar, pan, fssai, etc.) */}
+                {kyc?.kycDocuments && Object.entries(kyc.kycDocuments).map(([key, val]: [string, any]) => {
+                  if (!val?.url) return null;
+                  const docNames: Record<string, string> = { aadhaar: 'Aadhaar Card', pan: 'PAN Card', fssai: 'FSSAI License', bankProof: 'Bank Proof', gst: 'GST Certificate' };
+                  return (
+                    <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
+                      <div className="flex items-center gap-3">
+                        <FileCheck size={20} className="text-primary" />
+                        <div>
+                          <p className="font-medium text-foreground">{docNames[key] || key}</p>
+                          <p className="text-xs text-muted-foreground capitalize">Status: {val.status || 'uploaded'}</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" onClick={() => window.open(val.url, '_blank')}>View</Button>
+                    </div>
+                  );
+                })}
+                {documents.length === 0 && !kyc?.kycDocuments && (
                   <p className="text-muted-foreground text-center py-4">No documents uploaded</p>
                 )}
               </div>
 
-              {status === 'pending' && kyc?.kycDocuments?.length > 0 && (
+              {status === 'pending' && documents.length > 0 && (
                 <Button onClick={() => submitMutation.mutate()} variant="gradient" className="mt-6 w-full gap-2" disabled={submitMutation.isPending}>
                   <Shield size={18} />
                   {submitMutation.isPending ? 'Submitting...' : 'Submit for Verification'}

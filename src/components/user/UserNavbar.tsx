@@ -36,6 +36,14 @@ export function UserNavbar({ onSearch }: UserNavbarProps) {
   const location = useLocation();
   const [query, setQuery] = useState("");
 
+  const storedLoc = (() => {
+    try {
+      const raw = localStorage.getItem("userLocation");
+      return raw ? JSON.parse(raw) : null;
+    } catch { return null; }
+  })();
+  const displayLocation = storedLoc?.display || "Set Location";
+
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
     setQuery(v);
@@ -56,7 +64,7 @@ export function UserNavbar({ onSearch }: UserNavbarProps) {
             <MapPin size={18} className="text-primary" />
             <div className="text-left">
               <p className="text-xs text-muted-foreground">Deliver to</p>
-              <p className="text-sm font-medium">Mumbai, Maharashtra</p>
+              <p className="text-sm font-medium">{displayLocation}</p>
             </div>
             <ChevronDown size={16} className="text-muted-foreground" />
           </button>

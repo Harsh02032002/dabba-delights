@@ -27,6 +27,8 @@ export default function AdminMarketing() {
     queryFn: () => adminAPI.getMarketingSpend(),
   });
 
+  const campaignList = (campaigns as any)?.campaigns || campaigns || [];
+
   const createMutation = useMutation({
     mutationFn: (data: any) => adminAPI.createCampaign(data),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-campaigns'] }); toast({ title: 'Campaign created' }); setIsCreateOpen(false); },
@@ -116,7 +118,7 @@ export default function AdminMarketing() {
 
       {isLoading ? <LoadingSpinner /> : (
         <div className="space-y-4">
-          {(campaigns || []).map((c: any) => (
+          {campaignList.map((c: any) => (
             <Card key={c._id}>
               <CardContent className="p-6">
                 <div className="flex items-center justify-between">
@@ -140,7 +142,7 @@ export default function AdminMarketing() {
               </CardContent>
             </Card>
           ))}
-          {(!campaigns || campaigns.length === 0) && (
+          {(campaignList.length === 0) && (
             <div className="text-center py-12"><p className="text-muted-foreground">No campaigns yet</p></div>
           )}
         </div>

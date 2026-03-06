@@ -24,6 +24,7 @@ import {
   ChevronRight,
   Store,
   Receipt,
+  Trash2,
 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -133,6 +134,11 @@ const sellerNavItems = [
     title: "Profile",
     icon: Store,
     href: "/seller/profile",
+  },
+  {
+    title: "Recycle Bin",
+    icon: Trash2,
+    href: "/seller/recycle-bin",
   },
 ];
 

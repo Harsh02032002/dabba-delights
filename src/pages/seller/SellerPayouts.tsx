@@ -16,10 +16,11 @@ export default function SellerPayouts() {
   const queryClient = useQueryClient();
   const [isRequestOpen, setIsRequestOpen] = useState(false);
 
-  const { data: payouts = [], isLoading } = useQuery({
+  const { data: payoutsRaw, isLoading } = useQuery({
     queryKey: ['seller-payouts'],
     queryFn: () => sellerAPI.getPayouts(),
   });
+  const payouts = Array.isArray(payoutsRaw) ? payoutsRaw : Array.isArray((payoutsRaw as any)?.payouts) ? (payoutsRaw as any).payouts : [];
 
   const requestMutation = useMutation({
     mutationFn: ({ amount, method }: { amount: number; method: string }) => sellerAPI.requestPayout(amount, method),

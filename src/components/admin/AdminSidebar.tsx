@@ -25,6 +25,9 @@ import {
   Globe,
   Megaphone,
   UtensilsCrossed,
+  Warehouse,
+  Truck,
+  CreditCard,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -118,6 +121,27 @@ const adminNavItems = [
     title: "Performance",
     icon: TrendingUp,
     href: "/admin/performance",
+  },
+  {
+    title: "divider",
+    icon: null,
+    href: "",
+    label: "Delivery & Logistics",
+  },
+  {
+    title: "Warehouses",
+    icon: Warehouse,
+    href: "/admin/warehouses",
+  },
+  {
+    title: "Delivery Partners",
+    icon: Truck,
+    href: "/admin/delivery-partners",
+  },
+  {
+    title: "Delivery Pay Config",
+    icon: CreditCard,
+    href: "/admin/delivery-pay-config",
   },
 ];
 

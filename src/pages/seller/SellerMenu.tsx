@@ -21,7 +21,7 @@ import {
   Link as LinkIcon, Zap, Check, X, FileUp, Layers,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productAPI } from '@/lib/api';
+import { productAPI, sellerAPI } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { safeArray } from '@/utils/safeArray';
@@ -67,12 +67,8 @@ export default function SellerMenu() {
   // ─── Queries ──────────────────────────────────────────────────
   const { data: productsData, isLoading } = useQuery({
     queryKey: ['seller-products', searchQuery, selectedCategory, currentPage],
-    queryFn: () => productAPI.getProducts({
-      search: searchQuery || undefined,
-      category: selectedCategory !== 'all' ? selectedCategory : undefined,
-      page: currentPage,
-      limit: 20,
-    }),
+    // Inventory API already scoped to logged-in seller
+    queryFn: () => sellerAPI.getInventory(),
   });
 
   const { data: archivedData, isLoading: archiveLoading } = useQuery({
@@ -95,8 +91,16 @@ export default function SellerMenu() {
     queryFn: () => productAPI.menuHealthScore(),
   });
 
-  const products = safeArray(productsData?.products || productsData?.data || productsData);
-  const totalProducts = productsData?.total || products.length;
+  const allProducts = safeArray(productsData?.products || productsData?.data || productsData);
+  const products = allProducts.filter((item: any) => {
+    const matchesSearch = !searchQuery ||
+      String(item.name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      String(item.description || '').toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory =
+      selectedCategory === 'all' || item.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+  const totalProducts = products.length;
   const archivedProducts = safeArray(archivedData?.products || archivedData?.data || archivedData);
   const lowStockProducts = safeArray(lowStockData?.products || lowStockData?.data || lowStockData);
 
@@ -482,9 +486,21 @@ export default function SellerMenu() {
               <CardContent className="space-y-3">
                 <p className="text-sm text-muted-foreground">Upload a CSV file with columns: name, price, category, description, isVeg, stock, preparationTime</p>
                 <input type="file" ref={csvInputRef} accept=".csv" onChange={handleCsvUpload} className="hidden" />
-                <Button variant="outline" onClick={() => csvInputRef.current?.click()} disabled={bulkCsvMutation.isPending}>
-                  <Upload size={16} className="mr-2" /> {bulkCsvMutation.isPending ? 'Processing...' : 'Upload CSV'}
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => csvInputRef.current?.click()} disabled={bulkCsvMutation.isPending}>
+                    <Upload size={16} className="mr-2" /> {bulkCsvMutation.isPending ? 'Processing...' : 'Upload CSV'}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => {
+                    const csv = 'name,price,category,description,isVeg,stock,preparationTime\nButter Chicken,350,Main Course,Rich creamy chicken curry,false,50,30\nPaneer Tikka,250,Starters,Grilled cottage cheese,true,40,20\nDal Makhani,200,Main Course,Slow cooked black lentils,true,60,25';
+                    const blob = new Blob([csv], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url; a.download = 'sample_menu.csv'; a.click();
+                    URL.revokeObjectURL(url);
+                  }}>
+                    <Download size={16} className="mr-1" /> Sample CSV
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -544,7 +560,7 @@ export default function SellerMenu() {
                 { label: 'Active Products', value: metricsData.activeProducts },
                 { label: 'Archived', value: metricsData.archivedProducts },
                 { label: 'Total Stock', value: metricsData.totalStock },
-                { label: 'Avg Price', value: `₹${metricsData.averagePrice}` },
+                { label: 'Avg Price', value: `₹${metricsData.averagePrice ?? 0}` },
                 { label: 'Efficiency', value: metricsData.efficiency },
               ].map(m => (
                 <Card key={m.label}>

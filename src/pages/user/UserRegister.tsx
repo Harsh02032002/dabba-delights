@@ -22,8 +22,8 @@ export default function UserRegister() {
   const mutation = useMutation({
     mutationFn: () => authAPI.userRegister(form),
     onSuccess: () => {
-      toast({ title: "Registered successfully!" });
-      navigate("/login");
+      toast({ title: "Registered successfully!", description: "Please verify your email to activate your account." });
+      navigate(`/verify-email?email=${encodeURIComponent(form.email)}&role=user`);
     },
     onError: (err: any) =>
       toast({

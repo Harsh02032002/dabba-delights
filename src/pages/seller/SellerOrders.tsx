@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { StatusBadge } from '@/components/shared/Badge';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Filter, Clock, CheckCircle2, AlertCircle, Phone, MapPin } from 'lucide-react';
+import { Search, Filter, Clock, CheckCircle2, AlertCircle, Phone, MapPin, Download } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sellerAPI } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
@@ -99,7 +99,16 @@ export default function SellerOrders() {
                       {order.status === 'preparing' && (
                         <Button variant="gradient" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'ready' })}>Mark Ready</Button>
                       )}
-                      {order.status === 'delivered' && <Button variant="outline" size="sm">View Details</Button>}
+                      {order.status === 'delivered' && (
+                        <>
+                          <Button variant="outline" size="sm">View Details</Button>
+                          <Button variant="ghost" size="sm" className="gap-1" onClick={() => {
+                            try { window.open(`${import.meta.env.VITE_API_URL || '/api'}/invoice/download/${order.invoiceId || order._id}`, '_blank'); } catch {}
+                          }}>
+                            <Download size={14} /> Invoice
+                          </Button>
+                        </>
+                      )}
                     </div>
                   </div>
                 </div>

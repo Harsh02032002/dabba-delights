@@ -21,7 +21,7 @@ import {
   Link as LinkIcon,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productAPI } from '@/lib/api';
+import { productAPI, adminAPI } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { safeArray } from '@/utils/safeArray';
@@ -40,6 +40,14 @@ export default function AdminProducts() {
   const imageInputRef = useRef<HTMLInputElement>(null);
   const editImageRef = useRef<HTMLInputElement>(null);
   const csvInputRef = useRef<HTMLInputElement>(null);
+  const [selectedSellerId, setSelectedSellerId] = useState('');
+
+  // Fetch sellers list for the dropdown
+  const { data: sellersData } = useQuery({
+    queryKey: ['admin-sellers-list'],
+    queryFn: () => adminAPI.getSellers(),
+  });
+  const sellersList = Array.isArray(sellersData?.sellers) ? sellersData.sellers : Array.isArray(sellersData) ? sellersData : [];
 
   const { data: productsData, isLoading } = useQuery({
     queryKey: ['admin-products', searchQuery, selectedCategory, sellerFilter, currentPage],
@@ -126,6 +134,10 @@ export default function AdminProducts() {
 
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!selectedSellerId) {
+      toast({ title: 'Select a seller', description: 'Please select which restaurant/home chef this product belongs to', variant: 'destructive' });
+      return;
+    }
     const form = e.currentTarget;
     const fd = new FormData();
     fd.append('name', (form.elements.namedItem('name') as HTMLInputElement).value);
@@ -136,6 +148,7 @@ export default function AdminProducts() {
     fd.append('preparationTime', (form.elements.namedItem('preparationTime') as HTMLInputElement).value);
     fd.append('stock', (form.elements.namedItem('stock') as HTMLInputElement).value || '100');
     fd.append('isVeg', String((form.elements.namedItem('isVeg') as HTMLInputElement)?.checked || false));
+    fd.append('sellerId', selectedSellerId);
     const fileInput = imageInputRef.current;
     if (fileInput?.files?.[0]) fd.append('image', fileInput.files[0]);
     createMutation.mutate(fd);
@@ -225,7 +238,7 @@ export default function AdminProducts() {
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-1 mb-1">{item.description}</p>
-                    <p className="text-xs text-muted-foreground mb-2">{item.category} · Stock: {item.stock ?? '?'} · Seller: {item.sellerId?.slice(-6) || '?'}</p>
+                    <p className="text-xs text-muted-foreground mb-2">{item.category} · Stock: {item.stock ?? '?'} · Seller: {typeof item.sellerId === 'object' ? (item.sellerId?.businessName || item.sellerId?._id?.slice?.(-6)) : (item.sellerId?.slice?.(-6) || '?')}</p>
                     <div className="flex flex-wrap gap-1">
                       <Button variant="ghost" size="icon-sm" onClick={() => setEditItem(item)}><Edit size={14} /></Button>
                       <Button variant="ghost" size="icon-sm" onClick={() => toggleAvailMutation.mutate(item._id)}><ToggleLeft size={14} /></Button>
@@ -255,6 +268,25 @@ export default function AdminProducts() {
             <CardHeader><CardTitle>Add Product (Admin)</CardTitle></CardHeader>
             <CardContent>
               <form onSubmit={handleCreate} className="space-y-4">
+                {/* Seller Selection */}
+                <div className="space-y-2">
+                  <Label>Select Restaurant / Home Chef *</Label>
+                  <select
+                    value={selectedSellerId}
+                    onChange={(e) => setSelectedSellerId(e.target.value)}
+                    className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    required
+                  >
+                    <option value="">-- Select a seller --</option>
+                    {sellersList.filter((s: any) => s.isActive || s.kycStatus === 'verified').map((s: any) => (
+                      <option key={s._id} value={s._id}>
+                        {s.businessName} ({s.type === 'home_chef' ? 'Home Chef' : s.type === 'restaurant' ? 'Restaurant' : s.type === 'cloud_kitchen' ? 'Cloud Kitchen' : s.type === 'catering' ? 'Catering' : s.type}) — {s.address?.city || 'N/A'}
+                      </option>
+                    ))}
+                  </select>
+                  {sellersList.length === 0 && <p className="text-xs text-warning">No verified sellers found. Approve sellers first.</p>}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Name *</Label><Input name="name" required /></div>
                   <div className="space-y-2">
@@ -315,7 +347,7 @@ export default function AdminProducts() {
                 { label: 'Active', value: metricsData.activeProducts },
                 { label: 'Archived', value: metricsData.archivedProducts },
                 { label: 'Total Stock', value: metricsData.totalStock },
-                { label: 'Avg Price', value: `₹${metricsData.averagePrice}` },
+                { label: 'Avg Price', value: `₹${metricsData.averagePrice ?? 0}` },
                 { label: 'Efficiency', value: metricsData.efficiency },
               ].map(m => (
                 <Card key={m.label}><CardContent className="pt-6 text-center"><p className="text-2xl font-bold">{m.value}</p><p className="text-sm text-muted-foreground">{m.label}</p></CardContent></Card>

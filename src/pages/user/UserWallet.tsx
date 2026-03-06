@@ -16,28 +16,18 @@ export default function UserWallet() {
   const queryClient = useQueryClient();
   const [topupAmount, setTopupAmount] = useState('');
 
-  // ✅ Wallet Balance
+  // ✅ Wallet Balance + Transaction History (single endpoint returns both)
   const { data: walletData, isLoading } = useQuery({
     queryKey: ['user-wallet'],
     queryFn: async () => {
-      const res = await apiRequest('/user/wallet/balance');
+      const res = await apiRequest('/user/wallet/transactions');
       return res?.data || res || {};
     },
     placeholderData: (prev) => prev,
   });
 
-  // ✅ Transaction History
-  const { data: historyData } = useQuery({
-    queryKey: ['user-wallet-history'],
-    queryFn: async () => {
-      const res = await apiRequest('/user/wallet/history');
-      return res?.data || res || [];
-    },
-    placeholderData: (prev) => prev,
-  });
-
   const wallet = walletData || {};
-  const history = Array.isArray(historyData) ? historyData : [];
+  const history = Array.isArray(wallet?.transactions) ? wallet.transactions : [];
 
   const topupMutation = useMutation({
     mutationFn: (amount: number) => userAPI.topupWallet(amount),
@@ -48,7 +38,6 @@ export default function UserWallet() {
       });
 
       queryClient.invalidateQueries({ queryKey: ['user-wallet'] });
-      queryClient.invalidateQueries({ queryKey: ['user-wallet-history'] });
 
       setTopupAmount('');
     },
