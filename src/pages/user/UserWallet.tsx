@@ -6,15 +6,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { userAPI, apiRequest } from '@/lib/api';
+import { userAPI, apiRequest, paymentAPI } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Wallet, Plus, ArrowLeft, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function UserWallet() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [topupAmount, setTopupAmount] = useState('');
+  const { user } = useAuth();
 
   // ✅ Wallet Balance + Transaction History (single endpoint returns both)
   const { data: walletData, isLoading } = useQuery({
@@ -30,16 +32,84 @@ export default function UserWallet() {
   const history = Array.isArray(wallet?.transactions) ? wallet.transactions : [];
 
   const topupMutation = useMutation({
-    mutationFn: (amount: number) => userAPI.topupWallet(amount),
-    onSuccess: () => {
-      toast({
-        title: 'Top-up initiated',
-        description: 'Complete payment to add funds.',
-      });
+    mutationFn: (amount: number) => {
+      // Create Razorpay order first
+      return paymentAPI.createRazorpayOrder({ amount, currency: 'INR' });
+    },
+    onSuccess: async (razorpayOrder: any) => {
+      if (razorpayOrder.success && razorpayOrder.key) {
+        // Initialize Razorpay payment
+        const options = {
+          key: razorpayOrder.key,
+          amount: razorpayOrder.amount,
+          currency: razorpayOrder.currency,
+          order_id: razorpayOrder.orderId,
+          name: 'Dabba Nation',
+          description: 'Wallet Top-up',
+          image: '/logo.png',
+          handler: async (response: any) => {
+            try {
+              // Verify payment with backend
+              const verification = await paymentAPI.verifyRazorpayPayment({
+                razorpayOrderId: response.razorpay_order_id,
+                razorpayPaymentId: response.razorpay_payment_id,
+                razorpaySignature: response.razorpay_signature,
+                amount: Number(topupAmount)
+              });
 
-      queryClient.invalidateQueries({ queryKey: ['user-wallet'] });
+              if (verification.success) {
+                // Add money to wallet after successful verification
+                await userAPI.topupWallet(Number(topupAmount));
+                
+                toast({
+                  title: 'Payment Successful',
+                  description: `₹${topupAmount} added to your wallet`,
+                });
 
-      setTopupAmount('');
+                queryClient.invalidateQueries({ queryKey: ['user-wallet'] });
+                setTopupAmount('');
+              } else {
+                toast({
+                  title: 'Payment Verification Failed',
+                  description: 'Please contact support',
+                  variant: 'destructive',
+                });
+              }
+            } catch (error: any) {
+              toast({
+                title: 'Error',
+                description: error.message || 'Failed to add money to wallet',
+                variant: 'destructive',
+              });
+            }
+          },
+          prefill: {
+            name: user?.name || '',
+            email: user?.email || '',
+            contact: user?.phone || '',
+          },
+          theme: {
+            color: '#f97316',
+          },
+          modal: {
+            ondismiss: () => {
+              toast({
+                title: 'Payment Cancelled',
+                description: 'You cancelled the payment',
+              });
+            }
+          }
+        };
+
+        const razorpay = new (window as any).Razorpay(options);
+        razorpay.open();
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to create payment order',
+          variant: 'destructive',
+        });
+      }
     },
     onError: (err: any) =>
       toast({

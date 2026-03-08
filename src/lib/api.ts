@@ -481,6 +481,12 @@ const authAPI = {
       body: JSON.stringify({ email, code, newPassword }),
     }),
 
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiRequest("/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify({ currentPassword, newPassword }),
+    }),
+
   // Convenience methods for each role
   userRegister: (data: {
     name: string;

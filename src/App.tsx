@@ -21,6 +21,7 @@ import UserNotifications from "./pages/user/UserNotifications";
 import UserWallet from "./pages/user/UserWallet";
 import AllProducts from "./pages/user/AllProducts";
 import MyOrders from "./pages/user/MyOrders";
+import UserSettings from "./pages/user/UserSettings";
 import SellerDetail from "./pages/user/SellerDetail";
 
 // Static Pages
@@ -113,6 +114,7 @@ const App = () => (
               <Route path="/wallet" element={<UserWallet />} />
               <Route path="/all-products" element={<AllProducts />} />
               <Route path="/orders" element={<MyOrders />} />
+              <Route path="/settings" element={<UserSettings />} />
               <Route path="/seller/:id" element={<SellerDetail />} />
 
               {/* Static Pages */}
