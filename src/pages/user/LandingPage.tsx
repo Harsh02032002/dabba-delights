@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Logo } from "@/components/shared/Logo";
-import { Home, Store, MapPin, ChevronDown, Search } from "lucide-react";
+import { Home, Store, MapPin, ChevronDown, UtensilsCrossed, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -52,107 +52,131 @@ export default function LandingPage() {
   };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <div className="min-h-screen bg-[#fffcf9] relative overflow-hidden flex flex-col font-sans">
+      {/* Background Decorative Elements */}
+      <div className="absolute top-[-10%] left-[-5%] w-[40%] h-[40%] bg-orange-200/30 rounded-full blur-[120px] pointer-events-none" />
+      <div className="absolute bottom-[-10%] right-[-5%] w-[40%] h-[40%] bg-red-100/40 rounded-full blur-[120px] pointer-events-none" />
+
       {/* Header */}
-      <header className="py-6 px-6 flex items-center justify-between">
+      <header className="sticky top-0 z-50 backdrop-blur-md bg-white/60 border-b border-orange-100/50 py-4 px-6 flex items-center justify-between">
         <Logo size="md" showText />
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" onClick={() => navigate("/about")} className="text-sm">About</Button>
-          <Button variant="ghost" onClick={() => navigate("/seller/login")} className="text-sm">Seller Login</Button>
-          <Button variant="gradient" onClick={() => navigate("/login")} className="text-sm">Login / Register</Button>
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" onClick={() => navigate("/about")} className="hidden md:flex font-medium hover:text-orange-600 transition-colors">About</Button>
+          <Button variant="ghost" onClick={() => navigate("/seller/login")} className="font-medium hover:text-orange-600 transition-colors">Seller Portal</Button>
+          <Button 
+            variant="default" 
+            onClick={() => navigate("/login")} 
+            className="bg-orange-500 hover:bg-orange-600 text-white shadow-lg shadow-orange-200 rounded-full px-6 transition-transform active:scale-95"
+          >
+            Join Us
+          </Button>
         </div>
       </header>
 
-      {/* Hero Section */}
-      <div className="flex-1 flex flex-col items-center justify-center px-4 pb-16">
-        {/* Location Picker */}
-        <div className="mb-12 text-center">
-          <p className="text-muted-foreground text-sm mb-3">📍 Your delivery location</p>
+      {/* Main Hero Content */}
+      <main className="flex-1 flex flex-col items-center justify-center px-4 py-12 relative z-10">
+        
+        {/* Location Selector (Pill Style) */}
+        <div className="mb-10 group">
           <button
             onClick={detectLocation}
-            className="inline-flex items-center gap-2 bg-secondary hover:bg-secondary/80 rounded-2xl px-6 py-3 transition-all"
+            className="flex items-center gap-3 bg-white border border-orange-100 shadow-sm hover:shadow-md hover:border-orange-300 rounded-full px-5 py-2.5 transition-all duration-300 group"
           >
-            <MapPin size={18} className="text-primary" />
-            <span className="font-medium text-sm">
-              {detecting ? "Detecting..." : location || "Detect my location"}
-            </span>
-            <ChevronDown size={14} className="text-muted-foreground" />
+            <div className="bg-orange-100 p-1.5 rounded-full group-hover:bg-orange-500 group-hover:text-white transition-colors">
+              <MapPin size={16} />
+            </div>
+            <div className="text-left">
+              <p className="text-[10px] uppercase tracking-wider font-bold text-gray-400 leading-none mb-1">Deliver to</p>
+              <span className="text-sm font-semibold text-gray-700">
+                {detecting ? "Locating..." : location || "Detect my location"}
+              </span>
+            </div>
+            <ChevronDown size={16} className="text-gray-400 group-hover:text-orange-500 transition-colors" />
           </button>
         </div>
 
-        <h1 className="font-display text-5xl md:text-6xl font-bold text-foreground text-center mb-4 leading-tight">
-          What are you <span className="text-primary">craving</span> today?
-        </h1>
-        <p className="text-lg text-muted-foreground text-center mb-16 max-w-xl">
-          Choose your vibe — fresh homemade dabbas or your favourite restaurant meals, delivered hot to your door.
-        </p>
+        {/* Hero Text */}
+        <div className="text-center max-w-4xl mb-16">
+          <h1 className="text-5xl md:text-7xl font-extrabold text-gray-900 tracking-tight mb-6">
+            What are you <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-red-600">craving</span> today?
+          </h1>
+          <p className="text-lg md:text-xl text-gray-500 max-w-2xl mx-auto leading-relaxed">
+            From the warmth of a <span className="font-semibold text-orange-600">Home Kitchen</span> to the bold flavors of your <span className="font-semibold text-red-600">Favorite Bistro</span>.
+          </p>
+        </div>
 
-        {/* Selection Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl w-full">
+        {/* Choices Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 w-full max-w-4xl px-4">
+          
           {/* Home Chef Card */}
           <button
             onClick={() => handleSelect("home_chef")}
-            className="group relative overflow-hidden rounded-3xl border-2 border-transparent hover:border-accent bg-card p-8 text-left transition-all duration-300 hover:shadow-card-hover hover:-translate-y-2"
+            className="group relative bg-white rounded-[2.5rem] p-8 border border-white shadow-[0_20px_50px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_rgba(249,115,22,0.15)] transition-all duration-500 hover:-translate-y-3 flex flex-col items-start overflow-hidden"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-accent/10 rounded-full -translate-x-8 -translate-y-8 group-hover:scale-150 transition-transform duration-500" />
-            <div className="relative z-10">
-              <div className="w-16 h-16 rounded-2xl bg-accent/10 flex items-center justify-center mb-6 group-hover:bg-accent/20 transition-colors">
-                <Home size={32} className="text-accent" />
+            {/* Animated Glow Effect */}
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-orange-100 rounded-full blur-3xl group-hover:bg-orange-200 transition-colors duration-500" />
+            
+            <div className="mb-6 relative">
+              <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center shadow-lg shadow-orange-200 rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                <Home size={32} className="text-white" />
               </div>
-              <h2 className="font-display text-2xl font-bold text-foreground mb-3">Home Chefs</h2>
-              <p className="text-muted-foreground text-sm leading-relaxed mb-6">
-                Authentic, home-cooked meals made with love by talented home chefs in your neighbourhood. Like eating at grandma's!
+            </div>
+            
+            <div className="relative">
+              <h3 className="text-2xl font-bold text-gray-800 mb-3 flex items-center gap-2">
+                Home Chef <Sparkles size={18} className="text-orange-400" />
+              </h3>
+              <p className="text-gray-500 leading-relaxed text-left italic">
+                "Ghar jaisa swad." Fresh dabbas made with love by local experts.
               </p>
-              <div className="flex flex-wrap gap-2">
-                {["Ghar ka Khana", "Tiffin Service", "Pure Veg Options", "Daily Menu"].map((tag) => (
-                  <span key={tag} className="bg-accent/10 text-accent text-xs px-3 py-1 rounded-full font-medium">
-                    {tag}
-                  </span>
-                ))}
-              </div>
+            </div>
+
+            <div className="mt-8 flex items-center gap-2 text-orange-600 font-bold text-sm uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+              Order Now <UtensilsCrossed size={14} />
             </div>
           </button>
 
           {/* Restaurant Card */}
           <button
             onClick={() => handleSelect("restaurant")}
-            className="group relative overflow-hidden rounded-3xl border-2 border-transparent hover:border-primary bg-card p-8 text-left transition-all duration-300 hover:shadow-card-hover hover:-translate-y-2"
+            className="group relative bg-white rounded-[2.5rem] p-8 border border-white shadow-[0_20px_50px_rgba(0,0,0,0.05)] hover:shadow-[0_30px_60px_rgba(220,38,38,0.15)] transition-all duration-500 hover:-translate-y-3 flex flex-col items-start overflow-hidden"
           >
-            <div className="absolute top-0 right-0 w-32 h-32 bg-primary/10 rounded-full -translate-x-8 -translate-y-8 group-hover:scale-150 transition-transform duration-500" />
-            <div className="relative z-10">
-              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:bg-primary/20 transition-colors">
-                <Store size={32} className="text-primary" />
+            <div className="absolute -top-24 -right-24 w-48 h-48 bg-red-50 rounded-full blur-3xl group-hover:bg-red-100 transition-colors duration-500" />
+            
+            <div className="mb-6 relative">
+              <div className="w-16 h-16 bg-red-500 rounded-2xl flex items-center justify-center shadow-lg shadow-red-200 -rotate-3 group-hover:rotate-0 transition-transform duration-500">
+                <Store size={32} className="text-white" />
               </div>
-              <h2 className="font-display text-2xl font-bold text-foreground mb-3">Restaurants</h2>
-              <p className="text-muted-foreground text-sm leading-relaxed mb-6">
-                Your favourite restaurants and cafés — from biryanis to burgers, pizzas to pav bhaji. Quick & delicious!
+            </div>
+
+            <div className="relative">
+              <h3 className="text-2xl font-bold text-gray-800 mb-3">Restaurant</h3>
+              <p className="text-gray-500 leading-relaxed text-left">
+                Signature dishes from top-rated restaurants, delivered piping hot.
               </p>
-              <div className="flex flex-wrap gap-2">
-                {["Fast Delivery", "Wide Variety", "Party Orders", "Premium Dining"].map((tag) => (
-                  <span key={tag} className="bg-primary/10 text-primary text-xs px-3 py-1 rounded-full font-medium">
-                    {tag}
-                  </span>
-                ))}
-              </div>
+            </div>
+
+            <div className="mt-8 flex items-center gap-2 text-red-600 font-bold text-sm uppercase tracking-widest opacity-0 group-hover:opacity-100 transition-opacity">
+              Explore Menu <UtensilsCrossed size={14} />
             </div>
           </button>
         </div>
 
-        {/* Browse All */}
+        {/* Browse All Link */}
         <button
           onClick={() => {
             localStorage.setItem("preferredFoodType", "all");
             navigate("/home");
           }}
-          className="mt-8 text-muted-foreground hover:text-foreground text-sm underline underline-offset-4 transition-colors"
+          className="mt-12 text-gray-400 hover:text-orange-600 font-medium transition-all flex items-center gap-2 group"
         >
-          or browse everything →
+          Can't decide? <span className="underline underline-offset-4 decoration-orange-200 group-hover:decoration-orange-500">Browse everything</span>
         </button>
-      </div>
+      </main>
 
-      {/* Footer mini */}
-      <footer className="py-4 text-center text-xs text-muted-foreground border-t border-border">
-        © {new Date().getFullYear()} Dabba Nation. All rights reserved.
+      {/* Simple Footer */}
+      <footer className="py-6 text-center text-xs font-medium text-gray-400">
+        © {new Date().getFullYear()} Dabba Nation. Crafted for food lovers.
       </footer>
     </div>
   );
