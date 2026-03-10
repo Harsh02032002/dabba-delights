@@ -8,18 +8,22 @@ import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useQuery } from '@tanstack/react-query';
 import { userAPI } from '@/lib/api';
-import { Search, ArrowLeft, Clock, Plus } from 'lucide-react';
+import { Search, ArrowLeft, Clock, Plus, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { VegBadge } from '@/components/shared/Badge';
+import { useCart } from '@/contexts/CartContext';
+import { toast } from '@/hooks/use-toast';
 import { safeArray } from '@/utils/safeArray';
 
 export default function AllProducts() {
   const navigate = useNavigate();
+  const { addToCart } = useCart();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [vegOnly, setVegOnly] = useState(false);
   const [sortBy, setSortBy] = useState('popular');
   const [page, setPage] = useState(1);
+  const [wishlistedItems, setWishlistedItems] = useState<Set<string>>(new Set());
 
   const { data: response, isLoading } = useQuery({
     queryKey: ['all-products', search, category, vegOnly, sortBy, page],
@@ -40,6 +44,32 @@ export default function AllProducts() {
 
   const totalItems = (response as any)?.total || items.length;
   const totalPages = Math.ceil(totalItems / 20);
+
+  const handleAddToCart = (item: any) => {
+    const seller = item.sellerId || { _id: item.sellerId?._id || item.sellerId, businessName: item.sellerId?.businessName || 'Unknown' };
+    addToCart(item, seller._id, seller.businessName, seller.type || 'home_chef');
+    toast({ title: 'Added to cart', description: `${item.name} added to your cart` });
+  };
+
+  const handleWishlist = async (item: any) => {
+    try {
+      if (wishlistedItems.has(item._id)) {
+        await userAPI.removeFromWishlist(item._id);
+        setWishlistedItems(prev => {
+          const newSet = new Set(prev);
+          newSet.delete(item._id);
+          return newSet;
+        });
+        toast({ title: 'Removed from wishlist' });
+      } else {
+        await userAPI.addToWishlist(item._id);
+        setWishlistedItems(prev => new Set(prev).add(item._id));
+        toast({ title: 'Added to wishlist' });
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to update wishlist', variant: 'destructive' });
+    }
+  };
 
   return (
     <UserLayout>
@@ -114,6 +144,21 @@ export default function AllProducts() {
                       alt={item.name}
                       className="w-full h-full object-cover"
                     />
+                    <div className="absolute top-3 right-3 flex gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleWishlist(item);
+                        }}
+                        className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+                          wishlistedItems.has(item._id)
+                            ? "bg-destructive text-destructive-foreground"
+                            : "bg-card/80 text-muted-foreground hover:text-destructive"
+                        }`}
+                      >
+                        <Heart size={16} className={wishlistedItems.has(item._id) ? "fill-current" : ""} />
+                      </button>
+                    </div>
                     {item.isVeg && (
                       <VegBadge 
                         isVeg={true} 
@@ -143,7 +188,15 @@ export default function AllProducts() {
                         )}
                       </div>
 
-                      <Button size="sm" variant="gradient" className="h-9 px-4">
+                      <Button 
+                        size="sm" 
+                        variant="gradient" 
+                        className="h-9 px-4"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleAddToCart(item);
+                        }}
+                      >
                         <Plus size={16} /> Add
                       </Button>
                     </div>

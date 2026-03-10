@@ -67,11 +67,61 @@ export default function SellerSettings() {
     });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: 'logo' | 'banner') => {
     const file = e.target.files?.[0];
-    if (file) {
-      // TODO: Implement image upload
-      toast({ title: 'Image upload coming soon!' });
+    if (!file) return;
+    
+    // Check file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      toast({ 
+        title: 'File too large', 
+        description: 'Please select an image under 5MB', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+    
+    // Check file type
+    if (!file.type.startsWith('image/')) {
+      toast({ 
+        title: 'Invalid file', 
+        description: 'Please select an image file', 
+        variant: 'destructive' 
+      });
+      return;
+    }
+    
+    const formData = new FormData();
+    formData.append(type === 'logo' ? 'logo' : 'cover', file);
+    
+    console.log(`📤 Uploading ${type}...`, {
+      fileName: file.name,
+      fileSize: file.size,
+      fileType: file.type
+    });
+    
+    try {
+      let response;
+      if (type === 'logo') {
+        response = await sellerAPI.uploadLogo(formData);
+        console.log('✅ Logo upload response:', response);
+      } else {
+        response = await sellerAPI.uploadCoverImage(formData);
+        console.log('✅ Cover upload response:', response);
+      }
+      
+      queryClient.invalidateQueries({ queryKey: ['seller-profile'] });
+      toast({ 
+        title: 'Success', 
+        description: `${type === 'logo' ? 'Logo' : 'Banner'} updated successfully` 
+      });
+    } catch (error: any) {
+      console.error(`❌ ${type} upload error:`, error);
+      toast({ 
+        title: 'Upload Failed', 
+        description: error.message || `Failed to upload ${type}. Please try again.`, 
+        variant: 'destructive' 
+      });
     }
   };
 
@@ -97,7 +147,7 @@ export default function SellerSettings() {
               <div className="space-y-4">
                 <div className="flex items-center gap-4">
                   <Avatar className="w-20 h-20">
-                    <AvatarImage src={formData.logo} />
+                    <AvatarImage src={profile?.logo || formData.logo} />
                     <AvatarFallback>
                       {formData.businessName?.charAt(0)?.toUpperCase() || 'S'}
                     </AvatarFallback>
@@ -113,7 +163,7 @@ export default function SellerSettings() {
                       type="file"
                       id="logo"
                       accept="image/*"
-                      onChange={handleImageUpload}
+                      onChange={(e) => handleImageUpload(e, 'logo')}
                       className="hidden"
                     />
                   </div>
@@ -122,8 +172,8 @@ export default function SellerSettings() {
                 <div className="space-y-2">
                   <Label htmlFor="banner">Banner Image</Label>
                   <div className="relative h-32 rounded-lg overflow-hidden bg-secondary/50 border-2 border-dashed border-border">
-                    {formData.coverImage ? (
-                      <img src={formData.coverImage} alt="Banner" className="w-full h-full object-cover" />
+                    {profile?.coverImage || formData.coverImage ? (
+                      <img src={profile?.coverImage || formData.coverImage} alt="Banner" className="w-full h-full object-cover" />
                     ) : (
                       <div className="flex items-center justify-center h-full">
                         <Label htmlFor="banner" className="cursor-pointer">
@@ -138,7 +188,7 @@ export default function SellerSettings() {
                       type="file"
                       id="banner"
                       accept="image/*"
-                      onChange={handleImageUpload}
+                      onChange={(e) => handleImageUpload(e, 'banner')}
                       className="hidden"
                     />
                   </div>

@@ -283,6 +283,13 @@ export const sellerAPI = {
   getMyTickets: () => apiRequest("/seller/support/tickets"),
   addTicketResponse: (ticketId: string, message: string) =>
     apiRequest("/seller/support/tickets/response", { method: "POST", body: JSON.stringify({ ticketId, message }) }),
+
+  // Profile image uploads
+  uploadLogo: (formData: FormData) =>
+    apiUpload("/seller/profile/logo", formData),
+  
+  uploadCoverImage: (formData: FormData) =>
+    apiUpload("/seller/profile/cover", formData),
 };
 
 // ADMIN APIs
@@ -387,6 +394,20 @@ export const userAPI = {
     const sellers = Array.isArray(res) ? res : Array.isArray(res?.sellers) ? res.sellers : Array.isArray(res?.data) ? res.data : [];
     return { sellers, total: res?.total || sellers.length, success: true };
   },
+  getHomeChefs: async (params?: Record<string, unknown>) => {
+    const res = await apiRequest<any>(`/user/sellers${toQuery(params)}`);
+    const sellers = Array.isArray(res) ? res : Array.isArray(res?.sellers) ? res.sellers : Array.isArray(res?.data) ? res.data : [];
+    // Filter only home chefs
+    const homeChefs = sellers.filter(seller => seller.type === 'home-chef');
+    return { sellers: homeChefs, total: homeChefs.length, success: true };
+  },
+  getRestaurants: async (params?: Record<string, unknown>) => {
+    const res = await apiRequest<any>(`/user/sellers${toQuery(params)}`);
+    const sellers = Array.isArray(res) ? res : Array.isArray(res?.sellers) ? res.sellers : Array.isArray(res?.data) ? res.data : [];
+    // Filter only restaurants
+    const restaurants = sellers.filter(seller => seller.type === 'restaurant');
+    return { sellers: restaurants, total: restaurants.length, success: true };
+  },
   getMenuItems: async (params?: Record<string, unknown>) => {
     const res = await apiRequest<any>(`/user/menu${toQuery(params)}`);
     // Normalize: always return { products: [], ...rest }
@@ -421,6 +442,8 @@ export const userAPI = {
     const token = localStorage.getItem("token");
     window.open(`${API_BASE_URL}/invoice/download/${orderId}?token=${token}`, '_blank');
   },
+  generateInvoice: (orderId: string) =>
+    apiRequest(`/invoice/generate/${orderId}`, { method: "POST" }),
   addToWishlist: (productId: string) =>
     apiRequest("/user/wishlist/add", { method: "POST", body: JSON.stringify({ productId }) }),
   removeFromWishlist: (productId: string) =>
@@ -506,6 +529,13 @@ const authAPI = {
 
   adminRegister: (data: { name: string; email: string; password: string }) =>
     authAPI.register({ ...data, role: "admin" }),
+
+  // Profile image uploads
+  uploadAvatar: (formData: FormData) =>
+    apiUpload("/auth/profile/avatar", formData),
+  
+  uploadBanner: (formData: FormData) =>
+    apiUpload("/auth/profile/banner", formData),
 };
 
 export const paymentAPI = {

@@ -108,8 +108,18 @@ export default function CheckoutPage() {
     }
     setIsLoading(true);
     try {
-      await userAPI.placeOrder(buildOrderPayload("wallet"));
+      const orderResponse = await userAPI.placeOrder(buildOrderPayload("wallet"));
       toast({ title: "Order placed! 🎉", description: "Paid from wallet balance" });
+      
+      // Generate invoice immediately
+      try {
+        await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
+        toast({ title: "Invoice generated! 📄", description: "Your invoice is ready for download" });
+      } catch (invoiceErr: any) {
+        console.log("Invoice generation failed:", invoiceErr);
+        // Don't show error to user, order is still placed
+      }
+      
       clearCart();
       navigate("/orders");
     } catch (err: any) {
@@ -123,8 +133,18 @@ export default function CheckoutPage() {
     if (!validateAddress()) return;
     setIsLoading(true);
     try {
-      await userAPI.placeOrder(buildOrderPayload("cod"));
+      const orderResponse = await userAPI.placeOrder(buildOrderPayload("cod"));
       toast({ title: "Order placed successfully!", description: "Pay on delivery" });
+      
+      // Generate invoice immediately
+      try {
+        await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
+        toast({ title: "Invoice generated! 📄", description: "Your invoice is ready for download" });
+      } catch (invoiceErr: any) {
+        console.log("Invoice generation failed:", invoiceErr);
+        // Don't show error to user, order is still placed
+      }
+      
       clearCart();
       navigate("/orders");
     } catch (err: any) {
@@ -168,8 +188,16 @@ export default function CheckoutPage() {
             });
             if (verifyRes?.verified || verifyRes?.success) {
               // Now place the order
-              await userAPI.placeOrder(buildOrderPayload("razorpay"));
+              const orderResponse = await userAPI.placeOrder(buildOrderPayload("razorpay"));
               toast({ title: "Payment successful! Order placed. 🎉" });
+              // Generate invoice immediately
+              try {
+                await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
+                toast({ title: "Invoice generated! 📄", description: "Your invoice is ready for download" });
+              } catch (invoiceErr: any) {
+                console.log("Invoice generation failed:", invoiceErr);
+                // Don't show error to user, order is still placed
+              }
               clearCart();
               navigate("/orders");
             } else {

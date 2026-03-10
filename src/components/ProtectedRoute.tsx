@@ -31,14 +31,14 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     }
   }
 
-  // Logged in but wrong role - redirect to login
+  // Logged in but wrong role - redirect to correct dashboard
   if (requiredRole && user.role !== requiredRole) {
-    if (requiredRole === 'seller') {
-      return <Navigate to="/seller/login" replace />;
-    } else if (requiredRole === 'admin') {
-      return <Navigate to="/admin/login" replace />;
+    if (user.role === 'seller') {
+      return <Navigate to="/seller" replace />;
+    } else if (user.role === 'admin') {
+      return <Navigate to="/admin" replace />;
     } else {
-      return <Navigate to="/login" replace />;
+      return <Navigate to="/home" replace />;
     }
   }
 

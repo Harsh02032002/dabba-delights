@@ -7,6 +7,7 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { SocketProvider } from "@/contexts/SocketContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
+import { RoleGuard } from "@/components/RoleGuard";
 import { KYCGate } from "@/components/seller/KYCGate";
 // User Pages
 import LandingPage from "./pages/user/LandingPage";
@@ -101,21 +102,23 @@ const App = () => (
           <Sonner />
           <BrowserRouter>
             <Routes>
-              {/* User Routes */}
+              {/* Public Routes */}
               <Route path="/" element={<LandingPage />} />
-              <Route path="/home" element={<UserHome />} />
               <Route path="/login" element={<UserLogin />} />
               <Route path="/register" element={<UserRegister />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
-              <Route path="/cart" element={<CartPage />} />
-              <Route path="/checkout" element={<CheckoutPage />} />
-              <Route path="/wishlist" element={<UserWishlist />} />
-              <Route path="/notifications" element={<UserNotifications />} />
-              <Route path="/wallet" element={<UserWallet />} />
-              <Route path="/all-products" element={<AllProducts />} />
-              <Route path="/orders" element={<MyOrders />} />
-              <Route path="/settings" element={<UserSettings />} />
-              <Route path="/seller/:id" element={<SellerDetail />} />
+
+              {/* User Routes - Protected for users only */}
+              <Route path="/home" element={<RoleGuard allowedRole="user"><UserHome /></RoleGuard>} />
+              <Route path="/cart" element={<RoleGuard allowedRole="user"><CartPage /></RoleGuard>} />
+              <Route path="/checkout" element={<RoleGuard allowedRole="user"><CheckoutPage /></RoleGuard>} />
+              <Route path="/wishlist" element={<RoleGuard allowedRole="user"><UserWishlist /></RoleGuard>} />
+              <Route path="/notifications" element={<RoleGuard allowedRole="user"><UserNotifications /></RoleGuard>} />
+              <Route path="/wallet" element={<RoleGuard allowedRole="user"><UserWallet /></RoleGuard>} />
+              <Route path="/all-products" element={<RoleGuard allowedRole="user"><AllProducts /></RoleGuard>} />
+              <Route path="/orders" element={<RoleGuard allowedRole="user"><MyOrders /></RoleGuard>} />
+              <Route path="/settings" element={<RoleGuard allowedRole="user"><UserSettings /></RoleGuard>} />
+              <Route path="/seller/:id" element={<RoleGuard allowedRole="user"><SellerDetail /></RoleGuard>} />
 
               {/* Static Pages */}
               <Route path="/about" element={<AboutUs />} />

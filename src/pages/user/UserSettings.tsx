@@ -62,11 +62,35 @@ export default function UserSettings() {
     });
   };
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      // TODO: Implement image upload
-      toast({ title: 'Image upload coming soon!' });
+      const formData = new FormData();
+      formData.append('avatar', file);
+      
+      try {
+        await authAPI.uploadAvatar(formData);
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+        toast({ title: 'Profile picture updated successfully' });
+      } catch (error: any) {
+        toast({ title: 'Error', description: error.message || 'Failed to upload image', variant: 'destructive' });
+      }
+    }
+  };
+
+  const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const formData = new FormData();
+      formData.append('banner', file);
+      
+      try {
+        await authAPI.uploadBanner(formData);
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+        toast({ title: 'Banner image updated successfully' });
+      } catch (error: any) {
+        toast({ title: 'Error', description: error.message || 'Failed to upload image', variant: 'destructive' });
+      }
     }
   };
 
@@ -89,7 +113,7 @@ export default function UserSettings() {
               {/* Profile Picture */}
               <div className="flex items-center gap-4">
                 <Avatar className="w-20 h-20">
-                  <AvatarImage src={profile?.profileImage} />
+                  <AvatarImage src={profile?.avatar || profile?.profileImage} />
                   <AvatarFallback>
                     {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </AvatarFallback>
@@ -106,6 +130,33 @@ export default function UserSettings() {
                     id="profileImage"
                     accept="image/*"
                     onChange={handleImageUpload}
+                    className="hidden"
+                  />
+                </div>
+              </div>
+
+              {/* Banner Image */}
+              <div className="space-y-2">
+                <Label>Banner Image</Label>
+                <div className="relative h-32 rounded-lg overflow-hidden bg-secondary/50 border-2 border-dashed border-border">
+                  {profile?.banner ? (
+                    <img src={profile.banner} alt="Banner" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="flex flex-col items-center justify-center h-full">
+                      <Camera size={24} className="text-muted-foreground mb-2" />
+                      <span className="text-sm text-muted-foreground">Upload Banner</span>
+                    </div>
+                  )}
+                  <Label htmlFor="banner" className="absolute inset-0 cursor-pointer">
+                    <div className="w-full h-full bg-black/20 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                      <Camera size={24} className="text-white" />
+                    </div>
+                  </Label>
+                  <input
+                    type="file"
+                    id="banner"
+                    accept="image/*"
+                    onChange={(e) => handleBannerUpload(e)}
                     className="hidden"
                   />
                 </div>
