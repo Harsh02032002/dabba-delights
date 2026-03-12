@@ -241,32 +241,7 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Decorative Images */}
-
-          {/* Dhaniya */}
-          <motion.img
-            src="https://pngimg.com/uploads/coriander/coriander_PNG10.png"
-            className="absolute bottom-[-30px] left-[-40px] w-32 opacity-90"
-            animate={{ y: [0, -6, 0] }}
-            transition={{ duration: 4, repeat: Infinity }}
-          />
-
-          {/* Pepper */}
-          <motion.img
-            src="https://pngimg.com/uploads/pepper/pepper_PNG37.png"
-            className="absolute right-[-20px] top-[55%] w-20 opacity-80"
-            animate={{ y: [0, -6, 0] }}
-            transition={{ duration: 3, repeat: Infinity }}
-          />
-
-          {/* Spoon */}
-          <motion.img
-            src="https://pngimg.com/uploads/spoon/spoon_PNG23.png"
-            className="absolute bottom-[-40px] right-[-20px] w-32 opacity-80"
-            animate={{ rotate: [-8, -4, -8] }}
-            transition={{ duration: 6, repeat: Infinity }}
-          />
-
+          
         </div>
 
         <button
