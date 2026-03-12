@@ -10,13 +10,11 @@ import { userAPI, apiRequest, paymentAPI } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Wallet, Plus, ArrowLeft, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/contexts/AuthContext';
 
 export default function UserWallet() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [topupAmount, setTopupAmount] = useState('');
-  const { user } = useAuth();
 
   // ✅ Wallet Balance + Transaction History (single endpoint returns both)
   const { data: walletData, isLoading } = useQuery({
@@ -32,77 +30,138 @@ export default function UserWallet() {
   const history = Array.isArray(wallet?.transactions) ? wallet.transactions : [];
 
   const topupMutation = useMutation({
-    mutationFn: (amount: number) => {
+    mutationFn: async (amount: number) => {
       // Create Razorpay order first
       return paymentAPI.createRazorpayOrder({ amount, currency: 'INR' });
     },
     onSuccess: async (razorpayOrder: any) => {
       if (razorpayOrder.success && razorpayOrder.key) {
-        // Initialize Razorpay payment
-        const options = {
-          key: razorpayOrder.key,
-          amount: razorpayOrder.amount,
-          currency: razorpayOrder.currency,
-          order_id: razorpayOrder.orderId,
-          name: 'Dabba Nation',
-          description: 'Wallet Top-up',
-          image: '/logo.png',
-          handler: async (response: any) => {
-            try {
-              // Verify payment with backend
-              const verification = await paymentAPI.verifyRazorpayPayment({
-                razorpayOrderId: response.razorpay_order_id,
-                razorpayPaymentId: response.razorpay_payment_id,
-                razorpaySignature: response.razorpay_signature,
-                amount: Number(topupAmount)
-              });
-
-              if (verification.success) {
-                // Add money to wallet after successful verification
-                await userAPI.topupWallet(Number(topupAmount));
-                
-                toast({
-                  title: 'Payment Successful',
-                  description: `₹${topupAmount} added to your wallet`,
-                });
-
-                queryClient.invalidateQueries({ queryKey: ['user-wallet'] });
-                setTopupAmount('');
-              } else {
-                toast({
-                  title: 'Payment Verification Failed',
-                  description: 'Please contact support',
-                  variant: 'destructive',
-                });
-              }
-            } catch (error: any) {
+        console.log('🔍 Starting Razorpay payment...');
+        
+        // Wait for Razorpay to be available
+        const checkAndInitiate = async () => {
+          // Load Razorpay script if not loaded
+          if (typeof window.Razorpay === 'undefined' || window.Razorpay === null) {
+            console.log('📥 Loading Razorpay script...');
+            const script = document.createElement('script');
+            script.src = 'https://checkout.razorpay.com/v1/razorpay.js';
+            script.async = true;
+            
+            script.onload = () => {
+              console.log('✅ Razorpay script loaded');
+              setTimeout(() => createRazorpayInstance(), 500);
+            };
+            
+            script.onerror = () => {
+              console.error('❌ Failed to load Razorpay script');
               toast({
-                title: 'Error',
-                description: error.message || 'Failed to add money to wallet',
+                title: 'Payment Error',
+                description: 'Failed to load payment gateway. Please try again.',
                 variant: 'destructive',
               });
-            }
-          },
-          prefill: {
-            name: user?.name || '',
-            email: user?.email || '',
-            contact: user?.phone || '',
-          },
-          theme: {
-            color: '#f97316',
-          },
-          modal: {
-            ondismiss: () => {
+            };
+            
+            document.body.appendChild(script);
+          } else {
+            createRazorpayInstance();
+          }
+          
+          function createRazorpayInstance() {
+            if (typeof window.Razorpay === 'undefined' || window.Razorpay === null) {
+              console.error('❌ Razorpay still not available');
               toast({
-                title: 'Payment Cancelled',
-                description: 'You cancelled the payment',
+                title: 'Payment Error',
+                description: 'Payment gateway not loaded. Please refresh the page.',
+                variant: 'destructive',
+              });
+              return;
+            }
+            
+            try {
+              console.log('🏗️ Creating Razorpay instance...');
+              
+              const options = {
+                key: razorpayOrder.key,
+                amount: razorpayOrder.amount,
+                currency: razorpayOrder.currency,
+                order_id: razorpayOrder.orderId,
+                name: 'Dabba Nation',
+                description: 'Wallet Top-up',
+                image: '/logo.png',
+                handler: async (response: any) => {
+                  try {
+                    console.log('💳 Payment handler called');
+                    // Verify payment with backend
+                    const verification = await paymentAPI.verifyRazorpayPayment({
+                      razorpayOrderId: response.razorpay_order_id,
+                      razorpayPaymentId: response.razorpay_payment_id,
+                      razorpaySignature: response.razorpay_signature,
+                      amount: Number(topupAmount)
+                    });
+
+                    if (verification.success) {
+                      // Add money to wallet after successful verification
+                      await userAPI.topupWallet(Number(topupAmount));
+                      
+                      toast({
+                        title: 'Payment Successful',
+                        description: `₹${topupAmount} added to your wallet`,
+                      });
+
+                      queryClient.invalidateQueries({ queryKey: ['user-wallet'] });
+                      setTopupAmount('');
+                    } else {
+                      toast({
+                        title: 'Payment Verification Failed',
+                        description: 'Please contact support',
+                        variant: 'destructive',
+                      });
+                    }
+                  } catch (error: any) {
+                    console.error('❌ Payment handler error:', error);
+                    toast({
+                      title: 'Error',
+                      description: error.message || 'Failed to add money to wallet',
+                      variant: 'destructive',
+                    });
+                  }
+                },
+                prefill: {
+                  name: '',
+                  email: '',
+                  contact: '',
+                },
+                theme: {
+                  color: '#f97316',
+                },
+                modal: {
+                  ondismiss: () => {
+                    toast({
+                      title: 'Payment Cancelled',
+                      description: 'You cancelled the payment',
+                    });
+                  }
+                }
+              };
+
+              console.log('🚀 Opening Razorpay modal...');
+              const razorpay = new window.Razorpay(options);
+              razorpay.open();
+              
+            } catch (error: any) {
+              console.error('❌ Razorpay error:', error);
+              toast({
+                title: 'Payment Error',
+                description: error.message || 'Failed to initialize payment',
+                variant: 'destructive',
               });
             }
           }
         };
-
-        const razorpay = new (window as any).Razorpay(options);
-        razorpay.open();
+        
+        // Start the process
+        checkAndInitiate();
+        
       } else {
         toast({
           title: 'Error',
@@ -111,12 +170,14 @@ export default function UserWallet() {
         });
       }
     },
-    onError: (err: any) =>
+    onError: (err: any) => {
+      console.error('❌ Mutation error:', err);
       toast({
         title: 'Error',
         description: err?.message || 'Something went wrong',
         variant: 'destructive',
-      }),
+      });
+    },
   });
 
   const quickAmounts = [100, 200, 500, 1000, 2000];
