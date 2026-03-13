@@ -13,6 +13,9 @@ import { PromoBanners } from "@/components/user/PromoBanners";
 export default function UserHome() {
   const savedType = (localStorage.getItem("preferredFoodType") || "restaurant") as SellerType;
   const [searchQuery, setSearchQuery] = useState("");
+  
+  // Handle "all" case by showing both restaurants and home chefs
+  const showAllTypes = savedType === "all";
 
   // Sellers — dynamic only
   const { data: sellers = [] as any[], isLoading: sellersLoading } = useQuery({
@@ -20,7 +23,7 @@ export default function UserHome() {
     queryFn: async () => {
       try {
         const res: any = await userAPI.getSellers({
-          type: savedType,
+          type: showAllTypes ? undefined : savedType,
           search: searchQuery || undefined,
         });
         const s = Array.isArray(res) ? res : res?.sellers || res?.data || [];
@@ -31,13 +34,32 @@ export default function UserHome() {
     },
   });
 
-  // Menu Items — dynamic only
+  // Menu Items — dynamic only with proper filtering
   const { data: menuItems = [] as any[], isLoading: menuLoading } = useQuery({
     queryKey: ["menu-items", savedType, searchQuery],
     queryFn: async () => {
       try {
-        const res: any = await userAPI.getMenuItems({ type: savedType, search: searchQuery || undefined });
-        const p = Array.isArray(res) ? res : res?.products || res?.data || res?.menu || [];
+        const res: any = await userAPI.getMenuItems({ 
+          search: searchQuery || undefined 
+        });
+        let p = Array.isArray(res) ? res : res?.products || res?.data || res?.menu || [];
+        
+        // Get sellers data for filtering
+        if (!showAllTypes) {
+          const sellersRes: any = await userAPI.getSellers({
+            type: savedType,
+            search: searchQuery || undefined,
+          });
+          const sellers = Array.isArray(sellersRes) ? sellersRes : sellersRes?.sellers || sellersRes?.data || [];
+          const sellerIds = sellers.map((s: any) => s._id);
+          
+          // Filter menu items by seller type
+          p = p.filter((item: any) => {
+            const sellerId = typeof item.sellerId === 'object' ? item.sellerId._id : item.sellerId;
+            return sellerIds.includes(sellerId);
+          });
+        }
+        
         return p;
       } catch {
         return [];
@@ -64,7 +86,7 @@ export default function UserHome() {
     );
   });
 
-  const typeLabel = savedType === "home_chef" ? "Home Chef" : "Restaurant";
+  const typeLabel = savedType === "home_chef" ? "Home Chef" : savedType === "restaurant" ? "Restaurant" : "All Sellers";
 
   return (
     <UserLayout onSearch={setSearchQuery}>
@@ -94,7 +116,7 @@ export default function UserHome() {
             <section className="mb-12">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-display font-bold text-foreground">
-                  {savedType === "home_chef" ? "Home Chefs Near You" : "Top Restaurants"}
+                  {savedType === "home_chef" ? "Home Chefs Near You" : savedType === "restaurant" ? "Top Restaurants" : "All Sellers"}
                 </h2>
               </div>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -111,7 +133,7 @@ export default function UserHome() {
             <section className="mb-12">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-display font-bold text-foreground">
-                  {savedType === "home_chef" ? "Home-Cooked Delights" : "Popular Dishes"}
+                  {savedType === "home_chef" ? "Home-Cooked Delights" : savedType === "restaurant" ? "Popular Dishes" : "All Dishes"}
                 </h2>
                 <Link to="/all-products">
                   <Button variant="ghost" className="gap-1">View All <ChevronRight size={16} /></Button>

@@ -56,7 +56,7 @@ export function UserNavbar({ onSearch }: UserNavbarProps) {
         <div className="flex items-center gap-4">
           {/* Logo */}
           <Link to="/" className="flex items-center">
-            <Logo size="sm" />
+            <Logo />
           </Link>
 
           {/* Location (hidden on small screens) */}

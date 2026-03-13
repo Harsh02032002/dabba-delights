@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { MenuItem, SellerProfile } from '@/types';
 import { SellerBadge, VegBadge } from '@/components/shared/Badge';
 import { RatingStars } from '@/components/shared/RatingStars';
+import { InteractiveRating } from '@/components/user/InteractiveRating';
 import { Button } from '@/components/ui/button';
 import { useCart } from '@/contexts/CartContext';
 import { Clock, Plus, MapPin, Heart } from 'lucide-react';
@@ -79,8 +80,13 @@ export function FoodCard({ item, seller, className }: FoodCardProps) {
         <p className="text-sm text-muted-foreground line-clamp-2 mb-3">{item.description}</p>
         
         <div className="flex items-center gap-2 mb-3">
-          <RatingStars rating={seller.rating} size="sm" />
-          <span className="text-xs text-muted-foreground">{(seller.totalOrders || 0).toLocaleString()} orders</span>
+          <InteractiveRating 
+            itemId={item._id} 
+            itemType="menu" 
+            currentRating={item.rating || 0} 
+            size="sm" 
+          />
+          <span className="text-xs text-muted-foreground">{(item.totalOrders || 0).toLocaleString()} orders</span>
         </div>
         
         <div className="flex items-center justify-between">
@@ -125,10 +131,12 @@ export function SellerCard({ seller, className }: SellerCardProps) {
         </div>
         
         <div className="flex items-center gap-4 mt-3">
-          <div className="flex items-center gap-1">
-            <RatingStars rating={seller.rating} size="sm" />
-            <span className="text-sm font-medium">{seller.rating}</span>
-          </div>
+          <InteractiveRating 
+            itemId={seller._id} 
+            itemType="seller" 
+            currentRating={seller.rating || 0} 
+            size="sm" 
+          />
           <div className="flex items-center gap-1 text-sm text-muted-foreground">
             <MapPin size={14} />
             <span className="line-clamp-1">{seller.address?.city}</span>

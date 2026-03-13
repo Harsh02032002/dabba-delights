@@ -434,13 +434,27 @@ export const userAPI = {
     apiRequest(`/user/orders${status ? `?status=${status}` : ""}`),
   getOrderById: (id: string) =>
     apiRequest(`/user/orders/${id}`),
-  rateOrder: (orderId: string, rating: number, review: string) =>
+  rateOrder: (orderId: string, rating: number, review?: string) =>
     apiRequest(`/user/orders/${orderId}/rate`, { method: "POST", body: JSON.stringify({ rating, review }) }),
+  rateMenuItem: (menuItemId: string, rating: number) =>
+    apiRequest(`/user/menu/${menuItemId}/rate`, { method: "POST", body: JSON.stringify({ rating }) }),
+  rateSeller: (sellerId: string, rating: number) =>
+    apiRequest(`/user/sellers/${sellerId}/rate`, { method: "POST", body: JSON.stringify({ rating }) }),
+  getSellerRatingBreakdown: (sellerId: string) =>
+    apiRequest(`/user/sellers/${sellerId}/rating-breakdown`),
   cancelOrder: (orderId: string) =>
     apiRequest(`/user/orders/${orderId}/cancel`, { method: "POST" }),
   downloadInvoice: (orderId: string) => {
     const token = localStorage.getItem("token");
-    window.open(`${API_BASE_URL}/invoice/download/${orderId}?token=${token}`, '_blank');
+    if (!token) {
+      console.error("No token found for invoice download");
+      return;
+    }
+    // Properly encode the token for URL
+    const encodedToken = encodeURIComponent(token);
+    const invoiceUrl = `${API_BASE_URL}/invoice/download/${orderId}?token=${encodedToken}`;
+    console.log("Downloading invoice from:", invoiceUrl);
+    window.open(invoiceUrl, '_blank');
   },
   generateInvoice: (orderId: string) =>
     apiRequest(`/invoice/generate/${orderId}`, { method: "POST" }),

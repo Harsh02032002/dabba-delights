@@ -1,16 +1,34 @@
-import { useState } from 'react';
-import { UserLayout } from '@/layouts/UserLayout';
-import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
-import { StatusBadge } from '@/components/shared/Badge';
-import { useQuery } from '@tanstack/react-query';
-import { userAPI } from '@/lib/api';
-import { ArrowLeft, ShoppingBag, ChevronRight, FileText, Star, Download } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { useState } from "react";
+import { UserLayout } from "@/layouts/UserLayout";
+import { userAPI } from "@/lib/api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ArrowLeft, Download, Star, Clock, CheckCircle, Package, Truck, ShoppingBag } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
+import { toast } from "@/hooks/use-toast";
+import { UserRatingModal } from "@/components/user/UserRatingModal";
 
 const statusTabs = ['all', 'pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
+
+const statusColors = {
+  pending: 'bg-yellow-100 text-yellow-800',
+  confirmed: 'bg-blue-100 text-blue-800',
+  preparing: 'bg-purple-100 text-purple-800',
+  out_for_delivery: 'bg-orange-100 text-orange-800',
+  delivered: 'bg-green-100 text-green-800',
+  cancelled: 'bg-red-100 text-red-800',
+};
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusColors[status as keyof typeof statusColors] || 'bg-gray-100 text-gray-800'}`}>
+      {status.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
+    </span>
+  );
+}
 
 const statusSteps = [
   { key: 'pending', label: 'Order Placed' },
@@ -58,7 +76,8 @@ export default function MyOrders() {
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
   const [ratingOrder, setRatingOrder] = useState<string | null>(null);
-  const [rating, setRating] = useState(0);
+  const [ratingModalOpen, setRatingModalOpen] = useState(false);
+  const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
   const { data, isLoading } = useQuery({
     queryKey: ['user-orders', activeTab],
@@ -73,12 +92,16 @@ export default function MyOrders() {
     activeTab === 'all' || o.status === activeTab
   );
 
-  const handleRate = (orderId: string, stars: number) => {
-    setRating(stars);
-    // In real app, call API
-    try {
-      (userAPI as any).rateOrder(orderId, stars, '');
-    } catch {}
+  const handleRateOrder = (order: any) => {
+    setSelectedOrder(order);
+    setRatingModalOpen(true);
+  };
+
+  const handleRatingSubmit = () => {
+    setRatingModalOpen(false);
+    setSelectedOrder(null);
+    // Refetch orders to show updated rating
+    window.location.reload();
   };
 
   return (
@@ -142,21 +165,9 @@ export default function MyOrders() {
                       <p className="text-xs text-muted-foreground capitalize">{order.paymentMethod?.replace('_', ' ')}</p>
                       
                       {order.status === 'delivered' && !order.rating && (
-                        <div className="flex flex-col items-end gap-1">
-                          {ratingOrder === order._id ? (
-                            <div className="flex gap-1">
-                              {[1,2,3,4,5].map(s => (
-                                <button key={s} onClick={() => handleRate(order._id, s)}>
-                                  <Star size={20} className={s <= rating ? 'fill-warning text-warning' : 'text-muted-foreground'} />
-                                </button>
-                              ))}
-                            </div>
-                          ) : (
-                            <Button size="sm" variant="outline" onClick={() => setRatingOrder(order._id)} className="gap-1">
-                              <Star size={14} /> Rate Order
-                            </Button>
-                          )}
-                        </div>
+                        <Button size="sm" variant="outline" onClick={() => handleRateOrder(order)} className="gap-1">
+                          <Star size={14} /> Rate Order
+                        </Button>
                       )}
                       {order.rating && (
                         <div className="flex gap-0.5">
@@ -166,13 +177,27 @@ export default function MyOrders() {
                         </div>
                       )}
                       
-                      {order.status === 'delivered' && (
-                        <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => {
-                          try { (userAPI as any).downloadInvoice(order._id); } catch {}
-                        }}>
-                          <Download size={14} /> Invoice
-                        </Button>
-                      )}
+                      {/* Invoice Download Button - Always Visible */}
+                      <Button 
+                        size="sm" 
+                        variant="ghost" 
+                        className="gap-1 text-xs" 
+                        onClick={() => {
+                          try {
+                            console.log("Attempting to download invoice for order:", order._id);
+                            userAPI.downloadInvoice(order._id);
+                          } catch (error) {
+                            console.error("Invoice download failed:", error);
+                            toast({
+                              title: "Error",
+                              description: "Failed to download invoice. Please try again.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                      >
+                        <Download size={14} /> Invoice
+                      </Button>
                     </div>
                   </div>
                 </Card>
@@ -181,6 +206,17 @@ export default function MyOrders() {
           </div>
         )}
       </div>
+
+      {/* Rating Modal */}
+      {selectedOrder && (
+        <UserRatingModal
+          isOpen={ratingModalOpen}
+          onClose={() => setRatingModalOpen(false)}
+          orderId={selectedOrder._id}
+          sellerName={typeof selectedOrder.sellerId === 'object' ? selectedOrder.sellerId.businessName : selectedOrder.sellerName || 'Seller'}
+          onRatingSubmit={handleRatingSubmit}
+        />
+      )}
     </UserLayout>
   );
 }

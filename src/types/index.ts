@@ -35,7 +35,7 @@ export interface Address {
 }
 
 // Seller Types
-export type SellerType = 'home_chef' | 'restaurant';
+export type SellerType = 'home_chef' | 'restaurant' | 'all';
 export type KYCStatus = 'pending' | 'submitted' | 'verified' | 'rejected';
 
 export interface SellerProfile {
