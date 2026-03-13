@@ -3,26 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { Home, Store, MapPin, ChevronDown, UtensilsCrossed, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { Logo } from "@/components/shared/Logo";
 import traditionalWoman from "@/assets/traditional-woman.png";
 import chefCharacter from "@/assets/chef-character.png";
-
-/* ── Logo ── */
-function Logo() {
-  return (
-    <div className="flex items-center gap-2">
-      <div className="w-9 h-9 rounded-full bg-primary flex items-center justify-center">
-        <UtensilsCrossed className="w-5 h-5 text-white" />
-      </div>
-
-      <div className="leading-tight">
-        <span className="font-bold text-lg block">Dabba</span>
-        <span className="font-bold text-primary text-lg block leading-none">
-          Nation
-        </span>
-      </div>
-    </div>
-  );
-}
 
 /* ── Animated Character ── */
 function AnimatedCharacter({ side, imageUrl, alt }) {
@@ -98,13 +81,15 @@ export default function LandingPage() {
   return (
     <div className="h-screen w-full bg-background relative overflow-hidden flex flex-col">
       
-      {/* Background spices */}
-      <div className="absolute inset-x-0 top-0 h-[350px] overflow-hidden z-0">
+      {/* Full page background with professional overlay */}
+      <div className="absolute inset-0 overflow-hidden z-0">
         <img
           src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=1920&q=80"
-          className="w-full h-full object-cover opacity-40"
+          className="w-full h-full object-cover opacity-30"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent to-background" />
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/30" />
+        <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/15 via-orange-600/10 to-red-600/15" />
+        <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-black/10" />
       </div>
 
       <AnimatedCharacter
@@ -123,24 +108,24 @@ export default function LandingPage() {
       <header className="relative z-20 flex items-center justify-between px-6 md:px-12 py-6">
         <Logo />
 
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-4">
           <button
             onClick={() => navigate("/about")}
-            className="hidden md:flex font-medium hover:text-primary"
+            className="hidden md:flex px-4 py-2 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-foreground hover:bg-white/20 hover:border-white/40 transition-all duration-300 font-medium"
           >
             About
           </button>
 
           <button
             onClick={() => navigate("/seller/login")}
-            className="font-medium hover:text-primary"
+            className="px-4 py-2 rounded-full bg-gradient-to-r from-primary to-orange-500 text-white font-semibold hover:from-orange-500 hover:to-primary transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-105"
           >
             Seller Portal
           </button>
 
           <Button
             onClick={() => navigate("/login")}
-            className="bg-primary hover:bg-orange-600 text-white rounded-full px-6"
+            className="bg-gradient-to-r from-primary to-orange-500 hover:from-orange-500 hover:to-primary text-white font-semibold rounded-full px-6 shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-300"
           >
             Join Us
           </Button>
@@ -173,10 +158,10 @@ export default function LandingPage() {
         <div className="text-center mb-10">
           <h1 className="text-5xl md:text-7xl font-bold">
             What are you{" "}
-            <span className="text-primary italic">craving</span> today?
+            <span className="text-primary italic drop-shadow-lg">craving</span> today?
           </h1>
 
-          <p className="mt-4 text-gray-500 max-w-xl mx-auto">
+          <p className="mt-4 text-gray-800 max-w-xl mx-auto">
             From the warmth of a{" "}
             <span className="text-green-700 font-semibold">
               Home Kitchen

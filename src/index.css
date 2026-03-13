@@ -6,73 +6,73 @@
 
 @layer base {
   :root {
-    /* Warm Food-Delivery Theme */
-    --background: 30 50% 98%;
-    --foreground: 20 20% 15%;
+    /* Golden Theme - Professional */
+    --background: 45 50% 92%;             /* Warm golden background */
+    --foreground: 25 25% 15%;              /* Dark text for golden background */
 
-    --card: 30 40% 99%;
-    --card-foreground: 20 20% 15%;
+    --card: 45 45% 96%;                    /* Warm white cards */
+    --card-foreground: 25 25% 15%;           /* Dark text on cards */
 
-    --popover: 30 40% 99%;
-    --popover-foreground: 20 20% 15%;
+    --popover: 45 45% 96%;
+    --popover-foreground: 25 25% 15%;
 
-    /* Warm Coral Orange - Primary */
-    --primary: 16 85% 55%;
-    --primary-foreground: 0 0% 100%;
+    /* Dabba Nation Red - Primary */
+    --primary: 0 72% 51%;                  /* Logo red */
+    --primary-foreground: 0 0% 100%;           /* White text on red */
 
-    /* Soft Cream - Secondary */
-    --secondary: 35 40% 95%;
-    --secondary-foreground: 20 20% 20%;
+    /* Golden Secondary */
+    --secondary: 45 60% 85%;                 /* Golden secondary */
+    --secondary-foreground: 25 25% 15%;          /* Dark text */
 
-    /* Muted Warm Gray */
-    --muted: 30 20% 94%;
-    --muted-foreground: 20 10% 45%;
+    /* Golden Muted */
+    --muted: 45 55% 80%;                     /* Golden muted */
+    --muted-foreground: 25 15% 60%;             /* Medium text */
 
     /* Fresh Green - Accent/Success */
-    --accent: 145 60% 45%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 142 69% 45%;                   /* Professional green */
+    --accent-foreground: 0 0% 100%;             /* White text */
 
-    --destructive: 0 72% 51%;
+    --destructive: 0 72% 51%;                /* Logo red */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 20% 90%;
-    --input: 30 20% 90%;
-    --ring: 16 85% 55%;
+    --border: 45 50% 85%;                     /* Golden borders */
+    --input: 45 55% 80%;                      /* Golden inputs */
+    --ring: 0 72% 51%;                       /* Logo red focus ring */
 
     --radius: 0.75rem;
 
-    /* Custom Colors */
-    --success: 145 60% 45%;
+    /* Custom Colors - Golden Theme */
+    --success: 142 69% 45%;                   /* Professional green */
     --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
+    --warning: 38 92% 58%;                    /* Professional orange */
     --warning-foreground: 0 0% 100%;
-    --info: 200 80% 50%;
+    --info: 199 89% 48%;                      /* Professional blue */
     --info-foreground: 0 0% 100%;
 
-    /* Sidebar */
-    --sidebar-background: 0 0% 100%;
-    --sidebar-foreground: 20 20% 25%;
-    --sidebar-primary: 16 85% 55%;
+    /* Sidebar - Golden Theme */
+    --sidebar-background: 45 50% 88%;            /* Golden sidebar */
+    --sidebar-foreground: 25 25% 15%;            /* Dark text */
+    --sidebar-primary: 0 72% 51%;              /* Logo red */
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 30 40% 96%;
-    --sidebar-accent-foreground: 20 20% 15%;
-    --sidebar-border: 30 20% 92%;
-    --sidebar-ring: 16 85% 55%;
+    --sidebar-accent: 45 60% 85%;               /* Golden accent */
+    --sidebar-accent-foreground: 25 25% 15%;
+    --sidebar-border: 45 50% 80%;               /* Golden borders */
+    --sidebar-ring: 0 72% 51%;
 
     /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(16, 85%, 55%) 0%, hsl(30, 90%, 60%) 100%);
-    --gradient-success: linear-gradient(135deg, hsl(145, 60%, 45%) 0%, hsl(160, 70%, 50%) 100%);
-    --gradient-hero: linear-gradient(135deg, hsl(16, 85%, 55%) 0%, hsl(35, 95%, 55%) 50%, hsl(16, 85%, 55%) 100%);
-    --gradient-card: linear-gradient(180deg, hsl(30, 50%, 99%) 0%, hsl(30, 40%, 97%) 100%);
-    --gradient-sidebar: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(30, 30%, 98%) 100%);
+    --gradient-primary: linear-gradient(135deg, hsl(0, 72%, 51%) 0%, hsl(10, 85%, 55%) 100%);
+    --gradient-success: linear-gradient(135deg, hsl(142, 69%, 45%) 0%, hsl(154, 79%, 50%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(0, 72%, 51%) 0%, hsl(20, 88%, 58%) 50%, hsl(0, 72%, 51%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(45, 50%, 99%) 0%, hsl(45, 40%, 96%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(0, 0%, 100%) 0%, hsl(45, 30%, 97%) 100%);
 
     /* Shadows */
-    --shadow-sm: 0 1px 2px 0 hsl(20 20% 15% / 0.03);
-    --shadow-md: 0 4px 6px -1px hsl(20 20% 15% / 0.05), 0 2px 4px -2px hsl(20 20% 15% / 0.03);
-    --shadow-lg: 0 10px 15px -3px hsl(20 20% 15% / 0.06), 0 4px 6px -4px hsl(20 20% 15% / 0.03);
-    --shadow-xl: 0 20px 25px -5px hsl(20 20% 15% / 0.08), 0 8px 10px -6px hsl(20 20% 15% / 0.03);
-    --shadow-card: 0 2px 8px -2px hsl(20 20% 15% / 0.08);
-    --shadow-card-hover: 0 8px 25px -5px hsl(16 85% 55% / 0.15);
+    --shadow-sm: 0 1px 2px 0 hsl(25 25% 20% / 0.03);
+    --shadow-md: 0 4px 6px -1px hsl(25 25% 20% / 0.05), 0 2px 4px -2px hsl(25 25% 20% / 0.03);
+    --shadow-lg: 0 10px 15px -3px hsl(25 25% 20% / 0.06), 0 4px 6px -4px hsl(25 25% 20% / 0.03);
+    --shadow-xl: 0 20px 25px -5px hsl(25 25% 20% / 0.08), 0 8px 10px -6px hsl(25 25% 20% / 0.03);
+    --shadow-card: 0 2px 8px -2px hsl(25 25% 20% / 0.08);
+    --shadow-card-hover: 0 8px 25px -5px hsl(0 72% 51% / 0.15);
   }
 
   .dark {

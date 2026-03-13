@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { UserLayout } from '@/layouts/UserLayout';
 import { FoodCard } from '@/components/user/FoodCard';
 import { RatingStars } from '@/components/shared/RatingStars';
+import { InteractiveRating } from '@/components/user/InteractiveRating';
 import { SellerBadge } from '@/components/shared/Badge';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
@@ -65,10 +66,12 @@ export default function SellerDetail() {
 
         {/* Info */}
         <div className="flex flex-wrap gap-4 mb-8 text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <RatingStars rating={sellerData.rating || 0} size="sm" />
-            <span className="font-medium text-foreground">{sellerData.rating || 0}</span>
-          </div>
+          <InteractiveRating 
+            itemId={sellerData._id} 
+            itemType="seller" 
+            currentRating={sellerData.rating || 0} 
+            size="md" 
+          />
           {sellerData.address?.city && (
             <span className="flex items-center gap-1"><MapPin size={14} /> {sellerData.address.city}</span>
           )}

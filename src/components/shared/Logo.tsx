@@ -1,37 +1,34 @@
-import { UtensilsCrossed } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
+import logo from "@/assets/logo.png";
+import { motion } from "framer-motion";
 
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg';
-  showText?: boolean;
   className?: string;
 }
 
-export function Logo({ size = 'md', showText = true, className }: LogoProps) {
-  const sizes = {
-    sm: { icon: 20, text: 'text-lg' },
-    md: { icon: 28, text: 'text-2xl' },
-    lg: { icon: 36, text: 'text-3xl' },
-  };
-
+export function Logo({ className }: LogoProps) {
   return (
-    <div className={cn('flex items-center gap-2', className)}>
-      <div className="relative">
-        <div className="gradient-primary p-2 rounded-xl shadow-lg">
-          <UtensilsCrossed size={sizes[size].icon} className="text-white" />
-        </div>
-        <div className="absolute -top-1 -right-1 w-3 h-3 bg-success rounded-full border-2 border-white" />
-      </div>
-      {showText && (
-        <div className="flex flex-col">
-          <span className={cn('font-display font-bold text-foreground leading-tight', sizes[size].text)}>
-            Dabba
-          </span>
-          <span className={cn('font-display font-bold text-primary leading-tight -mt-1', sizes[size].text)}>
-            Nation
-          </span>
-        </div>
+    <motion.div
+      className={cn(
+        "flex items-center justify-center w-28 h-28",
+        className
       )}
-    </div>
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.4 }}
+    >
+      <motion.img
+        src={logo}
+        alt="Dabba Nation"
+        className="w-full h-full object-cover rounded-full shadow-xl border-4 border-white"
+
+        animate={{ scale: [1, 1.05, 1] }}
+        transition={{
+          duration: 4,
+          repeat: Infinity,
+          ease: "easeInOut",
+        }}
+      />
+    </motion.div>
   );
 }
