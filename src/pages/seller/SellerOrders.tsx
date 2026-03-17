@@ -89,8 +89,12 @@ export default function SellerOrders() {
                     <div className="flex gap-2">
                       {order.status === 'pending' && (
                         <>
-                          <Button variant="soft-success" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'confirmed' })}>Accept</Button>
-                          <Button variant="soft-destructive" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'cancelled' })}>Reject</Button>
+                          <Button variant="soft-success" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'confirmed' })} className="gap-1">
+                            <CheckCircle2 size={14} /> Accept Order
+                          </Button>
+                          <Button variant="soft-destructive" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'cancelled' })} className="gap-1">
+                            <AlertCircle size={14} /> Reject Order
+                          </Button>
                         </>
                       )}
                       {order.status === 'confirmed' && (

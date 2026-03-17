@@ -145,8 +145,8 @@ export default function UserWallet() {
               };
 
               console.log('🚀 Opening Razorpay modal...');
-              const razorpay = new window.Razorpay(options);
-              razorpay.open();
+              const razorpayInstance = new window.Razorpay(options);
+              razorpayInstance.open();
               
             } catch (error: any) {
               console.error('❌ Razorpay error:', error);

@@ -3,7 +3,7 @@ import { useAuth } from '@/contexts/AuthContext';
 
 interface RoleGuardProps {
   children: React.ReactNode;
-  allowedRole: 'user' | 'seller' | 'admin';
+  allowedRole: 'user' | 'seller' | 'admin' | 'delivery';
 }
 
 export function RoleGuard({ children, allowedRole }: RoleGuardProps) {
@@ -28,6 +28,8 @@ export function RoleGuard({ children, allowedRole }: RoleGuardProps) {
       return <Navigate to="/seller/login" replace />;
     } else if (allowedRole === 'admin') {
       return <Navigate to="/admin/login" replace />;
+    } else if (allowedRole === 'delivery') {
+      return <Navigate to="/delivery/login" replace />;
     }
   }
 

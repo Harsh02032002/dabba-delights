@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { authAPI } from "@/lib/api";
 import { toast } from "@/hooks/use-toast";
+import { RefreshCw } from "lucide-react";
+import { Link } from "react-router-dom";
 
 export default function VerifyEmail() {
   const location = useLocation();
@@ -80,6 +82,31 @@ export default function VerifyEmail() {
             {loading ? "Verifying..." : "Verify Email"}
           </Button>
         </form>
+
+        {/* Resend Code Section */}
+        <div className="text-center mt-6">
+          <p className="text-sm text-muted-foreground mb-3">
+            Didn't receive the verification code?
+          </p>
+          <Link 
+            to="/resend-verification"
+            state={{ email: email }}
+            className="inline-flex items-center gap-2 text-sm text-orange-500 hover:text-orange-600 transition-colors"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Resend Verification Code
+          </Link>
+        </div>
+
+        {/* Back to Login */}
+        <div className="text-center mt-4">
+          <Link 
+            to="/login"
+            className="text-sm text-gray-500 hover:text-gray-600 transition-colors"
+          >
+            ← Back to Login
+          </Link>
+        </div>
       </div>
     </div>
   );

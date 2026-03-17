@@ -8,9 +8,10 @@ interface SellerLayoutProps {
   children: ReactNode;
   title?: string;
   subtitle?: string;
+  headerActions?: ReactNode;
 }
 
-export function SellerLayout({ children, title, subtitle }: SellerLayoutProps) {
+export function SellerLayout({ children, title, subtitle, headerActions }: SellerLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   return (
@@ -41,6 +42,13 @@ export function SellerLayout({ children, title, subtitle }: SellerLayoutProps) {
                   className="pl-9 bg-secondary border-transparent h-9"
                 />
               </div>
+              
+              {/* Custom header actions */}
+              {headerActions && (
+                <div className="flex items-center">
+                  {headerActions}
+                </div>
+              )}
               
               <Button variant="ghost" size="icon" className="relative">
                 <Bell size={20} />

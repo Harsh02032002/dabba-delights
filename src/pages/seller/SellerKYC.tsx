@@ -8,7 +8,7 @@ import { sellerAPI } from '@/lib/api';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { StatusBadge } from '@/components/shared/Badge';
 import { toast } from '@/hooks/use-toast';
-import { FileCheck, Upload, Shield, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { FileCheck, Upload, Shield, AlertCircle, CheckCircle2, Trash2, Edit, Eye } from 'lucide-react';
 import { useState } from 'react';
 
 export default function SellerKYC() {
@@ -38,6 +38,32 @@ export default function SellerKYC() {
       toast({ title: 'KYC Submitted', description: 'Your KYC has been submitted for verification.' });
     },
   });
+
+  const deleteMutation = useMutation({
+    mutationFn: (docType: string) => sellerAPI.deleteKYCDocument(docType),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seller-kyc'] });
+      toast({ title: 'Document Deleted', description: 'KYC document has been deleted.' });
+    },
+    onError: (err: Error) => toast({ title: 'Delete Failed', description: err.message, variant: 'destructive' }),
+  });
+
+  const updateMutation = useMutation({
+    mutationFn: ({ docType, file }: { docType: string; file: File }) => {
+      const formData = new FormData();
+      formData.append('document', file);
+      return sellerAPI.updateKYCDocument(docType, formData);
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seller-kyc'] });
+      toast({ title: 'Document Updated', description: 'KYC document has been updated.' });
+      setEditingDoc(null);
+      setSelectedFile(null);
+    },
+    onError: (err: Error) => toast({ title: 'Update Failed', description: err.message, variant: 'destructive' }),
+  });
+
+  const [editingDoc, setEditingDoc] = useState<string | null>(null);
 
   const handleUpload = () => {
     if (!selectedFile) return;
@@ -84,88 +110,126 @@ export default function SellerKYC() {
           {/* Upload Documents */}
           {(status === 'pending' || status === 'rejected') && (
             <Card className="mb-8">
-              <CardHeader><CardTitle className="font-display text-lg">Upload Documents</CardTitle></CardHeader>
+              <CardHeader><CardTitle className="font-display text-lg">
+                {editingDoc ? `Update ${editingDoc} Document` : 'Upload Documents'}
+              </CardTitle></CardHeader>
               <CardContent>
                 <div className="space-y-4">
+                  {!editingDoc && (
+                    <div className="space-y-2">
+                      <Label>Document Type</Label>
+                      <select
+                        value={docType}
+                        onChange={(e) => setDocType(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg border border-border bg-background"
+                      >
+                        <option value="aadhaar">Aadhaar Card</option>
+                        <option value="pan">PAN Card</option>
+                        <option value="fssai">FSSAI License</option>
+                        <option value="gst">GST Certificate</option>
+                        <option value="bank">Bank Statement</option>
+                      </select>
+                    </div>
+                  )}
                   <div className="space-y-2">
-                    <Label>Document Type</Label>
-                    <select
-                      value={docType}
-                      onChange={(e) => setDocType(e.target.value)}
-                      className="w-full px-3 py-2 rounded-lg border border-border bg-background"
-                    >
-                      <option value="aadhaar">Aadhaar Card</option>
-                      <option value="pan">PAN Card</option>
-                      <option value="fssai">FSSAI License</option>
-                      <option value="gst">GST Certificate</option>
-                      <option value="bank">Bank Statement</option>
-                    </select>
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Upload File</Label>
+                    <Label>{editingDoc ? 'Update File' : 'Upload File'}</Label>
                     <Input
                       type="file"
                       accept="image/*,.pdf"
                       onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                     />
                   </div>
-                  <Button
-                    onClick={handleUpload}
-                    disabled={!selectedFile || uploadMutation.isPending}
-                    variant="gradient"
-                    className="gap-2"
-                  >
-                    <Upload size={18} />
-                    {uploadMutation.isPending ? 'Uploading...' : 'Upload Document'}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => {
+                        if (editingDoc && selectedFile) {
+                          updateMutation.mutate({ docType: editingDoc, file: selectedFile });
+                        } else {
+                          handleUpload();
+                        }
+                      }}
+                      disabled={!selectedFile || uploadMutation.isPending || updateMutation.isPending}
+                      variant="gradient"
+                      className="gap-2"
+                    >
+                      <Upload size={18} />
+                      {editingDoc ? 
+                        (updateMutation.isPending ? 'Updating...' : 'Update Document') :
+                        (uploadMutation.isPending ? 'Uploading...' : 'Upload Document')
+                      }
+                    </Button>
+                    {editingDoc && (
+                      <Button
+                        onClick={() => {
+                          setEditingDoc(null);
+                          setSelectedFile(null);
+                          setDocType('aadhaar');
+                        }}
+                        variant="outline"
+                      >
+                        Cancel
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           )}
 
-          {/* Uploaded Documents — show from kycDocuments object too */}
+          {/* Uploaded Documents */}
           <Card>
             <CardHeader><CardTitle className="font-display text-lg">Uploaded Documents</CardTitle></CardHeader>
             <CardContent>
               <div className="space-y-3">
-                {/* Show documents from array */}
-                {documents.map((doc: any, i: number) => (
-                  <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
-                    <div className="flex items-center gap-3">
-                      <FileCheck size={20} className="text-primary" />
-                      <div>
-                        <p className="font-medium text-foreground capitalize">{doc.type || 'Document'}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {doc.uploadedAt ? new Date(doc.uploadedAt).toLocaleDateString() : 'Just uploaded'}
-                        </p>
-                      </div>
-                    </div>
-                    {doc.url && <Button variant="ghost" size="sm" onClick={() => window.open(doc.url, '_blank')}>View</Button>}
-                  </div>
-                ))}
-                {/* Show from kycDocuments object (aadhaar, pan, fssai, etc.) */}
+                {/* Show documents from kycDocuments object */}
                 {kyc?.kycDocuments && Object.entries(kyc.kycDocuments).map(([key, val]: [string, any]) => {
                   if (!val?.url) return null;
-                  const docNames: Record<string, string> = { aadhaar: 'Aadhaar Card', pan: 'PAN Card', fssai: 'FSSAI License', bankProof: 'Bank Proof', gst: 'GST Certificate' };
+                  const docNames: Record<string, string> = { 
+                    aadhaar: 'Aadhaar Card', 
+                    pan: 'PAN Card', 
+                    fssai: 'FSSAI License', 
+                    bankProof: 'Bank Proof', 
+                    gst: 'GST Certificate' 
+                  };
                   return (
                     <div key={key} className="flex items-center justify-between p-3 rounded-xl bg-secondary/50">
                       <div className="flex items-center gap-3">
                         <FileCheck size={20} className="text-primary" />
                         <div>
                           <p className="font-medium text-foreground">{docNames[key] || key}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Uploaded: {val.uploadedAt ? new Date(val.uploadedAt).toLocaleDateString() : 'Just uploaded'}
+                          </p>
                           <p className="text-xs text-muted-foreground capitalize">Status: {val.status || 'uploaded'}</p>
                         </div>
                       </div>
-                      <Button variant="ghost" size="sm" onClick={() => window.open(val.url, '_blank')}>View</Button>
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="sm" onClick={() => window.open(val.url, '_blank')} title="View Document">
+                          <Eye size={16} />
+                        </Button>
+                        {(status === 'pending' || status === 'rejected') && (
+                          <>
+                            <Button variant="ghost" size="sm" onClick={() => {
+                              setEditingDoc(key);
+                              setDocType(key);
+                            }} title="Edit Document">
+                              <Edit size={16} />
+                            </Button>
+                            <Button variant="ghost" size="sm" onClick={() => deleteMutation.mutate(key)} disabled={deleteMutation.isPending} title="Delete Document">
+                              <Trash2 size={16} />
+                            </Button>
+                          </>
+                        )}
+                      </div>
                     </div>
                   );
                 })}
-                {documents.length === 0 && !kyc?.kycDocuments && (
+                {!kyc?.kycDocuments || Object.keys(kyc.kycDocuments).length === 0 && (
                   <p className="text-muted-foreground text-center py-4">No documents uploaded</p>
                 )}
               </div>
 
-              {status === 'pending' && documents.length > 0 && (
+              {status === 'pending' && kyc?.kycDocuments && Object.keys(kyc.kycDocuments).length > 0 && (
                 <Button onClick={() => submitMutation.mutate()} variant="gradient" className="mt-6 w-full gap-2" disabled={submitMutation.isPending}>
                   <Shield size={18} />
                   {submitMutation.isPending ? 'Submitting...' : 'Submit for Verification'}

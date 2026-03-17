@@ -41,6 +41,77 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
+        {/* Pricing & Fees */}
+        <Card>
+          <CardHeader><CardTitle className="font-display text-lg flex items-center gap-2"><Settings size={20} /> Pricing & Fees Configuration</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Base Delivery Charge (₹)</Label>
+                <Input 
+                  type="number" 
+                  value={config.baseDeliveryCharge || 40} 
+                  onChange={(e) => setConfig({ ...config, baseDeliveryCharge: Number(e.target.value) })}
+                  placeholder="40"
+                />
+                <p className="text-xs text-muted-foreground">Standard delivery charge for orders</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Delivery Charge per KM (₹)</Label>
+                <Input 
+                  type="number" 
+                  value={config.deliveryChargePerKm || 10} 
+                  onChange={(e) => setConfig({ ...config, deliveryChargePerKm: Number(e.target.value) })}
+                  placeholder="10"
+                />
+                <p className="text-xs text-muted-foreground">Additional charge per kilometer</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Platform Fee (%)</Label>
+                <Input 
+                  type="number" 
+                  value={config.platformFee || 5} 
+                  onChange={(e) => setConfig({ ...config, platformFee: Number(e.target.value) })}
+                  placeholder="5"
+                />
+                <p className="text-xs text-muted-foreground">Platform commission on orders</p>
+              </div>
+              <div className="space-y-2">
+                <Label>GST (%)</Label>
+                <Input 
+                  type="number" 
+                  value={config.gst || 18} 
+                  onChange={(e) => setConfig({ ...config, gst: Number(e.target.value) })}
+                  placeholder="18"
+                />
+                <p className="text-xs text-muted-foreground">Goods and Services Tax rate</p>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Free Delivery Above (₹)</Label>
+                <Input 
+                  type="number" 
+                  value={config.freeDeliveryAbove || 299} 
+                  onChange={(e) => setConfig({ ...config, freeDeliveryAbove: Number(e.target.value) })}
+                  placeholder="299"
+                />
+                <p className="text-xs text-muted-foreground">Minimum order amount for free delivery</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Maximum Delivery Charge (₹)</Label>
+                <Input 
+                  type="number" 
+                  value={config.maxDeliveryCharge || 100} 
+                  onChange={(e) => setConfig({ ...config, maxDeliveryCharge: Number(e.target.value) })}
+                  placeholder="100"
+                />
+                <p className="text-xs text-muted-foreground">Maximum delivery charge cap</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Notifications */}
         <Card>
           <CardHeader><CardTitle className="font-display text-lg flex items-center gap-2"><Bell size={20} /> Notifications</CardTitle></CardHeader>

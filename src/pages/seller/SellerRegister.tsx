@@ -16,6 +16,8 @@ import {
   MapPin,
   Eye,
   EyeOff,
+  FileText,
+  Building,
 } from "lucide-react";
 
 export default function SellerRegister() {
@@ -29,6 +31,12 @@ export default function SellerRegister() {
     businessName: "",
     address: "",
     type: "home_chef",
+    // GST Fields
+    panNumber: "",
+    isGstRegistered: false,
+    gstinNumber: "",
+    gstType: "regular",
+    registeredBusinessAddress: "",
   });
 
   const [showPass, setShowPass] = useState(false);
@@ -177,6 +185,104 @@ export default function SellerRegister() {
               />
             </div>
           </div>
+
+          {/* PAN Number */}
+          <div>
+            <Label htmlFor="panNumber">PAN Number</Label>
+            <div className="relative">
+              <FileText className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+              <Input
+                id="panNumber"
+                name="panNumber"
+                value={form.panNumber}
+                onChange={handleChange}
+                placeholder="ABCDE1234F"
+                className="pl-10 uppercase"
+                maxLength={10}
+              />
+            </div>
+          </div>
+
+          {/* GST Registration Toggle */}
+          <div className="space-y-3">
+            <Label className="text-base font-medium">GST Registration</Label>
+            <div className="flex items-center space-x-3">
+              <input
+                type="checkbox"
+                id="isGstRegistered"
+                checked={form.isGstRegistered}
+                onChange={(e) => setForm(prev => ({ 
+                  ...prev, 
+                  isGstRegistered: e.target.checked,
+                  gstinNumber: e.target.checked ? prev.gstinNumber : "",
+                  gstType: e.target.checked ? prev.gstType : "regular",
+                  registeredBusinessAddress: e.target.checked ? prev.registeredBusinessAddress : ""
+                }))}
+                className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+              />
+              <Label htmlFor="isGstRegistered" className="text-sm">
+                I am GST Registered
+              </Label>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              {form.isGstRegistered ? "GST registered seller" : "Unregistered seller"}
+            </p>
+          </div>
+
+          {/* GST Fields - Show only if GST Registered */}
+          {form.isGstRegistered && (
+            <div className="space-y-4 p-4 border border-orange-200 rounded-lg bg-orange-50">
+              <h3 className="text-sm font-medium text-orange-900 flex items-center gap-2">
+                <Building size={16} />
+                GST Details
+              </h3>
+              
+              {/* GSTIN Number */}
+              <div>
+                <Label htmlFor="gstinNumber">GSTIN Number</Label>
+                <Input
+                  id="gstinNumber"
+                  name="gstinNumber"
+                  value={form.gstinNumber}
+                  onChange={handleChange}
+                  placeholder="12ABCDE1234F1ZV"
+                  className="uppercase"
+                  maxLength={15}
+                />
+              </div>
+
+              {/* GST Type */}
+              <div>
+                <Label htmlFor="gstType">GST Type</Label>
+                <select
+                  id="gstType"
+                  name="gstType"
+                  value={form.gstType}
+                  onChange={handleChange}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                >
+                  <option value="regular">Regular</option>
+                  <option value="composition">Composition</option>
+                </select>
+              </div>
+
+              {/* Registered Business Address */}
+              <div>
+                <Label htmlFor="registeredBusinessAddress">Registered Business Address</Label>
+                <div className="relative">
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" size={18} />
+                  <Input
+                    id="registeredBusinessAddress"
+                    name="registeredBusinessAddress"
+                    value={form.registeredBusinessAddress}
+                    onChange={handleChange}
+                    placeholder="Enter registered business address"
+                    className="pl-10"
+                  />
+                </div>
+              </div>
+            </div>
+          )}
 
           <div>
             <Label htmlFor="password">Password</Label>

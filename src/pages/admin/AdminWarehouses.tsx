@@ -18,6 +18,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 export default function AdminWarehouses() {
   const queryClient = useQueryClient();
   const [showCreate, setShowCreate] = useState(false);
+  const [editingWarehouse, setEditingWarehouse] = useState<any>(null);
   const [viewWarehouse, setViewWarehouse] = useState<any>(null);
   const [filterCity, setFilterCity] = useState('');
   const [filterType, setFilterType] = useState('');
@@ -50,7 +51,21 @@ export default function AdminWarehouses() {
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-warehouses'] }); toast.success('Warehouse deleted'); },
   });
 
+  const updateMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: any }) => adminAPI.updateWarehouse(id, data),
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['admin-warehouses'] }); 
+      setEditingWarehouse(null);
+      toast.success('Warehouse updated'); 
+    },
+  });
+
   const handleCreate = () => createMutation.mutate(form);
+  const handleUpdate = () => {
+    if (editingWarehouse) {
+      updateMutation.mutate({ id: editingWarehouse._id, data: form });
+    }
+  };
 
   return (
     <AdminLayout title="Warehouse Management" subtitle="Manage dark stores, warehouses and hubs">
@@ -87,12 +102,22 @@ export default function AdminWarehouses() {
           </SelectContent>
         </Select>
         <div className="flex-1" />
-        <Dialog open={showCreate} onOpenChange={setShowCreate}>
+        <Dialog open={showCreate || !!editingWarehouse} onOpenChange={(open) => {
+          setShowCreate(open);
+          if (!open) {
+            setEditingWarehouse(null);
+            setForm({
+              name: '', type: 'dark_store', address: { street: '', city: '', state: '', pincode: '', location: { coordinates: [0, 0] } },
+              manager: { name: '', phone: '', email: '' }, capacity: 100, deliveryRadius: 10,
+              operatingHours: { open: '06:00', close: '23:00' }, zone: '',
+            });
+          }
+        }}>
           <DialogTrigger asChild>
-            <Button variant="gradient" className="gap-2"><Plus size={16} /> Add Warehouse</Button>
+            <Button variant="gradient" className="gap-2" onClick={() => setShowCreate(true)}><Plus size={16} /> Add Warehouse</Button>
           </DialogTrigger>
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
-            <DialogHeader><DialogTitle>Create New Warehouse</DialogTitle></DialogHeader>
+            <DialogHeader><DialogTitle>{editingWarehouse ? 'Edit Warehouse' : 'Create New Warehouse'}</DialogTitle></DialogHeader>
             <div className="space-y-4">
               <div><Label>Name</Label><Input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} placeholder="e.g. Mumbai Central Hub" /></div>
               <div><Label>Type</Label>
@@ -125,8 +150,11 @@ export default function AdminWarehouses() {
                 <div><Label>Manager Email</Label><Input value={form.manager.email} onChange={(e) => setForm({ ...form, manager: { ...form.manager, email: e.target.value } })} /></div>
               </div>
               <div><Label>Zone</Label><Input value={form.zone} onChange={(e) => setForm({ ...form, zone: e.target.value })} placeholder="e.g. South Mumbai" /></div>
-              <Button variant="gradient" className="w-full" onClick={handleCreate} disabled={createMutation.isPending}>
-                {createMutation.isPending ? 'Creating...' : 'Create Warehouse'}
+              <Button variant="gradient" className="w-full" onClick={editingWarehouse ? handleUpdate : handleCreate} disabled={createMutation.isPending || updateMutation.isPending}>
+                {editingWarehouse ? 
+                  (updateMutation.isPending ? 'Updating...' : 'Update Warehouse') :
+                  (createMutation.isPending ? 'Creating...' : 'Create Warehouse')
+                }
               </Button>
             </div>
           </DialogContent>
@@ -173,6 +201,19 @@ export default function AdminWarehouses() {
                   <TableCell>
                     <div className="flex gap-1">
                       <Button size="icon-sm" variant="ghost" onClick={() => setViewWarehouse(wh)}><Eye size={14} /></Button>
+                      <Button size="icon-sm" variant="ghost" onClick={() => {
+                        setEditingWarehouse(wh);
+                        setForm({
+                          name: wh.name || '',
+                          type: wh.type || 'dark_store',
+                          address: wh.address || { street: '', city: '', state: '', pincode: '', location: { coordinates: [0, 0] } },
+                          manager: wh.manager || { name: '', phone: '', email: '' },
+                          capacity: wh.capacity || 100,
+                          deliveryRadius: wh.deliveryRadius || 10,
+                          operatingHours: wh.operatingHours || { open: '06:00', close: '23:00' },
+                          zone: wh.zone || '',
+                        });
+                      }}><Pencil size={14} /></Button>
                       <Button size="icon-sm" variant="ghost" onClick={() => toggleMutation.mutate(wh._id)}>
                         {wh.isActive ? <ToggleRight size={14} className="text-success" /> : <ToggleLeft size={14} />}
                       </Button>

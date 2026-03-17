@@ -23,6 +23,12 @@ export default defineConfig(({ mode }) => ({
     },
   },
 
+  define: {
+    // Fix "process is not defined" error
+    'process.env.NODE_ENV': JSON.stringify(mode || 'development'),
+    global: 'globalThis',
+  },
+
   build: {
     sourcemap: true,        // 🔥 VERY IMPORTANT (for debugging live errors)
     minify: "esbuild",
