@@ -78,12 +78,6 @@ import AdminWarehouses from "./pages/admin/AdminWarehouses";
 import AdminDeliveryPartners from "./pages/admin/AdminDeliveryPartners";
 import AdminDeliveryPayConfig from "./pages/admin/AdminDeliveryPayConfig";
 
-// Delivery Pages
-import DeliveryLogin from "./pages/delivery/DeliveryLogin";
-import DeliveryDashboard from "./pages/delivery/DeliveryDashboard";
-import DeliveryOrders from "./pages/delivery/DeliveryOrders";
-import DeliveryEarnings from "./pages/delivery/DeliveryEarnings";
-
 // Other
 import NotFound from "./pages/NotFound";
 
@@ -180,11 +174,7 @@ const App = () => (
               <Route path="/admin/delivery-partners" element={<ProtectedRoute requiredRole="admin"><AdminDeliveryPartners /></ProtectedRoute>} />
               <Route path="/admin/delivery-pay-config" element={<ProtectedRoute requiredRole="admin"><AdminDeliveryPayConfig /></ProtectedRoute>} />
 
-              {/* Delivery Routes */}
-              <Route path="/delivery/login" element={<DeliveryLogin />} />
-              <Route path="/delivery" element={<ProtectedRoute requiredRole="delivery"><DeliveryDashboard /></ProtectedRoute>} />
-              <Route path="/delivery/orders" element={<ProtectedRoute requiredRole="delivery"><DeliveryOrders /></ProtectedRoute>} />
-              <Route path="/delivery/earnings" element={<ProtectedRoute requiredRole="delivery"><DeliveryEarnings /></ProtectedRoute>} />
+              
 
               {/* Catch-all */}
               <Route path="*" element={<NotFound />} />
