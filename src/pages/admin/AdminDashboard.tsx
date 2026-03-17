@@ -2,10 +2,10 @@ import { AdminLayout } from '@/layouts/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useQuery } from '@tanstack/react-query';
-import { adminAPI } from '@/lib/api';
+import { adminAPI, apiRequest } from '@/lib/api';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import {
-  Users, Store, ShoppingBag, DollarSign, TrendingUp, ArrowUpRight, AlertTriangle, CheckCircle2, Clock,
+  Users, Store, ShoppingBag, DollarSign, TrendingUp, ArrowUpRight, AlertTriangle, CheckCircle2, Clock, Wallet,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
@@ -20,6 +20,14 @@ export default function AdminDashboard() {
     queryFn: () => adminAPI.getDashboard(),
   });
 
+  const { data: walletData } = useQuery({
+    queryKey: ['admin-wallet'],
+    queryFn: async () => {
+      const res = await apiRequest('/user/wallet/transactions');
+      return res?.data || res || {};
+    },
+  });
+
   if (isLoading) return <AdminLayout title="Admin Dashboard"><LoadingSpinner /></AdminLayout>;
 
   const stats = dashboard?.stats || {};
@@ -28,6 +36,7 @@ export default function AdminDashboard() {
   const pendingApprovals = dashboard?.pendingApprovals || [];
   const topSellers = dashboard?.topSellers || [];
   const health = dashboard?.health || {};
+  const adminWalletBalance = Number(walletData?.balance || 0);
 
   return (
     <AdminLayout title="Admin Dashboard" subtitle="Platform overview and management">
@@ -48,28 +57,78 @@ export default function AdminDashboard() {
             <div>
               <p className="text-sm text-muted-foreground mb-1">Total Orders</p>
               <p className="text-3xl font-bold text-foreground">{stats.totalOrders?.toLocaleString() || '0'}</p>
+              <div className="flex items-center gap-1 mt-2 text-success text-sm"><ArrowUpRight size={14} /><span>{stats.ordersGrowth || 0}%</span></div>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-info/10 flex items-center justify-center"><ShoppingBag size={24} className="text-info" /></div>
+            <div className="w-12 h-12 rounded-xl gradient-success flex items-center justify-center"><ShoppingBag size={24} className="text-primary-foreground" /></div>
           </div>
         </CardContent></Card>
         <Card className="stat-card"><CardContent className="p-0">
           <div className="flex items-start justify-between">
             <div>
               <p className="text-sm text-muted-foreground mb-1">Active Sellers</p>
-              <p className="text-3xl font-bold text-foreground">{stats.activeSellers || 0}</p>
+              <p className="text-3xl font-bold text-foreground">{stats.activeSellers?.toLocaleString() || '0'}</p>
+              <div className="flex items-center gap-1 mt-2 text-success text-sm"><ArrowUpRight size={14} /><span>{stats.sellersGrowth || 0}%</span></div>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center"><Store size={24} className="text-success" /></div>
+            <div className="w-12 h-12 rounded-xl gradient-warning flex items-center justify-center"><Store size={24} className="text-primary-foreground" /></div>
           </div>
         </CardContent></Card>
         <Card className="stat-card"><CardContent className="p-0">
           <div className="flex items-start justify-between">
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Active Users</p>
-              <p className="text-3xl font-bold text-foreground">{stats.activeUsers?.toLocaleString() || '0'}</p>
+              <p className="text-sm text-muted-foreground mb-1">Platform Wallet</p>
+              <p className="text-3xl font-bold text-foreground">₹{adminWalletBalance.toLocaleString()}</p>
+              <div className="flex items-center gap-1 mt-2 text-primary text-sm"><Wallet size={14} /><span>Platform Fees</span></div>
             </div>
-            <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center"><Users size={24} className="text-warning" /></div>
+            <div className="w-12 h-12 rounded-xl gradient-info flex items-center justify-center"><Wallet size={24} className="text-primary-foreground" /></div>
           </div>
         </CardContent></Card>
+      </div>
+
+      {/* Charts Section */}
+      <div className="grid lg:grid-cols-2 gap-6 mb-8">
+        <Card>
+          <CardHeader>
+            <CardTitle>Revenue Overview</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <AreaChart data={revenueData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="date" />
+                <YAxis />
+                <Tooltip />
+                <Area type="monotone" dataKey="revenue" stroke="hsl(16, 85%, 55%)" fill="hsl(16, 85%, 55%, 0.3)" />
+              </AreaChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Orders by City</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={300}>
+              <RePieChart>
+                <Pie
+                  data={cityData}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="value"
+                >
+                  {cityData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+              </RePieChart>
+            </ResponsiveContainer>
+          </CardContent>
+        </Card>
       </div>
 
       {/* Health */}

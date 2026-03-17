@@ -246,6 +246,10 @@ export const sellerAPI = {
   getKYCStatus: () => apiRequest("/seller/kyc"),
   uploadKYCDocument: (formData: FormData) =>
     apiUpload("/seller/kyc/document", formData),
+  deleteKYCDocument: (docType: string) =>
+    apiRequest(`/seller/kyc/document/${docType}`, { method: "DELETE" }),
+  updateKYCDocument: (docType: string, formData: FormData) =>
+    apiUpload(`/seller/kyc/document/${docType}`, formData, "PUT"),
   submitKYC: () => apiRequest("/seller/kyc/submit", { method: "POST" }),
   getNotifications: () => apiRequest("/seller/notifications"),
   markNotificationRead: (id: string) =>
@@ -434,8 +438,12 @@ export const userAPI = {
     apiRequest(`/user/orders${status ? `?status=${status}` : ""}`),
   getOrderById: (id: string) =>
     apiRequest(`/user/orders/${id}`),
-  rateOrder: (orderId: string, rating: number, review?: string) =>
-    apiRequest(`/user/orders/${orderId}/rate`, { method: "POST", body: JSON.stringify({ rating, review }) }),
+  cancelOrder: (id: string) =>
+    apiRequest(`/user/orders/${id}/cancel`, { method: "POST" }),
+  deleteOrder: (id: string) =>
+    apiRequest(`/user/orders/${id}/delete`, { method: "DELETE" }),
+  rateOrder: (id: string, rating: number, review?: string) =>
+    apiRequest(`/user/orders/${id}/rate`, { method: "POST", body: JSON.stringify({ rating, review }) }),
   rateMenuItem: (menuItemId: string, rating: number) =>
     apiRequest(`/user/menu/${menuItemId}/rate`, { method: "POST", body: JSON.stringify({ rating }) }),
   rateSeller: (sellerId: string, rating: number) =>
@@ -567,6 +575,85 @@ export const paymentAPI = {
     apiRequest<any>("/payment/stripe/create-intent", {
       method: "POST",
       body: JSON.stringify(data),
+    }),
+};
+
+export const deliveryAPI = {
+  // Authentication
+  login: (credentials: { email: string; password: string }) =>
+    apiRequest<any>("/delivery/login", {
+      method: "POST",
+      body: JSON.stringify(credentials),
+    }),
+
+  // Location Management
+  updateLocation: (location: { latitude: number; longitude: number; address?: string }) =>
+    apiRequest<any>("/delivery/location", {
+      method: "PATCH",
+      body: JSON.stringify(location),
+    }),
+
+  updateDeliveryLocation: (location: { latitude: number; longitude: number }) =>
+    apiRequest<any>("/delivery/location-update", {
+      method: "POST",
+      body: JSON.stringify(location),
+    }),
+
+  // Order Management
+  getActiveOrders: () =>
+    apiRequest<any>("/delivery/orders/active"),
+
+  acceptOrder: (orderId: string) =>
+    apiRequest<any>(`/delivery/orders/${orderId}/accept`, {
+      method: "POST",
+    }),
+
+  rejectOrder: (orderId: string) =>
+    apiRequest<any>(`/delivery/orders/${orderId}/reject`, {
+      method: "POST",
+    }),
+
+  updateDeliveryStatus: (orderId: string, data: { status: string; location?: { lat: number; lng: number } }) =>
+    apiRequest<any>(`/delivery/orders/${orderId}/status`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    }),
+
+  // Earnings & Wallet
+  getEarnings: () =>
+    apiRequest<any>("/delivery/earnings"),
+
+  getWalletTransactions: () =>
+    apiRequest<any>("/delivery/wallet/transactions"),
+
+  withdrawFromWallet: (amount: number) =>
+    apiRequest<any>("/delivery/wallet/withdraw", {
+      method: "POST",
+      body: JSON.stringify({ amount }),
+    }),
+
+  // Profile Management
+  getPartnerProfile: () =>
+    apiRequest<any>("/delivery/profile"),
+
+  getOrderHistory: () =>
+    apiRequest<any>("/delivery/order-history"),
+
+  // Availability
+  goOnline: () =>
+    apiRequest<any>("/delivery/go-online", {
+      method: "PATCH",
+    }),
+
+  goOffline: () =>
+    apiRequest<any>("/delivery/go-offline", {
+      method: "PATCH",
+    }),
+
+  toggleOnline: (isOnline: boolean) =>
+    apiRequest<any>(`/delivery/toggle-online`, {
+      method: "PUT",
+      body: JSON.stringify({ isOnline }),
     }),
 };
 

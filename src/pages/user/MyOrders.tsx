@@ -1,15 +1,17 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserLayout } from "@/layouts/UserLayout";
 import { userAPI } from "@/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Download, Star, Clock, CheckCircle, Package, Truck, ShoppingBag } from "lucide-react";
+import { ArrowLeft, Download, Star, Clock, CheckCircle, Package, Truck, ShoppingBag, MapPin } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { toast } from "@/hooks/use-toast";
 import { UserRatingModal } from "@/components/user/UserRatingModal";
+import OrderTrackingMap from "@/components/user/OrderTrackingMap";
+import { io } from 'socket.io-client';
 
 const statusTabs = ['all', 'pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
 
@@ -73,17 +75,72 @@ function OrderTracker({ status }: { status: string }) {
 }
 
 export default function MyOrders() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('all');
+  const [deliveryLocations, setDeliveryLocations] = useState<{ [key: string]: any }>({});
   const [ratingOrder, setRatingOrder] = useState<string | null>(null);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
 
+  // Socket.io connection for real-time order updates
+  useEffect(() => {
+    const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000');
+    
+    if (socket) {
+      socket.on('connect', () => {
+        console.log('User connected to socket');
+      });
+
+      socket.on('order_status_update', (data: any) => {
+        console.log('Order status update received:', data);
+        // Refresh orders when status changes
+        queryClient.invalidateQueries({ queryKey: ['user-orders'] });
+      });
+
+      socket.on('delivery_location_update', (data: any) => {
+        console.log('Delivery location update received:', data);
+        setDeliveryLocations(prev => ({
+
+          ...prev,
+          [data.orderId]: {
+            lat: data.lat,
+            lng: data.lng,
+            timestamp: new Date(),
+            address: data.address
+          }
+        }));
+      });
+    }
+
+    return () => {
+      if (socket) {
+        socket.disconnect();
+      }
+    };
+  }, []);
+
   const { data, isLoading } = useQuery({
     queryKey: ['user-orders', activeTab],
     queryFn: async () => {
+      console.log('🌐 Frontend calling API with tab:', activeTab);
       const res = await userAPI.getOrders(activeTab === 'all' ? undefined : activeTab);
-      const orders = Array.isArray(res) ? res : res?.orders || res?.data || [];
+      console.log('🌐 Raw API response:', res);
+      
+      let orders = [];
+      if (res && typeof res === 'object') {
+        if (Array.isArray(res)) {
+          orders = res;
+        } else if (res.orders && Array.isArray(res.orders)) {
+          orders = res.orders;
+        } else if (res.data && Array.isArray(res.data)) {
+          orders = res.data;
+        }
+      }
+      
+      console.log('🌐 Parsed orders:', orders);
+      console.log('🌐 Orders count:', orders.length);
+      
       return orders;
     },
   });
@@ -91,6 +148,46 @@ export default function MyOrders() {
   const orders = (Array.isArray(data) ? data : []).filter((o: any) =>
     activeTab === 'all' || o.status === activeTab
   );
+
+  const handleDeleteOrder = async (order: any) => {
+    if (!window.confirm('Are you sure you want to permanently delete this order? This action cannot be undone.')) return;
+    
+    try {
+      await userAPI.deleteOrder(order._id);
+      toast({
+        title: 'Order Deleted',
+        description: `Order ${order.orderNumber} has been permanently deleted`,
+      });
+      // Refetch orders
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to delete order. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
+
+  const handleCancelOrder = async (order: any) => {
+    if (!window.confirm('Are you sure you want to cancel this order?')) return;
+    
+    try {
+      await userAPI.cancelOrder(order._id);
+      toast({
+        title: 'Order Cancelled',
+        description: `Order ${order.orderNumber} has been cancelled`,
+      });
+      // Refetch orders
+      window.location.reload();
+    } catch (error) {
+      toast({
+        title: 'Error',
+        description: 'Failed to cancel order. Please try again.',
+        variant: 'destructive',
+      });
+    }
+  };
 
   const handleRateOrder = (order: any) => {
     setSelectedOrder(order);
@@ -159,6 +256,20 @@ export default function MyOrders() {
                         ))}
                       </div>
                       <OrderTracker status={order.status} />
+                      
+                      {/* Add tracking map for active orders */}
+                      {(order.status === 'confirmed' || order.status === 'preparing' || order.status === 'out_for_delivery') && (
+                        <div className="mt-4">
+                          <h4 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2">
+                            <MapPin size={16} />
+                            Live Order Tracking
+                          </h4>
+                          <OrderTrackingMap 
+                            order={order} 
+                            deliveryLocation={deliveryLocations[order._id]}
+                          />
+                        </div>
+                      )}
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <p className="text-xl font-bold text-foreground">₹{order.total}</p>
@@ -198,6 +309,46 @@ export default function MyOrders() {
                       >
                         <Download size={14} /> Invoice
                       </Button>
+
+                      {/* Cancel Order Button - Only for cancellable orders */}
+                      {['pending', 'confirmed'].includes(order.status) && (
+                        <Button 
+                          size="sm" 
+                          variant="destructive" 
+                          className="gap-1 text-xs" 
+                          onClick={() => handleCancelOrder(order)}
+                        >
+                          <Package size={14} /> Cancel Order
+                        </Button>
+                      )}
+
+                      {/* Delete Order Button - Only for cancelled orders */}
+                      {order.status === 'cancelled' && (
+                        <Button 
+                          size="sm" 
+                          variant="destructive" 
+                          className="gap-1 text-xs" 
+                          onClick={() => handleDeleteOrder(order)}
+                        >
+                          <Trash2 size={14} /> Delete Order
+                        </Button>
+                      )}
+
+                      {/* Live Location Tracking */}
+                      {order.status === 'out_for_delivery' && deliveryLocations[order._id] && (
+                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                          <div className="flex items-center gap-2 mb-2">
+                            <MapPin size={16} className="text-blue-600" />
+                            <span className="text-sm font-semibold text-blue-800">Live Delivery Tracking</span>
+                          </div>
+                          <div className="text-xs text-blue-600">
+                            Last updated: {new Date(deliveryLocations[order._id].timestamp).toLocaleTimeString()}
+                          </div>
+                          <div className="text-sm text-blue-800">
+                            📍 {deliveryLocations[order._id].address || 'Location updating...'}
+                          </div>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </Card>

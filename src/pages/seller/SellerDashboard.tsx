@@ -1,21 +1,148 @@
 import { SellerLayout } from '@/layouts/SellerLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { sellerAPI } from '@/lib/api';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
+import { useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
 import {
-  DollarSign, ShoppingBag, TrendingUp, Star, ArrowUpRight, ArrowDownRight, Clock, CheckCircle2, AlertCircle,
+  DollarSign, ShoppingBag, TrendingUp, Star, ArrowUpRight, ArrowDownRight, Clock, CheckCircle2, AlertCircle, Bell, X, Check, XCircle,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar,
 } from 'recharts';
+import { toast } from '@/hooks/use-toast';
 
 export default function SellerDashboard() {
   const { data: dashboard, isLoading } = useQuery({
     queryKey: ['seller-dashboard'],
     queryFn: () => sellerAPI.getDashboard(),
   });
+  const [notifications, setNotifications] = useState<any[]>([]);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const queryClient = useQueryClient();
+
+  // ─── Order Management Functions (Step 2) ──────
+  const handleAcceptOrder = async (orderId: string) => {
+    try {
+      await sellerAPI.updateOrderStatus(orderId, 'confirmed');
+      toast({ title: "✅ Order Accepted", description: "Order confirmed and delivery partner notified" });
+      queryClient.invalidateQueries({ queryKey: ['seller-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  const handleRejectOrder = async (orderId: string) => {
+    try {
+      await sellerAPI.updateOrderStatus(orderId, 'cancelled');
+      toast({ title: "❌ Order Rejected", description: "Order has been cancelled" });
+      queryClient.invalidateQueries({ queryKey: ['seller-dashboard'] });
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    }
+  };
+
+  // Socket.io connection for real-time order updates
+  useEffect(() => {
+    const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000');
+    
+    if (socket) {
+      socket.on('connect', () => {
+        console.log('Seller connected to socket');
+        // Join seller room for targeted notifications
+        socket.emit('join_seller_room');
+      });
+
+      socket.on('new_order', (order: any) => {
+        console.log('🍔 New order received:', order);
+        
+        // Add notification
+        setNotifications(prev => [
+          { 
+            id: Date.now(), 
+            type: 'new_order', 
+            title: '🍔 New Order Received',
+            message: `Order #${order.orderNumber} - ₹${order.totalAmount}`,
+            order,
+            timestamp: new Date(),
+            actions: [
+              { label: 'Accept', action: 'accept', variant: 'default' },
+              { label: 'Reject', action: 'reject', variant: 'destructive' }
+            ]
+          },
+          ...prev.slice(0, 9) // Keep only last 10 notifications
+        ]);
+        
+        // Show toast
+        toast({ 
+          title: "🍔 New Order Received!", 
+          description: `Order #${order.orderNumber} - ₹${order.totalAmount}`,
+          action: (
+            <div className="flex gap-2">
+              <Button size="sm" onClick={() => handleAcceptOrder(order.orderId)}>
+                Accept
+              </Button>
+              <Button size="sm" variant="destructive" onClick={() => handleRejectOrder(order.orderId)}>
+                Reject
+              </Button>
+            </div>
+          )
+        });
+        
+        // Refresh dashboard data
+        queryClient.invalidateQueries({ queryKey: ['seller-dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      });
+
+      socket.on('order_status_update', (data: any) => {
+        console.log('📦 Order status update:', data);
+        
+        setNotifications(prev => [
+          { 
+            id: Date.now(), 
+            type: 'status_update', 
+            title: '📦 Order Status Update',
+            message: data.message,
+            orderId: data.orderId,
+            timestamp: new Date()
+          },
+          ...prev.slice(0, 9)
+        ]);
+        
+        // Refresh dashboard data
+        queryClient.invalidateQueries({ queryKey: ['seller-dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      });
+
+      socket.on('delivery_status_update', (data: any) => {
+        console.log('🛵 Delivery status update:', data);
+        
+        setNotifications(prev => [
+          { 
+            id: Date.now(), 
+            type: 'delivery_update', 
+            title: '🛵 Delivery Update',
+            message: data.message,
+            orderId: data.orderId,
+            timestamp: new Date()
+          },
+          ...prev.slice(0, 9)
+        ]);
+        
+        // Refresh dashboard data
+        queryClient.invalidateQueries({ queryKey: ['seller-dashboard'] });
+        queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      });
+
+      return () => {
+        socket.disconnect();
+      };
+    }
+  }, [queryClient]);
 
   if (isLoading) return <SellerLayout title="Dashboard"><LoadingSpinner /></SellerLayout>;
 
@@ -25,7 +152,98 @@ export default function SellerDashboard() {
   const topItems = dashboard?.topItems || [];
 
   return (
-    <SellerLayout title="Dashboard" subtitle="Welcome back! Here's your business overview">
+    <SellerLayout 
+      title="Dashboard" 
+      subtitle="Welcome back! Here's your business overview"
+      headerActions={
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative"
+          >
+            <Bell size={18} />
+            {notifications.length > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {notifications.length}
+              </span>
+            )}
+          </Button>
+
+          {/* Notifications Dropdown */}
+          {showNotifications && (
+            <div className="absolute right-0 top-10 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+              <div className="p-4 border-b border-gray-200 flex items-center justify-between">
+                <h3 className="font-semibold">Notifications</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setNotifications([])}
+                >
+                  Clear All
+                </Button>
+              </div>
+              
+              {notifications.length === 0 ? (
+                <div className="p-4 text-center text-gray-500">
+                  No new notifications
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-100">
+                  {notifications.map((notification) => (
+                    <div key={notification.id} className="p-4 hover:bg-gray-50">
+                      <div className="flex items-start gap-3">
+                        <div className={`w-2 h-2 rounded-full mt-1 ${
+                          notification.type === 'new_order' ? 'bg-green-500' : 
+                          notification.type === 'delivery_update' ? 'bg-blue-500' : 'bg-gray-500'
+                        }`} />
+                        <div className="flex-1">
+                          <p className="font-semibold text-sm">{notification.title}</p>
+                          <p className="text-sm text-gray-600">{notification.message}</p>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {new Date(notification.timestamp).toLocaleTimeString()}
+                          </p>
+                          
+                          {/* Action buttons for new orders */}
+                          {notification.type === 'new_order' && notification.actions && (
+                            <div className="flex gap-2 mt-3">
+                              {notification.actions.map((action: any, index: number) => (
+                                <Button
+                                  key={index}
+                                  size="sm"
+                                  variant={action.variant === 'destructive' ? 'destructive' : 'default'}
+                                  onClick={() => {
+                                    if (action.action === 'accept') {
+                                      handleAcceptOrder(notification.order.orderId);
+                                    } else if (action.action === 'reject') {
+                                      handleRejectOrder(notification.order.orderId);
+                                    }
+                                    setNotifications(prev => prev.filter(n => n.id !== notification.id));
+                                  }}
+                                >
+                                  {action.label}
+                                </Button>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => setNotifications(prev => prev.filter(n => n.id !== notification.id))}
+                          className="text-gray-400 hover:text-gray-600"
+                        >
+                          <X size={16} />
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      }
+    >
       {/* Stats Grid */}
       <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card className="stat-card">

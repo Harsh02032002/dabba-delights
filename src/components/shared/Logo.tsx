@@ -10,7 +10,7 @@ export function Logo({ className }: LogoProps) {
   return (
     <motion.div
       className={cn(
-        "flex items-center justify-center w-28 h-28",
+        "flex items-center justify-center w-24 h-24",
         className
       )}
       initial={{ opacity: 0 }}
@@ -21,7 +21,6 @@ export function Logo({ className }: LogoProps) {
         src={logo}
         alt="Dabba Nation"
         className="w-full h-full object-cover rounded-full shadow-xl border-4 border-white"
-
         animate={{ scale: [1, 1.05, 1] }}
         transition={{
           duration: 4,

@@ -40,26 +40,10 @@ export default function UserHome() {
     queryFn: async () => {
       try {
         const res: any = await userAPI.getMenuItems({ 
+          type: showAllTypes ? undefined : savedType,
           search: searchQuery || undefined 
         });
         let p = Array.isArray(res) ? res : res?.products || res?.data || res?.menu || [];
-        
-        // Get sellers data for filtering
-        if (!showAllTypes) {
-          const sellersRes: any = await userAPI.getSellers({
-            type: savedType,
-            search: searchQuery || undefined,
-          });
-          const sellers = Array.isArray(sellersRes) ? sellersRes : sellersRes?.sellers || sellersRes?.data || [];
-          const sellerIds = sellers.map((s: any) => s._id);
-          
-          // Filter menu items by seller type
-          p = p.filter((item: any) => {
-            const sellerId = typeof item.sellerId === 'object' ? item.sellerId._id : item.sellerId;
-            return sellerIds.includes(sellerId);
-          });
-        }
-        
         return p;
       } catch {
         return [];

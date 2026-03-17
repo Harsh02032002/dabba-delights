@@ -10,9 +10,10 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { MapPin, IndianRupee, Loader2, CreditCard, Banknote, ArrowLeft, Wallet } from "lucide-react";
+import { MapPin, IndianRupee, Loader2, CreditCard, Banknote, ArrowLeft, Wallet, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
+import { calculateOrderGST, formatGSTAmount, formatGSTPercentage, GST_RATES, updateGSTSettings } from "@/lib/gst";
 
 // Load Razorpay SDK dynamically
 function loadRazorpayScript(): Promise<boolean> {
@@ -45,6 +46,124 @@ export default function CheckoutPage() {
     city: "",
     state: "",
     pincode: "",
+    location: null,
+  });
+
+  // 🗺️ Location Detection Function
+  const detectUserLocation = () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          console.log('📍 User location detected:', { latitude, longitude });
+          
+          try {
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
+            );
+            const data = await response.json();
+            
+            if (data && data.address) {
+              setDeliveryAddress(prev => ({
+                ...prev,
+                street: data.address.road || data.address.house_number || '',
+                city: data.address.city || data.address.town || data.address.village || '',
+                state: data.address.state || '',
+                pincode: data.address.postcode || '',
+                location: {
+                  type: 'Point',
+                  coordinates: [longitude, latitude]
+                }
+              }));
+              
+              toast({ 
+                title: "📍 Location Detected", 
+                description: `Address auto-filled: ${data.address.city || 'Unknown'}` 
+              });
+            }
+          } catch (error) {
+            console.error('❌ Reverse geocoding failed:', error);
+            toast({ 
+              title: "Location Error", 
+              description: "Could not get address from coordinates", 
+              variant: "destructive" 
+            });
+          }
+        },
+        (error) => {
+          console.error('❌ Location detection failed:', error);
+          toast({ 
+            title: "Location Error", 
+            description: "Could not detect your location. Please enter address manually.", 
+            variant: "destructive" 
+          });
+        }
+      );
+    } else {
+      toast({ 
+        title: "Not Supported", 
+        description: "Geolocation is not supported by your browser", 
+        variant: "destructive" 
+      });
+    }
+  };
+
+  // Fetch GST settings from admin
+  const { data: gstSettings } = useQuery({
+    queryKey: ['gst-settings'],
+    queryFn: async () => {
+      try {
+        const response = await apiRequest('/admin/gst/settings');
+        return response?.data || null;
+      } catch (error) {
+        console.log('GST settings not available, using defaults');
+        return null;
+      }
+    },
+  });
+
+  // Update GST rates when settings are fetched
+  useEffect(() => {
+    if (gstSettings) {
+      updateGSTSettings(gstSettings);
+    }
+  }, [gstSettings]);
+
+  // Fetch platform config for dynamic pricing
+  const { data: platformConfig } = useQuery({
+    queryKey: ['platform-config'],
+    queryFn: () => apiRequest('/admin/config'),
+  });
+
+  // GST Calculation - Simple and direct
+  const gstCalculation = cartItems.length > 0 && gstSettings?.gstApplicable && gstSettings?.platformGSTEnabled ? {
+    subtotal: totals.subtotal,
+    platformCommission: totals.subtotal * (gstSettings.platformCommissionRate / 100),
+    platformCommissionGST: totals.subtotal * (gstSettings.platformCommissionRate / 100) * (gstSettings.platformGSTRate / 100),
+    totalCGST: gstSettings?.foodGSTEnabled ? totals.subtotal * (gstSettings.foodCGSTRate / 100) : 0,
+    totalSGST: gstSettings?.foodGSTEnabled ? totals.subtotal * (gstSettings.foodSGSTRate / 100) : 0,
+    totalGST: gstSettings?.foodGSTEnabled ? totals.subtotal * ((gstSettings.foodCGSTRate + gstSettings.foodSGSTRate) / 100) : 0,
+    deliveryCGST: gstSettings?.deliveryGSTEnabled ? totals.deliveryFee * (gstSettings.deliveryCGSTRate / 100) : 0,
+    deliverySGST: gstSettings?.deliveryGSTEnabled ? totals.deliveryFee * (gstSettings.deliverySGSTRate / 100) : 0,
+    deliveryGST: gstSettings?.deliveryGSTEnabled ? totals.deliveryFee * ((gstSettings.deliveryCGSTRate + gstSettings.deliverySGSTRate) / 100) : 0,
+    grandTotal: 0
+  } : null;
+
+  // Calculate grand total
+  if (gstCalculation) {
+    gstCalculation.grandTotal = gstCalculation.subtotal + 
+      gstCalculation.totalGST + 
+      gstCalculation.platformCommission + 
+      gstCalculation.platformCommissionGST + 
+      totals.deliveryFee + 
+      gstCalculation.deliveryGST;
+  }
+
+  console.log('🔥 Simple GST Debug:', {
+    gstSettings,
+    gstCalculation,
+    platformCommission: gstCalculation?.platformCommission,
+    platformCommissionGST: gstCalculation?.platformCommissionGST
   });
 
   // Fetch wallet balance
@@ -93,17 +212,26 @@ export default function CheckoutPage() {
     sellerId: cart.sellerId,
     deliveryAddress,
     paymentMethod: method,
-    totalAmount,
+    totalAmount: gstCalculation ? gstCalculation.grandTotal : totalAmount,
     subtotal: totals.subtotal,
     deliveryFee: totals.deliveryFee,
     platformFee: totals.platformFee,
-    gstAmount: totals.gst,
+    gstAmount: gstCalculation ? gstCalculation.totalGST : totals.gst,
+    gstBreakup: gstCalculation ? {
+      cgst: gstCalculation.totalCGST,
+      sgst: gstCalculation.totalSGST,
+      totalGST: gstCalculation.totalGST,
+      platformCommission: gstCalculation.platformCommission,
+      platformCommissionGST: gstCalculation.platformCommissionGST,
+      totalCommissionWithGST: gstCalculation.totalCommissionWithGST
+    } : null,
   });
 
   const placeOrderWithWallet = async () => {
     if (!validateAddress()) return;
-    if (walletBalance < totalAmount) {
-      toast({ title: "Insufficient Balance", description: `Your wallet has ₹${walletBalance}. You need ₹${totalAmount.toFixed(0)}.`, variant: "destructive" });
+    const finalAmount = gstCalculation ? gstCalculation.grandTotal : totalAmount;
+    if (walletBalance < finalAmount) {
+      toast({ title: "Insufficient Balance", description: `Your wallet has ₹${walletBalance}. You need ₹${finalAmount.toFixed(0)}.`, variant: "destructive" });
       return;
     }
     setIsLoading(true);
@@ -155,23 +283,34 @@ export default function CheckoutPage() {
   };
 
   const handleRazorpayPayment = async () => {
-    if (!validateAddress()) return;
+    console.log('🚀 Starting Razorpay payment process...');
+    
+    if (!validateAddress()) {
+      console.log('❌ Address validation failed');
+      return;
+    }
+    
+    const finalAmount = gstCalculation ? gstCalculation.grandTotal : totalAmount;
     setIsLoading(true);
     try {
-      const loaded = await loadRazorpayScript();
-      if (!loaded || !(window as any).Razorpay) {
-        toast({ title: "Razorpay SDK not loaded. Please try another method.", variant: "destructive" });
-        setIsLoading(false);
-        return;
-      }
+      console.log(' Creating Razorpay order...');
       const response = await paymentAPI.createRazorpayOrder({
-        amount: totalAmount,
+        amount: finalAmount,
         currency: "INR",
         orderId: `ORDER-${Date.now()}`,
         description: `Order from Dabba Nation - ${cartItems.length} items`,
       });
-      if (!response?.success) throw new Error(response?.message || "Failed to create order");
+      
+      console.log('📋 Razorpay order response:', response);
+      
+      if (!response?.success) {
+        console.error('❌ Razorpay order creation failed:', response);
+        throw new Error(response?.message || "Failed to create order");
+      }
 
+      console.log('🎯 Creating direct Razorpay modal...');
+      
+      // Create a direct Razorpay modal using the script
       const options = {
         key: response.key,
         amount: response.amount,
@@ -179,43 +318,117 @@ export default function CheckoutPage() {
         order_id: response.orderId,
         name: 'Dabba Nation',
         description: `Order - ${cartItems.length} items`,
+        image: 'https://via.placeholder.com/150x150.png?text=DabbaNation',
         handler: async (paymentRes: any) => {
           try {
+            console.log('💳 Razorpay payment response:', paymentRes);
+            
+            // Verify payment
             const verifyRes = await paymentAPI.verifyRazorpayPayment({
               razorpayOrderId: paymentRes.razorpay_order_id,
               razorpayPaymentId: paymentRes.razorpay_payment_id,
               razorpaySignature: paymentRes.razorpay_signature,
             });
+            
+            console.log('✅ Payment verification response:', verifyRes);
+            
             if (verifyRes?.verified || verifyRes?.success) {
-              // Now place the order
+              console.log('✅ Payment verified, placing order...');
+              
+              // Place the order
               const orderResponse = await userAPI.placeOrder(buildOrderPayload("razorpay"));
+              console.log('📦 Order placed successfully:', orderResponse);
+              
               toast({ title: "Payment successful! Order placed. 🎉" });
-              // Generate invoice immediately
+              
+              // Generate invoice
               try {
                 await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
+                console.log('📄 Invoice generated successfully');
                 toast({ title: "Invoice generated! 📄", description: "Your invoice is ready for download" });
               } catch (invoiceErr: any) {
                 console.log("Invoice generation failed:", invoiceErr);
-                // Don't show error to user, order is still placed
               }
+              
               clearCart();
               navigate("/orders");
             } else {
-              throw new Error("Verification failed");
+              throw new Error("Payment verification failed");
             }
           } catch (err: any) {
-            toast({ title: "Payment verification failed", description: err.message, variant: "destructive" });
+            console.error('❌ Payment handler error:', err);
+            toast({ title: "Payment failed", description: err.message, variant: "destructive" });
+            setIsLoading(false);
           }
         },
-        prefill: { name: user?.name || "", email: user?.email || "", contact: user?.phone || "" },
-        theme: { color: "#E86F2A" },
-        modal: { ondismiss: () => setIsLoading(false) },
+        prefill: {
+          name: user?.name || "",
+          email: user?.email || "",
+          contact: user?.phone || ""
+        },
+        theme: {
+          color: "#E86F2A"
+        },
+        modal: {
+          ondismiss: function() {
+            console.log('❌ Razorpay modal dismissed by user');
+            setIsLoading(false);
+          },
+          backdropclose: true,
+          escape: true,
+          handleback: true
+        },
+        notes: {
+          address: `${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.state} - ${deliveryAddress.pincode}`,
+          seller_id: cart.sellerId
+        }
       };
-      const razorpay = new (window as any).Razorpay(options);
-      razorpay.on('payment.failed', () => { setIsLoading(false); });
-      razorpay.open();
+      
+      console.log('🔧 Razorpay options created:', options);
+      
+      // Load Razorpay script fresh
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.async = true;
+      
+      script.onload = () => {
+        console.log('✅ Razorpay script loaded fresh');
+        
+        try {
+          // Create Razorpay instance directly from global window
+          const rzp = new (window as any).Razorpay(options);
+          console.log('✅ Razorpay instance created fresh');
+          
+          // Open the modal
+          rzp.open();
+          console.log('🚀 Razorpay modal opened');
+          
+        } catch (err: any) {
+          console.error('❌ Error creating Razorpay instance:', err);
+          toast({ 
+            title: "Payment Error", 
+            description: "Cannot open payment modal. Please try another payment method.", 
+            variant: "destructive" 
+          });
+          setIsLoading(false);
+        }
+      };
+      
+      script.onerror = () => {
+        console.error('❌ Failed to load Razorpay script');
+        toast({ 
+          title: "Payment Error", 
+          description: "Cannot load payment gateway. Please try another payment method.", 
+          variant: "destructive" 
+        });
+        setIsLoading(false);
+      };
+      
+      document.head.appendChild(script);
+      
     } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
+      console.error('❌ Payment error:', err);
+      toast({ title: "Payment failed", description: err.message, variant: "destructive" });
       setIsLoading(false);
     }
   };
@@ -226,7 +439,8 @@ export default function CheckoutPage() {
     else handleRazorpayPayment();
   };
 
-  const insufficientWallet = walletBalance < totalAmount;
+  const finalAmount = gstCalculation ? gstCalculation.grandTotal : totalAmount;
+  const insufficientWallet = walletBalance < finalAmount;
 
   return (
     <UserLayout>
@@ -245,6 +459,36 @@ export default function CheckoutPage() {
               <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <MapPin size={20} className="text-primary" /> Delivery Address
               </h2>
+              
+              {/* 🗺️ Location Detection Button */}
+              <div className="mb-4">
+                <Button 
+                  type="button" 
+                  variant="outline" 
+                  onClick={detectUserLocation}
+                  className="w-full flex items-center gap-2"
+                >
+                  <MapPin size={16} />
+                  📍 Detect My Current Location
+                </Button>
+                <p className="text-xs text-muted-foreground mt-2">
+                  Click to auto-fill your address using GPS location
+                </p>
+              </div>
+
+              {/* 📍 Location Status Display */}
+              {deliveryAddress.location && (
+                <div className="mb-4 p-3 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-green-700">
+                    <MapPin size={16} />
+                    <span className="text-sm font-medium">Location detected successfully!</span>
+                  </div>
+                  <p className="text-xs text-green-600 mt-1">
+                    Coordinates: {deliveryAddress.location.coordinates[1].toFixed(4)}, {deliveryAddress.location.coordinates[0].toFixed(4)}
+                  </p>
+                </div>
+              )}
+              
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="street">Street Address</Label>
@@ -330,25 +574,117 @@ export default function CheckoutPage() {
             <Card className="sticky top-24 p-6">
               <h2 className="text-lg font-semibold text-foreground mb-4">Order Summary</h2>
               <div className="space-y-3 text-sm">
-                {cartItems.map((item: any) => (
-                  <div key={item.menuItem._id} className="flex justify-between">
-                    <span className="text-muted-foreground">{item.menuItem.name} x{item.quantity}</span>
-                    <span className="font-medium">₹{((item.menuItem.discountPrice || item.menuItem.price) * item.quantity).toFixed(0)}</span>
-                  </div>
-                ))}
+                {cartItems.map((item: any) => {
+                  const itemPrice = item.menuItem.discountPrice || item.menuItem.price;
+                  const itemTotal = itemPrice * item.quantity;
+                  return (
+                    <div key={item.menuItem._id}>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">{item.menuItem.name} x{item.quantity}</span>
+                        <span>₹{itemTotal.toFixed(0)}</span>
+                      </div>
+                      {gstCalculation && gstSettings?.gstApplicable && gstSettings?.foodGSTEnabled ? (
+                        <div className="flex justify-between text-xs text-muted-foreground ml-4">
+                          <span>+ GST ({formatGSTPercentage(GST_RATES.FOOD.TOTAL)})</span>
+                          <span>₹{(itemTotal * GST_RATES.FOOD.TOTAL).toFixed(2)}</span>
+                        </div>
+                      ) : null}
+                    </div>
+                  );
+                })}
               </div>
               <Separator className="my-4" />
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>₹{totals.subtotal.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Delivery Fee</span><span>₹{totals.deliveryFee}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">Platform Fee</span><span>₹{totals.platformFee}</span></div>
-                <div className="flex justify-between"><span className="text-muted-foreground">GST (5%)</span><span>₹{totals.gst.toFixed(2)}</span></div>
+                
+                {/* 🧾 GST Breakup - Only show if GST is enabled */}
+                {gstCalculation && gstSettings?.gstApplicable && gstSettings?.foodGSTEnabled ? (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">CGST ({formatGSTPercentage(GST_RATES.FOOD.CGST)})</span>
+                      <span>₹{gstCalculation.totalCGST.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">SGST ({formatGSTPercentage(GST_RATES.FOOD.SGST)})</span>
+                      <span>₹{gstCalculation.totalSGST.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between text-green-600 font-medium">
+                      <span>Total GST ({formatGSTPercentage(GST_RATES.FOOD.TOTAL)})</span>
+                      <span>₹{gstCalculation.totalGST.toFixed(2)}</span>
+                    </div>
+                  </>
+                ) : null}
+                
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Platform Fee</span>
+                  <span>₹{gstCalculation ? gstCalculation.platformCommission.toFixed(2) : totals.platformFee.toFixed(2)}</span>
+                </div>
+                
+                {/* Platform Commission GST */}
+                {gstCalculation && gstSettings?.gstApplicable && gstSettings?.platformGSTEnabled ? (
+                  <div className="flex justify-between text-xs text-muted-foreground ml-4">
+                    <span>+ GST on Platform Fee ({formatGSTPercentage(gstSettings.platformGSTRate)})</span>
+                    <span>₹{gstCalculation.platformCommissionGST.toFixed(2)}</span>
+                  </div>
+                ) : null}
+                
+                {/* Delivery GST */}
+                {gstCalculation && gstSettings?.gstApplicable && gstSettings?.deliveryGSTEnabled ? (
+                  <>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Delivery Fee</span>
+                      <div className="text-right">
+                        <span>₹{totals.deliveryFee}</span>
+                        {totals.deliveryFee === 0 && totals.subtotal >= (platformConfig?.freeDeliveryAbove || 299) && (
+                          <div className="text-xs text-green-600">FREE Delivery!</div>
+                        )}
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-xs text-muted-foreground ml-4">
+                      <span>+ GST on Delivery ({formatGSTPercentage(gstSettings.deliveryCGSTRate + gstSettings.deliverySGSTRate)})</span>
+                      <span>₹{gstCalculation.deliveryGST.toFixed(2)}</span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Delivery Fee</span>
+                    <div className="text-right">
+                      <span>₹{totals.deliveryFee}</span>
+                      {totals.deliveryFee === 0 && totals.subtotal >= (platformConfig?.freeDeliveryAbove || 299) && (
+                        <div className="text-xs text-green-600">FREE Delivery!</div>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-              <Separator className="my-4" />
-              <div className="flex justify-between text-lg font-bold">
-                <span>Total</span>
-                <span className="text-primary">₹{totalAmount.toFixed(2)}</span>
-              </div>
+
+              {/* 🧾 GST Info Box - Dynamic based on settings */}
+              {gstCalculation && gstSettings?.gstApplicable ? (
+                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <div className="flex items-center gap-2 text-blue-700 mb-2">
+                    <Receipt size={16} />
+                    <span className="text-sm font-medium">GST Invoice Details</span>
+                  </div>
+                  <div className="text-xs text-blue-600 space-y-1">
+                    {gstSettings?.foodGSTEnabled ? (
+                      <p>• Food items: {formatGSTPercentage(GST_RATES.FOOD.TOTAL)} GST ({formatGSTPercentage(GST_RATES.FOOD.CGST)} CGST + {formatGSTPercentage(GST_RATES.FOOD.SGST)} SGST)</p>
+                    ) : (
+                      <p>• Food items: No GST applicable</p>
+                    )}
+                    {gstSettings?.platformGSTEnabled ? (
+                      <p>• Platform commission: {formatGSTPercentage(gstSettings.platformGSTRate)} GST applicable</p>
+                    ) : (
+                      <p>• Platform commission: No GST applicable</p>
+                    )}
+                    {gstSettings?.deliveryGSTEnabled ? (
+                      <p>• Delivery charges: {formatGSTPercentage(GST_RATES.DELIVERY.TOTAL)} GST applicable</p>
+                    ) : (
+                      <p>• Delivery charges: No GST applicable</p>
+                    )}
+                    {gstSettings?.defaultGSTIN && <p>• GSTIN: {gstSettings.defaultGSTIN}</p>}
+                  </div>
+                </div>
+              ) : null}
 
               {paymentMethod === "wallet" && (
                 <div className="mt-3 p-3 rounded-lg bg-success/10 text-sm">
@@ -358,7 +694,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between font-semibold text-foreground mt-1">
                     <span>After Payment</span>
-                    <span>₹{(walletBalance - totalAmount).toFixed(0)}</span>
+                    <span>₹{(walletBalance - (gstCalculation ? gstCalculation.grandTotal : totalAmount)).toFixed(0)}</span>
                   </div>
                 </div>
               )}
@@ -367,11 +703,11 @@ export default function CheckoutPage() {
                 {isLoading ? (
                   <><Loader2 size={16} className="mr-2 animate-spin" /> Processing...</>
                 ) : paymentMethod === "wallet" ? (
-                  <><Wallet size={16} className="mr-2" /> Pay ₹{totalAmount.toFixed(0)} from Wallet</>
+                  <><Wallet size={16} className="mr-2" /> Pay ₹{gstCalculation ? gstCalculation.grandTotal.toFixed(0) : totalAmount.toFixed(0)} from Wallet</>
                 ) : paymentMethod === "cod" ? (
                   <><Banknote size={16} className="mr-2" /> Place Order (COD)</>
                 ) : (
-                  <><IndianRupee size={16} className="mr-2" /> Pay ₹{totalAmount.toFixed(0)}</>
+                  <><IndianRupee size={16} className="mr-2" /> Pay ₹{gstCalculation ? gstCalculation.grandTotal.toFixed(0) : totalAmount.toFixed(0)}</>
                 )}
               </Button>
 
