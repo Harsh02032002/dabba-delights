@@ -1,8 +1,32 @@
 // ============================================
-// Dabba Nation - Centralized API Service
+// Dabba Nation - Centralized API Service (Optimized)
 // ============================================
 const API_BASE_URL =
   import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+
+// Request timeout in milliseconds
+const REQUEST_TIMEOUT = 10000; // 10 seconds
+
+// Helper to add timeout to fetch
+async function fetchWithTimeout(url: string, options: RequestInit, timeout = REQUEST_TIMEOUT): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    return response;
+  } catch (error) {
+    clearTimeout(timeoutId);
+    if (error instanceof Error && error.name === 'AbortError') {
+      throw new Error('Request timed out. Please check your connection.');
+    }
+    throw error;
+  }
+}
 
 async function apiRequest<T = any>(
   endpoint: string,
@@ -14,32 +38,61 @@ async function apiRequest<T = any>(
     ...(token && { Authorization: `Bearer ${token}` }),
     ...options.headers,
   };
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    ...options,
-    headers,
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error((error as any).message || "API request failed");
+  
+  const startTime = performance.now();
+  
+  try {
+    const response = await fetchWithTimeout(`${API_BASE_URL}${endpoint}`, {
+      ...options,
+      headers,
+    });
+    
+    const duration = performance.now() - startTime;
+    console.log(`[API] ${endpoint} - ${duration.toFixed(0)}ms`);
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error((error as any).message || `API request failed: ${response.status}`);
+    }
+    
+    return response.json();
+  } catch (error: any) {
+    const duration = performance.now() - startTime;
+    console.error(`[API Error] ${endpoint} - ${duration.toFixed(0)}ms - ${error.message}`);
+    throw error;
   }
-  return response.json();
 }
 
-async function apiUpload<T = any>(endpoint: string, formData: FormData, method = "POST"): Promise<T> {
+async function apiUpload<T = any>(endpoint: string, formData: FormData, method = "POST", timeout = 30000): Promise<T> {
   const token = localStorage.getItem("token");
   const headers: HeadersInit = {
     ...(token && { Authorization: `Bearer ${token}` }),
   };
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    method,
-    body: formData,
-    headers,
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error((error as any).message || "API upload failed");
+  
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  
+  try {
+    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+      method,
+      body: formData,
+      headers,
+      signal: controller.signal,
+    });
+    clearTimeout(timeoutId);
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({}));
+      throw new Error((error as any).message || "API upload failed");
+    }
+    return response.json();
+  } catch (error: any) {
+    clearTimeout(timeoutId);
+    if (error.name === 'AbortError') {
+      throw new Error('Upload timed out. Please try again.');
+    }
+    throw error;
   }
-  return response.json();
 }
 
 function toQuery(params?: Record<string, unknown>) {
@@ -294,6 +347,10 @@ export const sellerAPI = {
   
   uploadCoverImage: (formData: FormData) =>
     apiUpload("/seller/profile/cover", formData),
+  
+  // GST
+  getGSTReport: (period?: string) =>
+    apiRequest(`/seller/gst/reports${period ? `?period=${period}` : ""}`),
 };
 
 // ADMIN APIs
@@ -311,6 +368,8 @@ export const adminAPI = {
     apiRequest(`/admin/settlements/${id}/process`, { method: "POST" }),
   getSellers: (status?: string) =>
     apiRequest(`/admin/sellers${status ? `?status=${status}` : ""}`),
+  createSeller: (data: Record<string, unknown>) =>
+    apiRequest("/admin/sellers", { method: "POST", body: JSON.stringify(data) }),
   approveSeller: (id: string) =>
     apiRequest(`/admin/sellers/${id}/approve`, { method: "POST" }),
   rejectSeller: (id: string) =>
@@ -331,6 +390,8 @@ export const adminAPI = {
   getGSTConfig: () => apiRequest("/admin/gst"),
   updateGSTConfig: (data: Record<string, unknown>) =>
     apiRequest("/admin/gst", { method: "PUT", body: JSON.stringify(data) }),
+  getGSTReports: (period?: string) =>
+    apiRequest(`/admin/gst/reports${period ? `?period=${period}` : ""}`),
   getReferrals: (status?: string) =>
     apiRequest(`/admin/referrals${status ? `?status=${status}` : ""}`),
   updateReferralConfig: (data: Record<string, unknown>) =>
@@ -386,8 +447,10 @@ export const adminAPI = {
     apiRequest("/admin/pay-config", { method: "PUT", body: JSON.stringify(data) }),
   getDeliverySettlements: (status?: string) =>
     apiRequest(`/admin/settlements${status ? `?status=${status}` : ""}`),
-  processDeliverySettlement: (id: string) =>
-    apiRequest(`/admin/settlements/${id}/process`, { method: "POST" }),
+  deleteSeller: (id: string) =>
+    apiRequest(`/admin/sellers/${id}`, { method: "DELETE" }),
+  deleteUser: (id: string) =>
+    apiRequest(`/admin/users/${id}`, { method: "DELETE" }),
 };
 
 // USER / CUSTOMER APIs
@@ -450,8 +513,6 @@ export const userAPI = {
     apiRequest(`/user/sellers/${sellerId}/rate`, { method: "POST", body: JSON.stringify({ rating }) }),
   getSellerRatingBreakdown: (sellerId: string) =>
     apiRequest(`/user/sellers/${sellerId}/rating-breakdown`),
-  cancelOrder: (orderId: string) =>
-    apiRequest(`/user/orders/${orderId}/cancel`, { method: "POST" }),
   downloadInvoice: (orderId: string) => {
     const token = localStorage.getItem("token");
     if (!token) {

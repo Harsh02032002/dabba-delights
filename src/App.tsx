@@ -15,6 +15,7 @@ import UserHome from "./pages/user/UserHome";
 import UserLogin from "./pages/user/UserLogin";
 import UserRegister from "./pages/user/UserRegister";
 import VerifyEmail from "./pages/auth/VerifyEmail";
+import ForgotPassword from "./pages/auth/ForgotPassword";
 import ResendVerificationCode from "./components/auth/ResendVerificationCode";
 import CartPage from "./pages/user/CartPage";
 import CheckoutPage from "./pages/user/CheckoutPage";
@@ -53,6 +54,7 @@ import SellerCustomers from "./pages/seller/SellerCustomers";
 import SellerMarketing from "./pages/seller/SellerMarketing";
 import SellerPayouts from "./pages/seller/SellerPayouts";
 import SellerPerformanceInsights from "./pages/seller/SellerPerformanceInsights";
+import SellerGST from "./pages/seller/SellerGST";
 import SellerRecycleBin from "./pages/seller/SellerRecycleBin";
 
 // Admin Pages
@@ -77,6 +79,7 @@ import AdminCategories from "./pages/admin/AdminCategories";
 import AdminWarehouses from "./pages/admin/AdminWarehouses";
 import AdminDeliveryPartners from "./pages/admin/AdminDeliveryPartners";
 import AdminDeliveryPayConfig from "./pages/admin/AdminDeliveryPayConfig";
+import AdminWallet from "./pages/admin/AdminWallet";
 
 // Delivery Pages
 import DeliveryLogin from "./pages/delivery/DeliveryLogin";
@@ -87,14 +90,26 @@ import DeliveryEarnings from "./pages/delivery/DeliveryEarnings";
 // Other
 import NotFound from "./pages/NotFound";
 
-const queryClient = new QueryClient({
+export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000,
-      gcTime: 10 * 60 * 1000,
-      refetchOnWindowFocus: false,
-      refetchOnMount: false,
+      // Reduced stale time for faster updates
+      staleTime: 30 * 1000, // 30 seconds instead of 5 minutes
+      gcTime: 5 * 60 * 1000, // 5 minutes garbage collection
+      // Faster refetching strategy
+      refetchOnWindowFocus: true,
+      refetchOnMount: true,
+      refetchOnReconnect: true,
+      // Retry configuration
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 3000),
+      // Enable network mode for offline support
+      networkMode: 'online',
+    },
+    mutations: {
+      // Retry failed mutations once
       retry: 1,
+      networkMode: 'online',
     },
   },
 });
@@ -114,6 +129,7 @@ const App = () => (
               <Route path="/login" element={<UserLogin />} />
               <Route path="/register" element={<UserRegister />} />
               <Route path="/verify-email" element={<VerifyEmail />} />
+              <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/resend-verification" element={<ResendVerificationCode />} />
 
               {/* User Routes - Protected for users only */}
@@ -155,6 +171,7 @@ const App = () => (
               <Route path="/seller/marketing" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerMarketing /></KYCGate></ProtectedRoute>} />
               <Route path="/seller/payouts" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerPayouts /></KYCGate></ProtectedRoute>} />
               <Route path="/seller/performance" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerPerformanceInsights /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/gst" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerGST /></KYCGate></ProtectedRoute>} />
               <Route path="/seller/recycle-bin" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerRecycleBin /></KYCGate></ProtectedRoute>} />
 
               {/* Admin Routes */}
@@ -179,6 +196,7 @@ const App = () => (
               <Route path="/admin/warehouses" element={<ProtectedRoute requiredRole="admin"><AdminWarehouses /></ProtectedRoute>} />
               <Route path="/admin/delivery-partners" element={<ProtectedRoute requiredRole="admin"><AdminDeliveryPartners /></ProtectedRoute>} />
               <Route path="/admin/delivery-pay-config" element={<ProtectedRoute requiredRole="admin"><AdminDeliveryPayConfig /></ProtectedRoute>} />
+              <Route path="/admin/wallet" element={<ProtectedRoute requiredRole="admin"><AdminWallet /></ProtectedRoute>} />
 
               {/* Delivery Routes */}
               <Route path="/delivery/login" element={<DeliveryLogin />} />

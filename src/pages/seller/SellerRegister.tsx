@@ -18,6 +18,7 @@ import {
   EyeOff,
   FileText,
   Building,
+  ArrowLeft,
 } from "lucide-react";
 
 export default function SellerRegister() {
@@ -82,9 +83,21 @@ export default function SellerRegister() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-primary/5 to-background p-4">
       <div className="w-full max-w-md space-y-8">
+        {/* Back to Home - Right aligned */}
+        <div className="flex justify-end">
+          <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft size={20} />
+            Back to Home
+          </Link>
+        </div>
+
+        {/* Logo - Centered */}
+        <div className="flex justify-center">
+          <Logo className="w-20 h-20" />
+        </div>
+
         <div className="text-center">
-          <Logo className="mx-auto" />
-          <h2 className="mt-6 text-3xl font-bold text-foreground">
+          <h2 className="text-3xl font-bold text-foreground">
             Become a Seller
           </h2>
           <p className="mt-2 text-muted-foreground">

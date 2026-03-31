@@ -9,7 +9,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAPI } from '@/lib/api';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { toast } from '@/hooks/use-toast';
-import { Search, Eye, Users, Ban, CheckCircle2, Mail, Phone, Calendar, Wallet, ShoppingBag, MapPin } from 'lucide-react';
+import { Search, Eye, Users, Ban, CheckCircle2, Mail, Phone, Calendar, Wallet, ShoppingBag, MapPin, Trash2 } from 'lucide-react';
 import { safeArray } from '@/utils/safeArray';
 
 export default function AdminUsers() {
@@ -31,6 +31,17 @@ export default function AdminUsers() {
   const unblockMutation = useMutation({
     mutationFn: (id: string) => adminAPI.unblockUser(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-users'] }); toast({ title: 'User unblocked' }); },
+  });
+
+  const deleteUserMutation = useMutation({
+    mutationFn: (id: string) => adminAPI.deleteUser(id),
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['admin-users'] }); 
+      toast({ title: 'User deleted successfully' }); 
+    },
+    onError: (err: any) => {
+      toast({ title: 'Failed to delete user', description: err.message, variant: 'destructive' });
+    },
   });
 
   const users = safeArray(data?.users || data);
@@ -94,6 +105,19 @@ export default function AdminUsers() {
                   <div className="flex flex-col gap-2">
                     <Button variant="outline" size="sm" className="gap-2" onClick={() => setViewUser(user)}>
                       <Eye size={14} /> View
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10" 
+                      onClick={() => {
+                        if (confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
+                          deleteUserMutation.mutate(user._id);
+                        }
+                      }}
+                      disabled={deleteUserMutation.isPending}
+                    >
+                      <Trash2 size={14} /> Delete
                     </Button>
                     {user.isBlocked ? (
                       <Button variant="soft-success" size="sm" onClick={() => unblockMutation.mutate(user._id)}>Unblock</Button>

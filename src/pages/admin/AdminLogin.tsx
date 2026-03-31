@@ -34,11 +34,19 @@ export default function AdminLogin() {
   return (
     <div className="min-h-screen flex items-center justify-center bg-foreground p-4">
       <div className="w-full max-w-md">
-        <div className="bg-card rounded-3xl p-8 shadow-xl">
-          <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
+        {/* Back to Home - Right aligned */}
+        <div className="flex justify-end mb-4">
+          <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft size={20} />
             Back to Home
           </Link>
+        </div>
+
+        <div className="bg-card rounded-3xl p-8 shadow-xl">
+          {/* Logo - Centered */}
+          <div className="flex justify-center mb-8">
+            <Logo className="w-20 h-20" />
+          </div>
 
           <div className="text-center mb-8">
             <div className="w-16 h-16 mx-auto mb-4 gradient-primary rounded-2xl flex items-center justify-center">
@@ -102,10 +110,6 @@ export default function AdminLogin() {
             <br />
             All activities are logged and monitored.
           </p>
-        </div>
-
-        <div className="mt-6 text-center">
-          <Logo size="sm" className="justify-center opacity-50" />
         </div>
       </div>
     </div>

@@ -1,15 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home, Store, MapPin, ChevronDown, UtensilsCrossed, Sparkles } from "lucide-react";
+import { Home, Store, MapPin, ChevronDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { Logo } from "@/components/shared/Logo";
-import traditionalWoman from "@/assets/traditional-woman.png";
-import chefCharacter from "@/assets/chef-character.png";
 
-/* ── Animated Character ── */
-function AnimatedCharacter({ side, imageUrl, alt }) {
+/* ── Optimized Animated Character ── */
+function AnimatedCharacter({ side, imageUrl, alt }: { side: "left" | "right"; imageUrl: string; alt: string }) {
   const isLeft = side === "left";
+  const [loaded, setLoaded] = useState(false);
 
   return (
     <motion.div
@@ -17,15 +16,19 @@ function AnimatedCharacter({ side, imageUrl, alt }) {
         isLeft ? "left-0" : "right-0"
       } z-10 hidden lg:block pointer-events-none`}
       initial={{ y: "-40%", opacity: 0 }}
-      animate={{ y: "-50%", opacity: 1 }}
-      transition={{ duration: 0.8 }}
+      animate={{ y: "-50%", opacity: loaded ? 1 : 0 }}
+      transition={{ duration: 0.6, ease: "easeOut" }}
     >
       <motion.img
         src={imageUrl}
         alt={alt}
-        className="h-[460px] object-contain drop-shadow-2xl"
-        animate={{ y: [0, -12, 0] }}
-        transition={{ duration: 4, repeat: Infinity }}
+        className="h-[400px] object-contain drop-shadow-2xl will-change-transform"
+        animate={{ y: [0, -8, 0] }}
+        transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+        loading="lazy"
+        decoding="async"
+        onLoad={() => setLoaded(true)}
+        style={{ opacity: loaded ? 1 : 0, transition: 'opacity 0.3s' }}
       />
     </motion.div>
   );
@@ -81,28 +84,33 @@ export default function LandingPage() {
   return (
     <div className="h-screen w-full bg-background relative overflow-hidden flex flex-col">
       
-      {/* Full page background with professional overlay */}
+      {/* Full page background with optimized loading */}
       <div className="absolute inset-0 overflow-hidden z-0">
         <img
-          src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=1920&q=80"
+          src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?w=1200&q=75&fm=webp"
           className="w-full h-full object-cover opacity-30"
+          loading="eager"
+          decoding="async"
+          alt=""
         />
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/20 to-black/30" />
         <div className="absolute inset-0 bg-gradient-to-r from-yellow-600/15 via-orange-600/10 to-red-600/15" />
         <div className="absolute inset-0 bg-gradient-to-t from-transparent via-transparent to-black/10" />
       </div>
 
-      <AnimatedCharacter
-        side="left"
-        imageUrl={traditionalWoman}
-        alt="Indian housewife"
-      />
+      <Suspense fallback={<div className="hidden lg:block" />}>
+        <AnimatedCharacter
+          side="left"
+          imageUrl="/src/assets/traditional-woman.png"
+          alt="Indian housewife"
+        />
 
-      <AnimatedCharacter
-        side="right"
-        imageUrl={chefCharacter}
-        alt="Chef"
-      />
+        <AnimatedCharacter
+          side="right"
+          imageUrl="/src/assets/chef-character.png"
+          alt="Chef"
+        />
+      </Suspense>
 
       {/* Header */}
       <header className="relative z-20 flex items-center justify-between px-6 md:px-12 py-6">
@@ -176,14 +184,19 @@ export default function LandingPage() {
         {/* Cards */}
         <div className="relative flex flex-col md:flex-row gap-8 max-w-4xl w-full justify-center items-center">
 
-          {/* Home Chef */}
+          {/* Home Chef Card - Optimized */}
           <motion.div
             onClick={() => handleSelect("home_chef")}
-            className="relative rounded-[2rem] overflow-hidden shadow-xl cursor-pointer w-[320px] h-[220px]"
+            className="relative rounded-[2rem] overflow-hidden shadow-xl cursor-pointer w-[320px] h-[220px] will-change-transform"
+            whileHover={{ scale: 1.02, y: -5 }}
+            transition={{ duration: 0.2 }}
           >
             <img
-              src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=600&q=80"
+              src="https://images.unsplash.com/photo-1585937421612-70a008356fbe?w=400&q=75&fm=webp"
               className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
+              alt="Home Chef"
             />
 
             <div className="absolute inset-0 bg-black/50" />
@@ -201,14 +214,19 @@ export default function LandingPage() {
             </div>
           </motion.div>
 
-          {/* Restaurant */}
+          {/* Restaurant Card - Optimized */}
           <motion.div
             onClick={() => handleSelect("restaurant")}
-            className="relative rounded-[2rem] overflow-hidden shadow-xl cursor-pointer w-[320px] h-[220px]"
+            className="relative rounded-[2rem] overflow-hidden shadow-xl cursor-pointer w-[320px] h-[220px] will-change-transform"
+            whileHover={{ scale: 1.02, y: -5 }}
+            transition={{ duration: 0.2 }}
           >
             <img
-              src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=600&q=80"
+              src="https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&q=75&fm=webp"
               className="absolute inset-0 w-full h-full object-cover"
+              loading="lazy"
+              decoding="async"
+              alt="Restaurant"
             />
 
             <div className="absolute inset-0 bg-black/50" />

@@ -35,15 +35,22 @@ export default function UserLogin() {
     <div className="min-h-screen flex">
       {/* Left Side - Form */}
       <div className="flex-1 flex flex-col p-8">
-        <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors mb-8">
-          <ArrowLeft size={20} />
-          Back to Home
-        </Link>
+        {/* Back to Home - Right aligned */}
+        <div className="flex justify-end mb-8">
+          <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+            <ArrowLeft size={20} />
+            Back to Home
+          </Link>
+        </div>
 
         <div className="flex-1 flex items-center justify-center">
           <div className="w-full max-w-md">
+            {/* Logo - Centered */}
+            <div className="flex justify-center mb-6">
+              <Logo className="w-20 h-20" />
+            </div>
+
             <div className="text-center mb-8">
-              <Logo size="lg" className="justify-center mb-6" />
               <h1 className="text-3xl font-display font-bold text-foreground mb-2">
                 Welcome Back!
               </h1>

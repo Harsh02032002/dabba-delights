@@ -2,12 +2,13 @@ import { AdminLayout } from '@/layouts/AdminLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { StatusBadge, SellerBadge } from '@/components/shared/Badge';
 import { RatingStars } from '@/components/shared/RatingStars';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Search, Filter, Eye, CheckCircle2, XCircle, MoreVertical, MapPin, Phone, Mail, Clock, Store, FileCheck, IndianRupee, ExternalLink, Download, Image, FileText, AlertTriangle } from 'lucide-react';
+import { Search, Filter, Eye, CheckCircle2, XCircle, MoreVertical, MapPin, Phone, Mail, Clock, Store, FileCheck, IndianRupee, ExternalLink, Download, Image, FileText, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAPI, API_BASE_URL } from '@/lib/api';
@@ -28,6 +29,24 @@ export default function AdminSellers() {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
   const [viewSeller, setViewSeller] = useState<any>(null);
+  const [showAddSeller, setShowAddSeller] = useState(false);
+  const [newSellerForm, setNewSellerForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: '',
+    businessName: '',
+    type: 'home_chef',
+    address: '',
+    fssaiLicense: '',
+    gstNumber: '',
+    panNumber: '',
+    bankAccount: '',
+    ifscCode: '',
+    accountHolder: '',
+    bankName: '',
+    commissionRate: 15,
+  });
 
   const { data, isLoading } = useQuery({
     queryKey: ['admin-sellers', activeTab],
@@ -42,6 +61,46 @@ export default function AdminSellers() {
   const rejectMutation = useMutation({
     mutationFn: (id: string) => adminAPI.rejectSeller(id),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-sellers'] }); toast({ title: 'Seller rejected' }); },
+  });
+
+  const createSellerMutation = useMutation({
+    mutationFn: () => adminAPI.createSeller(newSellerForm),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['admin-sellers'] });
+      toast({ title: 'Seller created successfully' });
+      setShowAddSeller(false);
+      setNewSellerForm({
+        name: '',
+        email: '',
+        password: '',
+        phone: '',
+        businessName: '',
+        type: 'home_chef',
+        address: '',
+        fssaiLicense: '',
+        gstNumber: '',
+        panNumber: '',
+        bankAccount: '',
+        ifscCode: '',
+        accountHolder: '',
+        bankName: '',
+        commissionRate: 15,
+      });
+    },
+    onError: (err: any) => {
+      toast({ title: 'Failed to create seller', description: err.message, variant: 'destructive' });
+    },
+  });
+
+  const deleteSellerMutation = useMutation({
+    mutationFn: (id: string) => adminAPI.deleteSeller(id),
+    onSuccess: () => { 
+      queryClient.invalidateQueries({ queryKey: ['admin-sellers'] }); 
+      toast({ title: 'Seller deleted successfully' }); 
+    },
+    onError: (err: any) => {
+      toast({ title: 'Failed to delete seller', description: err.message, variant: 'destructive' });
+    },
   });
 
   const sellers = safeArray(data?.sellers || data).filter((s: any) =>
@@ -66,6 +125,7 @@ export default function AdminSellers() {
           <Input placeholder="Search sellers..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} className="pl-10" />
         </div>
         <Button variant="outline" className="gap-2"><Filter size={18} /> Filters</Button>
+        <Button variant="gradient" className="gap-2" onClick={() => setShowAddSeller(true)}><Plus size={18} /> Add Seller</Button>
       </div>
 
       <div className="grid grid-cols-4 gap-4 mb-6">
@@ -108,6 +168,19 @@ export default function AdminSellers() {
                   <div className="flex flex-col gap-2">
                     <Button variant="outline" size="sm" className="gap-2" onClick={() => setViewSeller(seller)}>
                       <Eye size={14} /> View
+                    </Button>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      className="gap-2 text-destructive hover:text-destructive hover:bg-destructive/10" 
+                      onClick={() => {
+                        if (confirm('Are you sure you want to delete this seller? This action cannot be undone.')) {
+                          deleteSellerMutation.mutate(seller._id);
+                        }
+                      }}
+                      disabled={deleteSellerMutation.isPending}
+                    >
+                      <Trash2 size={14} /> Delete
                     </Button>
                     {(seller.kycStatus === 'pending' || seller.kycStatus === 'submitted') && (
                       <>
@@ -339,6 +412,211 @@ export default function AdminSellers() {
               </p>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* ═══ ADD SELLER DIALOG ═══ */}
+      <Dialog open={showAddSeller} onOpenChange={setShowAddSeller}>
+        <DialogContent className="max-w-2xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-3">
+              <Store size={24} className="text-primary" />
+              Add New Seller
+            </DialogTitle>
+          </DialogHeader>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              createSellerMutation.mutate();
+            }}
+            className="space-y-4"
+          >
+            {/* Basic Info */}
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Full Name *</Label>
+                <Input
+                  id="name"
+                  value={newSellerForm.name}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, name: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="businessName">Business Name *</Label>
+                <Input
+                  id="businessName"
+                  value={newSellerForm.businessName}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, businessName: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="email">Email *</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={newSellerForm.email}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, email: e.target.value })}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phone">Phone *</Label>
+                <Input
+                  id="phone"
+                  value={newSellerForm.phone}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, phone: e.target.value })}
+                  required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={newSellerForm.password}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, password: e.target.value })}
+                  placeholder="Leave blank for default: Seller@123"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="type">Business Type *</Label>
+                <select
+                  id="type"
+                  value={newSellerForm.type}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, type: e.target.value })}
+                  className="w-full h-10 rounded-md border border-input bg-background px-3 text-sm"
+                  required
+                >
+                  <option value="home_chef">Home Chef</option>
+                  <option value="restaurant">Restaurant</option>
+                  <option value="cloud_kitchen">Cloud Kitchen</option>
+                  <option value="catering">Catering</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="address">Full Address *</Label>
+              <Input
+                id="address"
+                value={newSellerForm.address}
+                onChange={(e) => setNewSellerForm({ ...newSellerForm, address: e.target.value })}
+                required
+              />
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <p className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wider">Business Details</p>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="fssaiLicense">FSSAI License</Label>
+                <Input
+                  id="fssaiLicense"
+                  value={newSellerForm.fssaiLicense}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, fssaiLicense: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="gstNumber">GST Number</Label>
+                <Input
+                  id="gstNumber"
+                  value={newSellerForm.gstNumber}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, gstNumber: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="panNumber">PAN Number</Label>
+                <Input
+                  id="panNumber"
+                  value={newSellerForm.panNumber}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, panNumber: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="border-t pt-4 mt-4">
+              <p className="text-sm font-medium text-muted-foreground mb-3 uppercase tracking-wider">Bank Details</p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="bankAccount">Account Number</Label>
+                <Input
+                  id="bankAccount"
+                  value={newSellerForm.bankAccount}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, bankAccount: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="ifscCode">IFSC Code</Label>
+                <Input
+                  id="ifscCode"
+                  value={newSellerForm.ifscCode}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, ifscCode: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="accountHolder">Account Holder Name</Label>
+                <Input
+                  id="accountHolder"
+                  value={newSellerForm.accountHolder}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, accountHolder: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="bankName">Bank Name</Label>
+                <Input
+                  id="bankName"
+                  value={newSellerForm.bankName}
+                  onChange={(e) => setNewSellerForm({ ...newSellerForm, bankName: e.target.value })}
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="commissionRate">Commission Rate (%)</Label>
+              <Input
+                id="commissionRate"
+                type="number"
+                min={0}
+                max={50}
+                value={newSellerForm.commissionRate}
+                onChange={(e) => setNewSellerForm({ ...newSellerForm, commissionRate: parseInt(e.target.value) || 15 })}
+              />
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1"
+                onClick={() => setShowAddSeller(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                variant="gradient"
+                className="flex-1"
+                disabled={createSellerMutation.isPending}
+              >
+                {createSellerMutation.isPending ? 'Creating...' : 'Create Seller'}
+              </Button>
+            </div>
+          </form>
         </DialogContent>
       </Dialog>
     </AdminLayout>

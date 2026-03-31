@@ -81,15 +81,22 @@ export default function SellerLogin() {
       {/* Right Side */}
       <div className="flex flex-1 flex-col p-8">
 
-        <Link to="/" className="mb-8 flex items-center gap-2 text-muted-foreground hover:text-foreground">
-          <ArrowLeft size={20} /> Back to Home
-        </Link>
+        {/* Back to Home - Right aligned */}
+        <div className="flex justify-end mb-8">
+          <Link to="/" className="flex items-center gap-2 text-muted-foreground hover:text-foreground">
+            <ArrowLeft size={20} /> Back to Home
+          </Link>
+        </div>
 
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-md">
 
+            {/* Logo - Centered */}
+            <div className="flex justify-center mb-6">
+              <Logo className="w-20 h-20" />
+            </div>
+
             <div className="mb-8 text-center">
-              <Logo size="lg" className="mb-6 flex justify-center" />
               <h1 className="mb-2 font-display text-3xl font-bold text-foreground">
                 Seller Portal
               </h1>
@@ -143,6 +150,12 @@ export default function SellerLogin() {
               <Button type="submit" variant="gradient" className="w-full" disabled={isLoading}>
                 {isLoading ? 'Signing in...' : 'Sign In to Dashboard'}
               </Button>
+
+              <div className="text-center">
+                <Link to="/forgot-password?role=seller" className="text-sm text-primary hover:underline">
+                  Forgot password?
+                </Link>
+              </div>
 
             </form>
 
