@@ -92,11 +92,25 @@ export default function CheckoutPage() {
         },
         (error) => {
           console.error('❌ Location detection failed:', error);
-          toast({ 
-            title: "Location Error", 
-            description: "Could not detect your location. Please enter address manually.", 
-            variant: "destructive" 
-          });
+          // Handle HTTPS geolocation restriction
+          if (error.code === 1) {
+            toast({ 
+              title: "🌐 HTTPS Required", 
+              description: "Location access requires HTTPS in browser. Please enter address manually.", 
+              variant: "destructive" 
+            });
+          } else {
+            toast({ 
+              title: "Location Error", 
+              description: "Could not detect your location. Please enter address manually.", 
+              variant: "destructive" 
+            });
+          }
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 0
         }
       );
     } else {
@@ -223,7 +237,7 @@ export default function CheckoutPage() {
       totalGST: gstCalculation.totalGST,
       platformCommission: gstCalculation.platformCommission,
       platformCommissionGST: gstCalculation.platformCommissionGST,
-      totalCommissionWithGST: gstCalculation.totalCommissionWithGST
+      totalCommissionWithGST: gstCalculation.platformCommission + gstCalculation.platformCommissionGST
     } : null,
   });
 

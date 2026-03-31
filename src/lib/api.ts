@@ -501,8 +501,6 @@ export const userAPI = {
     apiRequest(`/user/orders${status ? `?status=${status}` : ""}`),
   getOrderById: (id: string) =>
     apiRequest(`/user/orders/${id}`),
-  cancelOrder: (id: string) =>
-    apiRequest(`/user/orders/${id}/cancel`, { method: "POST" }),
   deleteOrder: (id: string) =>
     apiRequest(`/user/orders/${id}/delete`, { method: "DELETE" }),
   rateOrder: (id: string, rating: number, review?: string) =>
