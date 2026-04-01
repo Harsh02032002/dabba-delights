@@ -219,7 +219,7 @@ export default function CheckoutPage() {
     items: cartItems.map((item: any) => ({
       menuItemId: item.menuItem._id,
       name: item.menuItem.name,
-      price: item.menuItem.discountPrice || item.menuItem.price,
+      sellingPrice: item.menuItem.discountPrice || item.menuItem.sellingPrice,
       quantity: item.quantity,
       image: item.menuItem.image,
     })),
@@ -589,7 +589,7 @@ export default function CheckoutPage() {
               <h2 className="text-lg font-semibold text-foreground mb-4">Order Summary</h2>
               <div className="space-y-3 text-sm">
                 {cartItems.map((item: any) => {
-                  const itemPrice = item.menuItem.discountPrice || item.menuItem.price;
+                  const itemPrice = item.menuItem.sellingPrice;
                   const itemTotal = itemPrice * item.quantity;
                   return (
                     <div key={item.menuItem._id}>

@@ -107,7 +107,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const getTotal = () => {
     const subtotal = cart.items.reduce(
-      (sum, item) => sum + (item.menuItem.discountPrice || item.menuItem.price) * item.quantity,
+      (sum, item) => sum + (item.menuItem.discountPrice || item.menuItem.sellingPrice) * item.quantity,
       0
     );
     const gst = (subtotal * GST_PERCENTAGE) / 100;

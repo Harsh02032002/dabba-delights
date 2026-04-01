@@ -179,11 +179,11 @@ export default function AllProducts() {
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-lg font-bold text-foreground">
-                          ₹{item.discountPrice || item.price || 0}
+                          ₹{item.discountPrice || item.sellingPrice || 0}
                         </span>
-                        {item.discountPrice && item.price && (
+                        {item.discountPrice && item.sellingPrice && (
                           <span className="text-sm text-muted-foreground line-through ml-2">
-                            ₹{item.price}
+                            ₹{item.sellingPrice}
                           </span>
                         )}
                       </div>

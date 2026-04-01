@@ -27,7 +27,7 @@ export interface OrderGSTBreakup {
 export interface MenuItemWithGST {
   id: string;
   name: string;
-  price: number;
+  sellingPrice: number;
   quantity: number;
   gst: GSTCalculation;
   total: number;
@@ -126,13 +126,13 @@ export function calculateItemGST(itemPrice: number): GSTCalculation {
 /**
  * Calculate GST for menu items with quantities
  */
-export function calculateMenuGST(items: Array<{ price: number; quantity: number }>): MenuItemWithGST[] {
+export function calculateMenuGST(items: Array<{ sellingPrice: number; quantity: number }>): MenuItemWithGST[] {
   return items.map((item, index) => {
-    const gst = calculateItemGST(item.price);
+    const gst = calculateItemGST(item.sellingPrice);
     return {
       id: `item-${index}`,
       name: '', // Will be filled by caller
-      price: item.price,
+      sellingPrice: item.sellingPrice,
       quantity: item.quantity,
       gst,
       total: gst.totalPrice * item.quantity
@@ -144,7 +144,7 @@ export function calculateMenuGST(items: Array<{ price: number; quantity: number 
  * Calculate complete order GST breakup
  */
 export function calculateOrderGST(
-  items: Array<{ price: number; quantity: number }>,
+  items: Array<{ sellingPrice: number; quantity: number }>,
   platformCommissionRate: number = 0.07, // 7% default
   deliveryFee: number = 0
 ): OrderGSTBreakup {
@@ -152,7 +152,7 @@ export function calculateOrderGST(
   const currentSettings = getCurrentGSTSettings();
   
   // Calculate item subtotal (without GST)
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = items.reduce((sum, item) => sum + (item.sellingPrice * item.quantity), 0);
 
   // Calculate GST on food items using admin settings
   const foodCGSTRate = currentSettings?.gstApplicable && currentSettings?.foodGSTEnabled ? 
@@ -233,7 +233,7 @@ export function formatGSTPercentage(rate: number): string {
  * Generate GST invoice line items
  */
 export function generateGSTInvoiceItems(
-  items: Array<{ name: string; price: number; quantity: number }>
+  items: Array<{ name: string; sellingPrice: number; quantity: number }>
 ): Array<{
   description: string;
   quantity: number;
@@ -244,8 +244,8 @@ export function generateGSTInvoiceItems(
   total: number;
 }> {
   return items.map(item => {
-    const gst = calculateItemGST(item.price);
-    const itemTotal = item.price * item.quantity;
+    const gst = calculateItemGST(item.sellingPrice);
+    const itemTotal = item.sellingPrice * item.quantity;
     const totalCGST = gst.cgst * item.quantity;
     const totalSGST = gst.sgst * item.quantity;
     const totalWithGST = gst.totalPrice * item.quantity;
@@ -253,7 +253,7 @@ export function generateGSTInvoiceItems(
     return {
       description: item.name,
       quantity: item.quantity,
-      rate: item.price,
+      rate: item.sellingPrice,
       amount: itemTotal,
       cgst: totalCGST,
       sgst: totalSGST,

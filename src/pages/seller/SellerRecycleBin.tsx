@@ -181,7 +181,7 @@ export default function SellerRecycleBin() {
                 <CardContent className="p-3">
                   <div className="flex items-start justify-between gap-1 mb-1">
                     <h3 className="font-semibold text-sm text-foreground line-clamp-1">{item.name}</h3>
-                    <span className="font-bold text-sm text-foreground shrink-0">₹{item.price}</span>
+                    <span className="font-bold text-sm text-foreground shrink-0">₹{item.sellingPrice}</span>
                   </div>
                   <p className="text-xs text-muted-foreground line-clamp-1 mb-1">{item.description}</p>
                   <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">

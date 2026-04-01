@@ -142,7 +142,8 @@ export default function AdminProducts() {
     const fd = new FormData();
     fd.append('name', (form.elements.namedItem('name') as HTMLInputElement).value);
     fd.append('description', (form.elements.namedItem('description') as HTMLTextAreaElement).value);
-    fd.append('price', (form.elements.namedItem('price') as HTMLInputElement).value);
+    fd.append('sellingPrice', (form.elements.namedItem('sellingPrice') as HTMLInputElement).value);
+    fd.append('costPrice', (form.elements.namedItem('costPrice') as HTMLInputElement).value || '0');
     fd.append('discountPrice', (form.elements.namedItem('discountPrice') as HTMLInputElement).value || '');
     fd.append('category', (form.elements.namedItem('category') as HTMLInputElement)?.value || 'Main Course');
     fd.append('preparationTime', (form.elements.namedItem('preparationTime') as HTMLInputElement).value);
@@ -233,8 +234,8 @@ export default function AdminProducts() {
                     <div className="flex items-start justify-between gap-1 mb-1">
                       <h3 className="font-semibold text-sm line-clamp-1">{item.name}</h3>
                       <div className="text-right shrink-0">
-                        <span className="font-bold text-sm">₹{item.discountPrice || item.price}</span>
-                        {item.discountPrice && <span className="text-xs text-muted-foreground line-through ml-1">₹{item.price}</span>}
+                        <span className="font-bold text-sm">₹{item.discountPrice || item.sellingPrice}</span>
+                        {item.discountPrice && <span className="text-xs text-muted-foreground line-through ml-1">₹{item.sellingPrice}</span>}
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-1 mb-1">{item.description}</p>
@@ -298,7 +299,8 @@ export default function AdminProducts() {
                 </div>
                 <div className="space-y-2"><Label>Description</Label><Textarea name="description" rows={3} /></div>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                  <div className="space-y-2"><Label>Price (₹) *</Label><Input name="price" type="number" required /></div>
+                  <div className="space-y-2"><Label>Selling Price (₹) *</Label><Input name="sellingPrice" type="number" required /></div>
+                  <div className="space-y-2"><Label>Cost Price (₹)</Label><Input name="costPrice" type="number" placeholder="Optional" /></div>
                   <div className="space-y-2"><Label>Discount Price (₹)</Label><Input name="discountPrice" type="number" placeholder="Optional" /></div>
                   <div className="space-y-2"><Label>Prep Time *</Label><Input name="preparationTime" type="number" required /></div>
                   <div className="space-y-2"><Label>Stock</Label><Input name="stock" type="number" defaultValue="100" /></div>
@@ -326,7 +328,7 @@ export default function AdminProducts() {
             {archivedProducts.map((item: any) => (
               <Card key={item._id} className="opacity-75">
                 <CardContent className="pt-4">
-                  <h3 className="font-semibold text-sm mb-2">{item.name} — ₹{item.price}</h3>
+                  <h3 className="font-semibold text-sm mb-2">{item.name} — ₹{item.sellingPrice}</h3>
                   <div className="flex gap-2">
                     <Button size="sm" variant="outline" onClick={() => restoreMutation.mutate(item._id)}><RotateCcw size={14} className="mr-1" /> Restore</Button>
                     <Button size="sm" variant="destructive" onClick={() => hardDeleteMutation.mutate(item._id)}><Trash2 size={14} className="mr-1" /> Delete</Button>
@@ -361,7 +363,7 @@ export default function AdminProducts() {
           <Card>
             <CardHeader><CardTitle>Bulk CSV Upload</CardTitle></CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground mb-3">Upload CSV with: name, price, discountPrice, category, description, isVeg, stock, preparationTime</p>
+              <p className="text-sm text-muted-foreground mb-3">Upload CSV with: name, sellingPrice, costPrice, discountPrice, category, description, isVeg, stock, preparationTime</p>
               <input type="file" ref={csvInputRef} accept=".csv" className="hidden" onChange={e => {
                 const file = e.target.files?.[0];
                 if (!file) return;
@@ -394,7 +396,8 @@ export default function AdminProducts() {
               </div>
               <div className="space-y-2"><Label>Description</Label><Textarea name="editDescription" defaultValue={editItem.description} rows={3} /></div>
               <div className="grid grid-cols-4 gap-4">
-                <div className="space-y-2"><Label>Price (₹)</Label><Input name="editPrice" type="number" defaultValue={editItem.price} required /></div>
+                <div className="space-y-2"><Label>Selling Price (₹)</Label><Input name="editSellingPrice" type="number" defaultValue={editItem.sellingPrice} required /></div>
+                <div className="space-y-2"><Label>Cost Price (₹)</Label><Input name="editCostPrice" type="number" defaultValue={editItem.costPrice || ''} placeholder="Optional" /></div>
                 <div className="space-y-2"><Label>Discount Price</Label><Input name="editDiscountPrice" type="number" defaultValue={editItem.discountPrice || ''} placeholder="Optional" /></div>
                 <div className="space-y-2"><Label>Prep Time</Label><Input name="editPrepTime" type="number" defaultValue={editItem.preparationTime} /></div>
                 <div className="space-y-2"><Label>Stock</Label><Input name="editStock" type="number" defaultValue={editItem.stock} /></div>

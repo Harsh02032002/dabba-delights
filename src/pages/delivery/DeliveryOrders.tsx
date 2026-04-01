@@ -35,7 +35,7 @@ interface DeliveryOrder {
   items: Array<{
     name: string;
     quantity: number;
-    price: number;
+    sellingPrice: number;
   }>;
   totalAmount: number;
   estimatedDelivery: string;
@@ -308,7 +308,7 @@ export default function DeliveryOrders() {
                     {order.items.map((item, index) => (
                       <div key={index} className="flex justify-between text-sm">
                         <span>{item.name} x{item.quantity}</span>
-                        <span>₹{item.price * item.quantity}</span>
+                        <span>₹{item.sellingPrice * item.quantity}</span>
                       </div>
                     ))}
                   </div>
