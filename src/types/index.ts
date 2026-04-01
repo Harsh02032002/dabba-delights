@@ -89,7 +89,8 @@ export interface MenuItem {
   sellerId: string;
   name: string;
   description: string;
-  price: number;
+  sellingPrice: number;
+  costPrice?: number;
   discountPrice?: number;
   category: string;
   image: string;
@@ -153,7 +154,7 @@ export interface Order {
 export interface OrderItem {
   menuItemId: string;
   name: string;
-  price: number;
+  sellingPrice: number;
   quantity: number;
   image: string;
 }

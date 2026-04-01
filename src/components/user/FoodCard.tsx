@@ -63,7 +63,7 @@ export function FoodCard({ item, seller, className }: FoodCardProps) {
         </div>
         {item.discountPrice && (
           <div className="absolute bottom-3 left-3 bg-success text-success-foreground px-2 py-1 rounded-lg text-xs font-bold">
-            {Math.round(((item.price - item.discountPrice) / item.price) * 100)}% OFF
+            {Math.round(((item.sellingPrice - item.discountPrice) / item.sellingPrice) * 100)}% OFF
           </div>
         )}
       </div>
@@ -91,8 +91,8 @@ export function FoodCard({ item, seller, className }: FoodCardProps) {
         
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold text-foreground">₹{item.discountPrice || item.price}</span>
-            {item.discountPrice && <span className="text-sm text-muted-foreground line-through">₹{item.price}</span>}
+            <span className="text-lg font-bold text-foreground">₹{item.discountPrice || item.sellingPrice}</span>
+            {item.discountPrice && <span className="text-sm text-muted-foreground line-through">₹{item.sellingPrice}</span>}
           </div>
           <Button size="sm" variant="gradient" onClick={handleAddToCart} className="h-9 px-4">
             <Plus size={16} /> Add

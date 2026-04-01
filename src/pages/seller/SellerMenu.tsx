@@ -205,7 +205,8 @@ export default function SellerMenu() {
     const fd = new FormData();
     fd.append('name', (form.elements.namedItem('name') as HTMLInputElement).value);
     fd.append('description', (form.elements.namedItem('description') as HTMLTextAreaElement).value);
-    fd.append('price', (form.elements.namedItem('price') as HTMLInputElement).value);
+    fd.append('sellingPrice', (form.elements.namedItem('sellingPrice') as HTMLInputElement).value);
+    fd.append('costPrice', (form.elements.namedItem('costPrice') as HTMLInputElement).value || '0');
     fd.append('category', (form.elements.namedItem('category') as HTMLInputElement)?.value || 'Main Course');
     fd.append('preparationTime', (form.elements.namedItem('preparationTime') as HTMLInputElement).value);
     fd.append('stock', (form.elements.namedItem('stock') as HTMLInputElement).value || '100');
@@ -226,7 +227,8 @@ export default function SellerMenu() {
     const fd = new FormData();
     fd.append('name', (form.elements.namedItem('editName') as HTMLInputElement).value);
     fd.append('description', (form.elements.namedItem('editDescription') as HTMLTextAreaElement).value);
-    fd.append('price', (form.elements.namedItem('editPrice') as HTMLInputElement).value);
+    fd.append('sellingPrice', (form.elements.namedItem('editSellingPrice') as HTMLInputElement).value);
+    fd.append('costPrice', (form.elements.namedItem('editCostPrice') as HTMLInputElement).value || '0');
     fd.append('category', (form.elements.namedItem('editCategory') as HTMLInputElement)?.value || editItem.category);
     fd.append('preparationTime', (form.elements.namedItem('editPrepTime') as HTMLInputElement).value);
     fd.append('stock', (form.elements.namedItem('editStock') as HTMLInputElement).value || '0');
@@ -364,7 +366,7 @@ export default function SellerMenu() {
                   <CardContent className="p-3">
                     <div className="flex items-start justify-between gap-1 mb-1">
                       <h3 className="font-semibold text-sm text-foreground line-clamp-1">{item.name}</h3>
-                      <span className="font-bold text-sm text-foreground shrink-0">₹{item.price}</span>
+                      <span className="font-bold text-sm text-foreground shrink-0">₹{item.sellingPrice}</span>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{item.description}</p>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
@@ -419,7 +421,8 @@ export default function SellerMenu() {
                 </div>
                 <div className="space-y-2"><Label>Description</Label><Textarea name="description" placeholder="Describe your dish..." rows={3} /></div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2"><Label>Price (₹) *</Label><Input name="price" type="number" min="1" placeholder="250" required /></div>
+                  <div className="space-y-2"><Label>Selling Price (₹) *</Label><Input name="sellingPrice" type="number" min="1" placeholder="250" required /></div>
+                  <div className="space-y-2"><Label>Cost Price (₹)</Label><Input name="costPrice" type="number" min="0" placeholder="150" defaultValue="0" /></div>
                   <div className="space-y-2"><Label>Prep Time (mins) *</Label><Input name="preparationTime" type="number" placeholder="25" required /></div>
                   <div className="space-y-2"><Label>Stock</Label><Input name="stock" type="number" placeholder="100" defaultValue="100" /></div>
                 </div>
@@ -469,7 +472,7 @@ export default function SellerMenu() {
               <CardHeader><CardTitle className="flex items-center gap-2"><Layers size={18} /> Bulk JSON</CardTitle></CardHeader>
               <CardContent className="space-y-3">
                 <Textarea
-                  placeholder='[{"name":"Paneer Tikka","price":200,"category":"Starters","isVeg":true}]'
+                  placeholder='[{"name":"Paneer Tikka","sellingPrice":200,"costPrice":120,"category":"Starters","isVeg":true}]'
                   rows={8}
                   value={bulkJsonText}
                   onChange={e => setBulkJsonText(e.target.value)}
@@ -484,14 +487,14 @@ export default function SellerMenu() {
             <Card>
               <CardHeader><CardTitle className="flex items-center gap-2"><FileUp size={18} /> Bulk CSV</CardTitle></CardHeader>
               <CardContent className="space-y-3">
-                <p className="text-sm text-muted-foreground">Upload a CSV file with columns: name, price, category, description, isVeg, stock, preparationTime</p>
+                <p className="text-sm text-muted-foreground">Upload a CSV file with columns: name, sellingPrice, costPrice, category, description, isVeg, stock, preparationTime</p>
                 <input type="file" ref={csvInputRef} accept=".csv" onChange={handleCsvUpload} className="hidden" />
                 <div className="flex gap-2">
                   <Button variant="outline" onClick={() => csvInputRef.current?.click()} disabled={bulkCsvMutation.isPending}>
                     <Upload size={16} className="mr-2" /> {bulkCsvMutation.isPending ? 'Processing...' : 'Upload CSV'}
                   </Button>
                   <Button variant="ghost" size="sm" onClick={() => {
-                    const csv = 'name,price,category,description,isVeg,stock,preparationTime\nButter Chicken,350,Main Course,Rich creamy chicken curry,false,50,30\nPaneer Tikka,250,Starters,Grilled cottage cheese,true,40,20\nDal Makhani,200,Main Course,Slow cooked black lentils,true,60,25';
+                    const csv = 'name,sellingPrice,costPrice,category,description,isVeg,stock,preparationTime\nButter Chicken,350,200,Main Course,Rich creamy chicken curry,false,50,30\nPaneer Tikka,250,150,Starters,Grilled cottage cheese,true,40,20\nDal Makhani,200,120,Main Course,Slow cooked black lentils,true,60,25';
                     const blob = new Blob([csv], { type: 'text/csv' });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
@@ -534,7 +537,7 @@ export default function SellerMenu() {
                     <img src={item.image || '/placeholder.svg'} alt={item.name} className="w-full h-full object-cover grayscale" />
                   </div>
                   <CardContent className="p-3">
-                    <h3 className="font-semibold text-sm mb-2">{item.name} — ₹{item.price}</h3>
+                    <h3 className="font-semibold text-sm mb-2">{item.name} — ₹{item.sellingPrice}</h3>
                     <div className="flex gap-2">
                       <Button size="sm" variant="outline" onClick={() => restoreMutation.mutate(item._id)}>
                         <RotateCcw size={14} className="mr-1" /> Restore
@@ -584,7 +587,7 @@ export default function SellerMenu() {
                     <h3 className="font-semibold text-sm">{item.name}</h3>
                     <span className="text-xs bg-yellow-500/20 text-yellow-700 px-2 py-1 rounded">Stock: {item.stock}</span>
                   </div>
-                  <p className="text-xs text-muted-foreground mb-2">₹{item.price} · {item.category}</p>
+                  <p className="text-xs text-muted-foreground mb-2">₹{item.sellingPrice} · {item.category}</p>
                 </CardContent>
               </Card>
             ))}
@@ -610,7 +613,8 @@ export default function SellerMenu() {
               </div>
               <div className="space-y-2"><Label>Description</Label><Textarea name="editDescription" defaultValue={editItem.description} rows={3} /></div>
               <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2"><Label>Price (₹)</Label><Input name="editPrice" type="number" defaultValue={editItem.price} required /></div>
+                <div className="space-y-2"><Label>Selling Price (₹)</Label><Input name="editSellingPrice" type="number" defaultValue={editItem.sellingPrice} required /></div>
+                <div className="space-y-2"><Label>Cost Price (₹)</Label><Input name="editCostPrice" type="number" defaultValue={editItem.costPrice || 0} /></div>
                 <div className="space-y-2"><Label>Prep Time</Label><Input name="editPrepTime" type="number" defaultValue={editItem.preparationTime} /></div>
                 <div className="space-y-2"><Label>Stock</Label><Input name="editStock" type="number" defaultValue={editItem.stock} /></div>
               </div>

@@ -75,7 +75,7 @@ export default function SellerInventory() {
                             {item.image && <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover" />}
                             <div>
                               <span className="font-medium text-foreground">{item.name}</span>
-                              <p className="text-xs text-muted-foreground">₹{item.price} · {item.category}</p>
+                              <p className="text-xs text-muted-foreground">₹{item.sellingPrice} · {item.category}</p>
                             </div>
                           </div>
                         </td>
