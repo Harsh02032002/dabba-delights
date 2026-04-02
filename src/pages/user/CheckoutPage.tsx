@@ -319,9 +319,6 @@ export default function CheckoutPage() {
       sgst: gstCalculation.totalSGST,
       igst: gstCalculation.igst,
       totalGST: gstCalculation.totalGST,
-      platformCommission: gstCalculation.platformCommission,
-      platformCommissionGST: gstCalculation.platformCommissionGST,
-      totalCommissionWithGST: gstCalculation.platformCommission + gstCalculation.platformCommissionGST
     } : null,
   });
 
@@ -735,6 +732,8 @@ export default function CheckoutPage() {
                   </>
                 ) : null}
 
+                {/* Delivery - HIDDEN from user view */}
+                {/*
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Delivery</span>
                   <span>₹{(gstCalculation?.deliveryFee ?? totals.deliveryFee).toFixed(2)}</span>
@@ -761,6 +760,7 @@ export default function CheckoutPage() {
                     )}
                   </>
                 ) : null}
+                */}
 
                 {gstCalculation && gstSettings?.gstApplicable ? (
                   <div className="flex justify-between text-green-700 font-medium">

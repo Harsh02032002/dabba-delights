@@ -5,8 +5,9 @@ import { componentTagger } from "lovable-tagger";
 
 export default defineConfig(({ mode }) => ({
   server: {
-    host: "::",
+    host: true, // allow external access
     port: 8080,
+    allowedHosts: ["dabbanation.in"], // 🔥 IMPORTANT FIX
     hmr: {
       overlay: false,
     },
@@ -24,13 +25,12 @@ export default defineConfig(({ mode }) => ({
   },
 
   define: {
-    // Fix "process is not defined" error
-    'process.env.NODE_ENV': JSON.stringify(mode || 'development'),
-    global: 'globalThis',
+    "process.env.NODE_ENV": JSON.stringify(mode || "development"),
+    global: "globalThis",
   },
 
   build: {
-    sourcemap: true,        // 🔥 VERY IMPORTANT (for debugging live errors)
+    sourcemap: true,
     minify: "esbuild",
     chunkSizeWarningLimit: 1000,
   },

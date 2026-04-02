@@ -6,6 +6,10 @@ import { Minus, Plus, Trash2, ShoppingBag, ArrowLeft } from 'lucide-react';
 import { Link, useNavigate } from 'react-router-dom';
 import { VegBadge } from '@/components/shared/Badge';
 import { Separator } from '@/components/ui/separator';
+import { useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { fetchPublicGSTSettings } from '@/lib/api';
+import { updateGSTSettings, GST_RATES, formatGSTPercentage } from '@/lib/gst';
 
 export default function CartPage() {
   const {
@@ -19,6 +23,23 @@ export default function CartPage() {
 
   const navigate = useNavigate();
 
+  // 🔥 Fetch GST Settings from backend
+  const { data: gstSettings } = useQuery({
+    queryKey: ['public-gst-settings'],
+    queryFn: fetchPublicGSTSettings,
+  });
+
+  // Update GST rates when settings load
+  useEffect(() => {
+    console.log('GST Settings fetched:', gstSettings);
+    if (gstSettings?.data) {
+      console.log('Updating GST with data:', gstSettings.data);
+      updateGSTSettings(gstSettings.data);
+    } else {
+      console.log('No GST data available');
+    }
+  }, [gstSettings]);
+
   // 🔥 Safety Guards
   const safeItems = Array.isArray(cart?.items) ? cart.items : [];
   const totals = getTotal ? getTotal() : {
@@ -28,6 +49,9 @@ export default function CartPage() {
     gst: 0,
     total: 0,
   };
+
+  // Get current GST percentage for display
+  const gstPercentage = GST_RATES.FOOD.TOTAL * 100;
 
   if (safeItems.length === 0) {
     return (
@@ -131,9 +155,9 @@ export default function CartPage() {
 
                     <p className="font-bold text-foreground">
                       ₹
-                      {(item?.menuItem?.discountPrice ||
-                        item?.menuItem?.price ||
-                        0) * item.quantity}
+                      {((item?.menuItem?.discountPrice ||
+                        item?.menuItem?.sellingPrice ||
+                        0)).toFixed(0) * item.quantity}
                     </p>
                   </div>
                 </div>
@@ -164,6 +188,8 @@ export default function CartPage() {
                   </span>
                 </div>
 
+                {/* Delivery Fee - HIDDEN */}
+                {/*
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
                     Delivery Fee
@@ -172,7 +198,10 @@ export default function CartPage() {
                     ₹{totals.deliveryFee}
                   </span>
                 </div>
+                */}
 
+                {/* Platform Fee - HIDDEN */}
+                {/*
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
                     Platform Fee
@@ -181,10 +210,12 @@ export default function CartPage() {
                     ₹{totals.platformFee}
                   </span>
                 </div>
+                */}
 
+                {/* GST - Dynamic rate from backend */}
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">
-                    GST (5%)
+                    GST ({gstPercentage.toFixed(0)}%)
                   </span>
                   <span className="font-medium">
                     ₹{totals.gst.toFixed(2)}

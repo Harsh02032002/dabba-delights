@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Cart, CartItem, MenuItem, SellerType } from '@/types';
 import { toast } from '@/hooks/use-toast';
+import { GST_RATES } from '@/lib/gst';
 
 interface CartContextType {
   cart: Cart;
@@ -16,7 +17,7 @@ const CartContext = createContext<CartContextType | undefined>(undefined);
 
 const DELIVERY_FEE = 40;
 const PLATFORM_FEE = 5;
-const GST_PERCENTAGE = 5;
+// GST percentage now comes from GST_RATES which is updated from backend
 
 export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Cart>(() => {
@@ -107,16 +108,19 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const getTotal = () => {
     const subtotal = cart.items.reduce(
-      (sum, item) => sum + (item.menuItem.discountPrice || item.menuItem.sellingPrice) * item.quantity,
+      (sum, item) => sum + ((item.menuItem.discountPrice || item.menuItem.sellingPrice || 0) * item.quantity),
       0
     );
-    const gst = (subtotal * GST_PERCENTAGE) / 100;
-    const total = subtotal + DELIVERY_FEE + PLATFORM_FEE + gst;
+    // Use dynamic GST rate from backend (GST_RATES.FOOD.TOTAL is 0-1 decimal)
+    const gstRate = GST_RATES.FOOD.TOTAL; // e.g., 0.05 for 5%
+    const gst = subtotal * gstRate;
+    // No delivery/platform fee in cart - only at checkout
+    const total = subtotal + gst;
 
     return {
       subtotal,
-      deliveryFee: cart.items.length > 0 ? DELIVERY_FEE : 0,
-      platformFee: cart.items.length > 0 ? PLATFORM_FEE : 0,
+      deliveryFee: 0, // Hidden from cart
+      platformFee: 0, // Hidden from cart
       gst,
       total: cart.items.length > 0 ? total : 0,
     };
