@@ -43,11 +43,11 @@ export default function Footer() {
           <div className="space-y-4">
             <h4 className="text-lg font-semibold">Support</h4>
             <ul className="space-y-2 text-gray-300 text-sm">
-              <li><a href="#" className="hover:text-orange-500 transition-colors">Help Center</a></li>
-              <li><a href="#" className="hover:text-orange-500 transition-colors">Contact Us</a></li>
-              <li><a href="#" className="hover:text-orange-500 transition-colors">Privacy Policy</a></li>
-              <li><a href="#" className="hover:text-orange-500 transition-colors">Terms of Service</a></li>
-              <li><a href="#" className="hover:text-orange-500 transition-colors">Refund Policy</a></li>
+              <li><a href="/help" className="hover:text-orange-500 transition-colors">Help Center</a></li>
+              <li><a href="/contact" className="hover:text-orange-500 transition-colors">Contact Us</a></li>
+              <li><a href="/privacy" className="hover:text-orange-500 transition-colors">Privacy Policy</a></li>
+              <li><a href="/terms" className="hover:text-orange-500 transition-colors">Terms of Service</a></li>
+              <li><a href="/refund" className="hover:text-orange-500 transition-colors">Refund Policy</a></li>
             </ul>
           </div>
 

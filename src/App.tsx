@@ -26,12 +26,14 @@ import AllProducts from "./pages/user/AllProducts";
 import MyOrders from "./pages/user/MyOrders";
 import UserSettings from "./pages/user/UserSettings";
 import SellerDetail from "./pages/user/SellerDetail";
+import HelpCenter from "./pages/user/HelpCenter";
+import ContactUs from "./pages/user/ContactUs";
 
 // Static Pages
 import AboutUs from "./pages/static/AboutUs";
-import PrivacyPolicy from "./pages/static/PrivacyPolicy";
-import TermsOfService from "./pages/static/TermsOfService";
-import RefundPolicy from "./pages/static/RefundPolicy";
+import PrivacyPolicy from "./pages/user/PrivacyPolicy";
+import TermsOfService from "./pages/user/TermsOfService";
+import RefundPolicy from "./pages/user/RefundPolicy";
 
 // Seller Pages
 import SellerLogin from "./pages/seller/SellerLogin";
@@ -140,8 +142,13 @@ const App = () => (
 
               {/* Static Pages */}
               <Route path="/about" element={<AboutUs />} />
+              <Route path="/help" element={<HelpCenter />} />
+              <Route path="/contact" element={<ContactUs />} />
+              <Route path="/privacy" element={<PrivacyPolicy />} />
               <Route path="/privacy-policy" element={<PrivacyPolicy />} />
+              <Route path="/terms" element={<TermsOfService />} />
               <Route path="/terms-of-service" element={<TermsOfService />} />
+              <Route path="/refund" element={<RefundPolicy />} />
               <Route path="/refund-policy" element={<RefundPolicy />} />
 
               {/* Seller Routes */}

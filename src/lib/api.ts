@@ -28,22 +28,62 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeout = REQ
   }
 }
 
+/** Customer restaurant URL is /seller/:mongoId — must use userToken, not sellerToken */
+function isSellerPanelPath(path: string): boolean {
+  if (!path.startsWith('/seller')) return false;
+  if (path === '/seller/login' || path === '/seller/register') return true;
+  const rest = path.replace(/^\/seller\/?/, '');
+  if (!rest) return true;
+  const first = rest.split('/')[0] ?? '';
+  if (/^[a-f\d]{24}$/i.test(first)) return false;
+  return true;
+}
+
+// Helper to get the correct token based on current URL path
+function getTokenForCurrentRole(): string | null {
+  if (typeof window === 'undefined') return localStorage.getItem('userToken') || localStorage.getItem('token');
+  
+  const path = window.location.pathname;
+  
+  if (path.startsWith('/admin')) {
+    return localStorage.getItem('adminToken');
+  }
+  
+  if (path.startsWith('/seller') && isSellerPanelPath(path)) {
+    return localStorage.getItem('sellerToken');
+  }
+  
+  if (path.startsWith('/delivery')) {
+    return localStorage.getItem('deliveryToken');
+  }
+  
+  return localStorage.getItem('userToken') || localStorage.getItem('token');
+}
+
+type ApiRequestOptions = RequestInit & { authToken?: string | null };
+
 async function apiRequest<T = any>(
   endpoint: string,
-  options: RequestInit = {},
+  options: ApiRequestOptions = {},
 ): Promise<T> {
-  const token = localStorage.getItem("token");
+  const { authToken, ...fetchOptions } = options;
+  const token =
+    authToken === null
+      ? null
+      : authToken !== undefined
+        ? authToken
+        : getTokenForCurrentRole();
   const headers: HeadersInit = {
     "Content-Type": "application/json",
     ...(token && { Authorization: `Bearer ${token}` }),
-    ...options.headers,
+    ...fetchOptions.headers,
   };
   
   const startTime = performance.now();
   
   try {
     const response = await fetchWithTimeout(`${API_BASE_URL}${endpoint}`, {
-      ...options,
+      ...fetchOptions,
       headers,
     });
     
@@ -63,8 +103,19 @@ async function apiRequest<T = any>(
   }
 }
 
-async function apiUpload<T = any>(endpoint: string, formData: FormData, method = "POST", timeout = 30000): Promise<T> {
-  const token = localStorage.getItem("token");
+async function apiUpload<T = any>(
+  endpoint: string,
+  formData: FormData,
+  method = "POST",
+  timeout = 30000,
+  authToken?: string | null,
+): Promise<T> {
+  const token =
+    authToken === null
+      ? null
+      : authToken !== undefined
+        ? authToken
+        : getTokenForCurrentRole();
   const headers: HeadersInit = {
     ...(token && { Authorization: `Bearer ${token}` }),
   };
@@ -112,8 +163,12 @@ function toQuery(params?: Record<string, unknown>) {
 export const productAPI = {
   // A — BASIC CRUD
   // GET /products  (query: search, category, isVeg, isAvailable, page, limit, sort)
-  getProducts: (params?: Record<string, unknown>) =>
-    apiRequest(`/products${toQuery(params)}`),
+  getProducts: (
+    params?: Record<string, unknown> & {
+      pendingApproval?: boolean;
+      approvedOnly?: boolean;
+    },
+  ) => apiRequest(`/products${toQuery(params)}`),
   // POST /products  (multipart — handleImageUpload middleware)
   createProduct: (formData: FormData) =>
     apiUpload("/products", formData),
@@ -209,6 +264,17 @@ export const productAPI = {
   publishProduct: (id: string) =>
     apiRequest(`/products/${id}/publish`, { method: "PATCH" }),
 
+  // O — ADMIN APPROVAL (using /admin prefix)
+  // PATCH /admin/products/:id/approve
+  approveProduct: (id: string) =>
+    apiRequest(`/admin/products/${id}/approve`, { method: "PATCH" }),
+  // PATCH /admin/products/:id/reject
+  rejectProduct: (id: string, reason?: string) =>
+    apiRequest(`/admin/products/${id}/reject`, { method: "PATCH", body: JSON.stringify({ reason }) }),
+  // POST /admin/products/bulk-approve
+  bulkApproveProducts: (ids: string[]) =>
+    apiRequest("/admin/products/bulk-approve", { method: "POST", body: JSON.stringify({ ids }) }),
+
   // O & X — AI OPTIMISATION
   // GET /products/optimise-suggestions
   suggestOptimisation: () =>
@@ -283,6 +349,8 @@ export const sellerAPI = {
   },
   updateOrderStatus: (id: string, status: string) =>
     apiRequest(`/seller/orders/${id}/status`, { method: "PATCH", body: JSON.stringify({ status }) }),
+  bulkUpdateOrderStatus: (ids: string[], status: string) =>
+    apiRequest(`/seller/orders/bulk/status`, { method: "PATCH", body: JSON.stringify({ ids, status }) }),
   getProfile: () => apiRequest("/seller/profile"),
   updateProfile: (data: Record<string, unknown>) =>
     apiRequest("/seller/profile", { method: "PUT", body: JSON.stringify(data) }),
@@ -390,6 +458,23 @@ export const adminAPI = {
   getGSTConfig: () => apiRequest("/admin/gst"),
   updateGSTConfig: (data: Record<string, unknown>) =>
     apiRequest("/admin/gst", { method: "PUT", body: JSON.stringify(data) }),
+  getGSTSettingsDoc: () => apiRequest("/admin/gst/settings"),
+  saveGSTSettingsDoc: (data: Record<string, unknown>) =>
+    apiRequest("/admin/gst", { method: "POST", body: JSON.stringify(data) }),
+  getSubscriptionReports: () => apiRequest("/admin/subscriptions"),
+  getSubscriptionUsageReports: () => apiRequest("/admin/subscriptions/usage"),
+  approveMenuProduct: (id: string) =>
+    apiRequest(`/admin/products/${id}/approve`, { method: "PATCH" }),
+  rejectMenuProduct: (id: string, reason?: string) =>
+    apiRequest(`/admin/products/${id}/reject`, {
+      method: "PATCH",
+      body: JSON.stringify({ reason: reason || "" }),
+    }),
+  bulkApproveMenuProducts: (ids: string[]) =>
+    apiRequest("/admin/products/bulk-approve", {
+      method: "POST",
+      body: JSON.stringify({ ids }),
+    }),
   getGSTReports: (period?: string) =>
     apiRequest(`/admin/gst/reports${period ? `?period=${period}` : ""}`),
   getReferrals: (status?: string) =>
@@ -490,6 +575,12 @@ export const userAPI = {
   removeFromCart: (itemId: string) =>
     apiRequest(`/user/cart/remove/${itemId}`, { method: "DELETE" }),
   // Wallet
+  getActiveSubscription: () => apiRequest("/user/subscriptions/active"),
+  purchaseSubscription: (totalAmount: number, totalDays: number) =>
+    apiRequest("/user/subscriptions/purchase", {
+      method: "POST",
+      body: JSON.stringify({ totalAmount, totalDays }),
+    }),
   getWalletTransactions: () => apiRequest("/user/wallet/transactions"),
   topupWallet: (amount: number) =>
     apiRequest("/user/wallet/topup", { method: "POST", body: JSON.stringify({ amount }) }),
@@ -542,21 +633,32 @@ const authAPI = {
     apiRequest("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
+      authToken: null,
     }),
   
   sellerLogin: (email: string, password: string) =>
     apiRequest("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
+      authToken: null,
     }),
   
   adminLogin: (email: string, password: string) =>
     apiRequest("/auth/login", {
       method: "POST",
       body: JSON.stringify({ email, password }),
+      authToken: null,
     }),
   
   getProfile: () => apiRequest("/auth/me"),
+
+  /** Use when loading a stored session so the request always uses that role's JWT (not pathname). */
+  getProfileWithToken: (token: string) =>
+    apiRequest("/auth/me", { authToken: token }),
+  
+  getSellerProfile: () => apiRequest("/auth/me"),
+  
+  getAdminProfile: () => apiRequest("/auth/me"),
   
   updateProfile: (data: Record<string, unknown>) =>
     apiRequest("/auth/profile", { method: "PUT", body: JSON.stringify(data) }),
@@ -565,24 +667,28 @@ const authAPI = {
     apiRequest("/auth/register", {
       method: "POST",
       body: JSON.stringify(data),
+      authToken: null,
     }),
 
   verifyEmail: (email: string, code: string) =>
     apiRequest("/auth/verify-email", {
       method: "POST",
       body: JSON.stringify({ email, code }),
+      authToken: null,
     }),
 
   forgotPassword: (email: string) =>
     apiRequest("/auth/forgot-password", {
       method: "POST",
       body: JSON.stringify({ email }),
+      authToken: null,
     }),
 
   resetPassword: (email: string, code: string, newPassword: string) =>
     apiRequest("/auth/reset-password", {
       method: "POST",
       body: JSON.stringify({ email, code, newPassword }),
+      authToken: null,
     }),
 
   changePassword: (currentPassword: string, newPassword: string) =>
@@ -715,5 +821,16 @@ export const deliveryAPI = {
       body: JSON.stringify({ isOnline }),
     }),
 };
+
+/** GST rates for checkout (no admin login required) */
+export function fetchPublicGSTSettings() {
+  return apiRequest<{ success: boolean; data: Record<string, unknown> }>("/public/gst-settings", {
+    authToken: null,
+  });
+}
+
+export function fetchPublicPlatformConfig() {
+  return apiRequest("/public/platform-config", { authToken: null });
+}
 
 export { apiRequest, apiUpload, API_BASE_URL, authAPI };

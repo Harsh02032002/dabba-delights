@@ -316,7 +316,7 @@ export function SellerSidebar() {
               <Button
                 variant="ghost"
                 size="icon-sm"
-                onClick={logout}
+                onClick={() => logout()}
                 className="text-muted-foreground hover:text-destructive"
               >
                 <LogOut size={16} />

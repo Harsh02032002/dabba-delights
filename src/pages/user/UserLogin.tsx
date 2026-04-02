@@ -13,7 +13,7 @@ export default function UserLogin() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,11 +21,21 @@ export default function UserLogin() {
     setIsLoading(true);
     
     try {
-      await login(email, password, 'customer');
+      const res: any = await login(email, password, 'user');
+      if (res?.user?.role && res.user.role !== 'user') {
+        logout('user');
+        toast({
+          title: 'Use the correct portal',
+          description: 'This account is for seller or admin. Open the matching login page.',
+          variant: 'destructive',
+        });
+        return;
+      }
       toast({ title: 'Welcome back!', description: 'Login successful' });
       navigate('/');
-    } catch (error) {
-      toast({ title: 'Login failed', description: 'Invalid credentials', variant: 'destructive' });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Invalid credentials';
+      toast({ title: 'Login failed', description: msg, variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }

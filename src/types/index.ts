@@ -96,6 +96,7 @@ export interface MenuItem {
   image: string;
   isVeg: boolean;
   isAvailable: boolean;
+  isAdminApproved?: boolean;
   preparationTime: number;
   tags: string[];
   allergens?: string[];

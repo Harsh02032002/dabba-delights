@@ -56,12 +56,14 @@ export interface AdminGSTSettings {
   foodGSTEnabled: boolean;
   foodCGSTRate: number;
   foodSGSTRate: number;
+  foodIGSTRate?: number;
   platformGSTEnabled: boolean;
   platformCommissionRate: number;
   platformGSTRate: number;
   deliveryGSTEnabled: boolean;
   deliveryCGSTRate: number;
   deliverySGSTRate: number;
+  deliveryIGSTRate?: number;
   gstApplicable: boolean;
   defaultGSTIN: string;
   invoicePrefix: string;
@@ -72,20 +74,22 @@ let currentGSTSettings: AdminGSTSettings = {
   foodGSTEnabled: false,
   foodCGSTRate: 0,
   foodSGSTRate: 0,
+  foodIGSTRate: 0,
   platformGSTEnabled: false,
   platformCommissionRate: 0,
   platformGSTRate: 0,
   deliveryGSTEnabled: false,
   deliveryCGSTRate: 0,
   deliverySGSTRate: 0,
+  deliveryIGSTRate: 0,
   gstApplicable: false,
   defaultGSTIN: "",
   invoicePrefix: "DN"
 };
 
-// Function to update GST rates from admin settings
-export const updateGSTSettings = (settings: AdminGSTSettings) => {
-  currentGSTSettings = settings;
+// Function to update GST rates from admin settings (merge — e.g. public API returns a subset)
+export const updateGSTSettings = (settings: Partial<AdminGSTSettings>) => {
+  currentGSTSettings = { ...currentGSTSettings, ...settings };
   
   // Update GST_RATES based on admin settings
   GST_RATES.FOOD.CGST = settings.gstApplicable && settings.foodGSTEnabled ? settings.foodCGSTRate : 0;

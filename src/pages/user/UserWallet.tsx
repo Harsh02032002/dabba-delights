@@ -15,6 +15,8 @@ export default function UserWallet() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [topupAmount, setTopupAmount] = useState('');
+  const [subAmount, setSubAmount] = useState('3000');
+  const [subDays, setSubDays] = useState('30');
 
   // ✅ Wallet Balance + Transaction History (single endpoint returns both)
   const { data: walletData, isLoading } = useQuery({
@@ -28,6 +30,22 @@ export default function UserWallet() {
 
   const wallet = walletData || {};
   const history = Array.isArray(wallet?.transactions) ? wallet.transactions : [];
+
+  const { data: subData, refetch: refetchSub } = useQuery({
+    queryKey: ['wallet-page-subscription'],
+    queryFn: () => userAPI.getActiveSubscription(),
+  });
+  const activeSub = subData?.subscription as
+    | {
+        total_amount?: number;
+        remaining_amount?: number;
+        total_days?: number;
+        remaining_days?: number;
+        per_day_value?: number;
+        status?: string;
+      }
+    | null
+    | undefined;
 
   const topupMutation = useMutation({
     mutationFn: async (amount: number) => {
@@ -278,6 +296,62 @@ export default function UserWallet() {
                       : 'Add Money'}
                   </Button>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="mb-8">
+              <CardHeader>
+                <CardTitle className="font-display text-lg">Dabba Express (subscription wallet)</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {activeSub && activeSub.status === 'active' ? (
+                  <div className="rounded-lg border border-border p-4 text-sm space-y-1">
+                    <p>
+                      <span className="text-muted-foreground">Remaining balance: </span>
+                      <strong>₹{Number(activeSub.remaining_amount ?? 0).toFixed(0)}</strong>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Days left: </span>
+                      <strong>{activeSub.remaining_days ?? 0}</strong>
+                    </p>
+                    <p>
+                      <span className="text-muted-foreground">Per-day value: </span>
+                      ₹{Number(activeSub.per_day_value ?? 0).toFixed(2)}
+                    </p>
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No active subscription. Start a plan to pay from subscription at checkout.</p>
+                )}
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <Label>Plan amount (₹)</Label>
+                    <Input type="number" value={subAmount} onChange={(e) => setSubAmount(e.target.value)} min={1} />
+                  </div>
+                  <div>
+                    <Label>Duration (days)</Label>
+                    <Input type="number" value={subDays} onChange={(e) => setSubDays(e.target.value)} min={1} />
+                  </div>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={async () => {
+                    try {
+                      await userAPI.purchaseSubscription(Number(subAmount), Number(subDays));
+                      toast({ title: 'Subscription activated' });
+                      await refetchSub();
+                      queryClient.invalidateQueries({ queryKey: ['user-active-subscription'] });
+                    } catch (e: unknown) {
+                      const msg = e instanceof Error ? e.message : 'Failed';
+                      toast({ title: 'Error', description: msg, variant: 'destructive' });
+                    }
+                  }}
+                >
+                  Activate / renew plan
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  For production, attach Razorpay verification here like wallet top-up. This creates the plan immediately after confirmation.
+                </p>
               </CardContent>
             </Card>
 

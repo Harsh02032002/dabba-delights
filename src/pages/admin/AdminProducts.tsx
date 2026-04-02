@@ -18,7 +18,7 @@ import {
 import {
   Plus, Search, Edit, Trash2, ImagePlus, Copy, Archive, RotateCcw,
   BarChart3, Sparkles, Eye, Upload, Package, ToggleLeft, X, FileUp, Layers,
-  Link as LinkIcon,
+  Link as LinkIcon, CheckCircle2, XCircle,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { productAPI, adminAPI } from '@/lib/api';
@@ -60,6 +60,11 @@ export default function AdminProducts() {
     }),
   });
 
+  const { data: pendingData, isLoading: pendingLoading } = useQuery({
+    queryKey: ['admin-menu-pending'],
+    queryFn: () => productAPI.getProducts({ pendingApproval: true, limit: 100 }),
+  });
+
   const { data: archivedData } = useQuery({
     queryKey: ['admin-products-archived'],
     queryFn: () => productAPI.getProducts({ isArchived: true }),
@@ -71,6 +76,7 @@ export default function AdminProducts() {
   });
 
   const products = safeArray(productsData?.products || productsData?.data || productsData);
+  const pendingProducts = safeArray(pendingData?.products || pendingData?.data || pendingData);
   const totalProducts = productsData?.total || products.length;
   const archivedProducts = safeArray(archivedData?.products || archivedData?.data || archivedData);
 
@@ -132,6 +138,19 @@ export default function AdminProducts() {
     onSuccess: (d: any) => { toast({ title: `Processed ${d.processed} items` }); invalidate(); },
   });
 
+  // Admin approval mutations
+  const approveMenuMut = useMutation({
+    mutationFn: (id: string) => productAPI.approveProduct(id),
+    onSuccess: () => { toast({ title: 'Menu Approved' }); queryClient.invalidateQueries({ queryKey: ['admin-menu-pending'] }); queryClient.invalidateQueries({ queryKey: ['admin-products'] }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
+  const rejectMenuMut = useMutation({
+    mutationFn: (id: string) => productAPI.rejectProduct(id),
+    onSuccess: () => { toast({ title: 'Menu Rejected' }); queryClient.invalidateQueries({ queryKey: ['admin-menu-pending'] }); },
+    onError: (e: Error) => toast({ title: 'Error', description: e.message, variant: 'destructive' }),
+  });
+
   const handleCreate = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!selectedSellerId) {
@@ -182,6 +201,14 @@ export default function AdminProducts() {
       <Tabs defaultValue="products" className="space-y-6">
         <TabsList className="flex-wrap h-auto gap-1">
           <TabsTrigger value="products">All Products</TabsTrigger>
+          <TabsTrigger value="pending" className="gap-1">
+            Pending menu approval
+            {pendingProducts.length > 0 ? (
+              <span className="ml-1 rounded-full bg-destructive/15 text-destructive text-xs px-2 py-0.5">
+                {pendingProducts.length}
+              </span>
+            ) : null}
+          </TabsTrigger>
           <TabsTrigger value="add">Add Product</TabsTrigger>
           <TabsTrigger value="archived">Archived</TabsTrigger>
           <TabsTrigger value="metrics">Metrics</TabsTrigger>
@@ -234,8 +261,9 @@ export default function AdminProducts() {
                     <div className="flex items-start justify-between gap-1 mb-1">
                       <h3 className="font-semibold text-sm line-clamp-1">{item.name}</h3>
                       <div className="text-right shrink-0">
-                        <span className="font-bold text-sm">₹{item.discountPrice || item.sellingPrice}</span>
-                        {item.discountPrice && <span className="text-xs text-muted-foreground line-through ml-1">₹{item.sellingPrice}</span>}
+                        <span className="font-bold text-sm block">₹{item.discountPrice || item.sellingPrice}</span>
+                        {item.discountPrice && <span className="text-xs text-muted-foreground line-through block">₹{item.sellingPrice}</span>}
+                        {item.costPrice > 0 && <span className="text-xs text-orange-600">Cost: ₹{item.costPrice}</span>}
                       </div>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-1 mb-1">{item.description}</p>
@@ -259,6 +287,55 @@ export default function AdminProducts() {
               <Button variant="outline" size="sm" disabled={currentPage <= 1} onClick={() => setCurrentPage(p => p - 1)}>Previous</Button>
               <span className="text-sm text-muted-foreground self-center">Page {currentPage}</span>
               <Button variant="outline" size="sm" disabled={currentPage >= Math.ceil(totalProducts / 20)} onClick={() => setCurrentPage(p => p + 1)}>Next</Button>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="pending" className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            New menu items from sellers are hidden from customers until you approve them here.
+          </p>
+          {pendingLoading ? (
+            <LoadingSpinner />
+          ) : pendingProducts.length === 0 ? (
+            <p className="text-center py-12 text-muted-foreground">No items waiting for approval.</p>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pendingProducts.map((item: any) => (
+                <Card key={item._id} className="overflow-hidden border-amber-500/30">
+                  <div className="relative aspect-[4/3]">
+                    <img src={item.image || '/placeholder.svg'} alt={item.name} className="w-full h-full object-cover" />
+                    <div className="absolute top-2 right-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded">Pending</div>
+                  </div>
+                  <CardContent className="p-3 space-y-2">
+                    <h3 className="font-semibold text-sm">{item.name}</h3>
+                    <p className="text-xs text-muted-foreground line-clamp-2">{item.description}</p>
+                    <p className="text-xs">
+                      ₹{item.discountPrice || item.sellingPrice} · {item.category} · Seller:{' '}
+                      {typeof item.sellerId === 'object' ? item.sellerId?.businessName : item.sellerId}
+                    </p>
+                    <div className="flex gap-2 pt-1">
+                      <Button
+                        size="sm"
+                        className="flex-1 gap-1"
+                        onClick={() => approveMenuMut.mutate(item._id)}
+                        disabled={approveMenuMut.isPending}
+                      >
+                        <CheckCircle2 size={14} /> Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1 gap-1"
+                        onClick={() => rejectMenuMut.mutate(item._id)}
+                        disabled={rejectMenuMut.isPending}
+                      >
+                        <XCircle size={14} /> Reject
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
         </TabsContent>

@@ -1,8 +1,8 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
-import { userAPI, paymentAPI, apiRequest } from "@/lib/api";
+import { userAPI, paymentAPI, apiRequest, fetchPublicGSTSettings, fetchPublicPlatformConfig } from "@/lib/api";
 import { UserLayout } from "@/layouts/UserLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,7 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { MapPin, IndianRupee, Loader2, CreditCard, Banknote, ArrowLeft, Wallet, Receipt } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
-import { calculateOrderGST, formatGSTAmount, formatGSTPercentage, GST_RATES, updateGSTSettings } from "@/lib/gst";
+import { formatGSTPercentage, GST_RATES, updateGSTSettings } from "@/lib/gst";
 
 // Load Razorpay SDK dynamically
 function loadRazorpayScript(): Promise<boolean> {
@@ -122,63 +122,132 @@ export default function CheckoutPage() {
     }
   };
 
-  // Fetch GST settings from admin
-  const { data: gstSettings } = useQuery({
-    queryKey: ['gst-settings'],
-    queryFn: async () => {
-      try {
-        const response = await apiRequest('/admin/gst/settings');
-        return response?.data || null;
-      } catch (error) {
-        console.log('GST settings not available, using defaults');
-        return null;
-      }
-    },
+  const { data: gstRes } = useQuery({
+    queryKey: ["public-gst-settings"],
+    queryFn: fetchPublicGSTSettings,
   });
+  const gstSettings = (gstRes?.data ?? null) as any;
 
-  // Update GST rates when settings are fetched
   useEffect(() => {
-    if (gstSettings) {
-      updateGSTSettings(gstSettings);
-    }
+    if (gstSettings) updateGSTSettings(gstSettings);
   }, [gstSettings]);
 
-  // Fetch platform config for dynamic pricing
   const { data: platformConfig } = useQuery({
-    queryKey: ['platform-config'],
-    queryFn: () => apiRequest('/admin/config'),
+    queryKey: ["public-platform-config"],
+    queryFn: fetchPublicPlatformConfig,
   });
 
-  // GST Calculation - Simple and direct
-  const gstCalculation = cartItems.length > 0 && gstSettings?.gstApplicable && gstSettings?.platformGSTEnabled ? {
-    subtotal: totals.subtotal,
-    platformCommission: totals.subtotal * (gstSettings.platformCommissionRate / 100),
-    platformCommissionGST: totals.subtotal * (gstSettings.platformCommissionRate / 100) * (gstSettings.platformGSTRate / 100),
-    totalCGST: gstSettings?.foodGSTEnabled ? totals.subtotal * (gstSettings.foodCGSTRate / 100) : 0,
-    totalSGST: gstSettings?.foodGSTEnabled ? totals.subtotal * (gstSettings.foodSGSTRate / 100) : 0,
-    totalGST: gstSettings?.foodGSTEnabled ? totals.subtotal * ((gstSettings.foodCGSTRate + gstSettings.foodSGSTRate) / 100) : 0,
-    deliveryCGST: gstSettings?.deliveryGSTEnabled ? totals.deliveryFee * (gstSettings.deliveryCGSTRate / 100) : 0,
-    deliverySGST: gstSettings?.deliveryGSTEnabled ? totals.deliveryFee * (gstSettings.deliverySGSTRate / 100) : 0,
-    deliveryGST: gstSettings?.deliveryGSTEnabled ? totals.deliveryFee * ((gstSettings.deliveryCGSTRate + gstSettings.deliverySGSTRate) / 100) : 0,
-    grandTotal: 0
-  } : null;
+  const { data: sellerRes } = useQuery({
+    queryKey: ["checkout-seller", cart?.sellerId],
+    queryFn: async () => {
+      const r = await fetch(
+        `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/user/sellers/${cart?.sellerId}`,
+      );
+      return r.json();
+    },
+    enabled: !!cart?.sellerId && cartItems.length > 0,
+  });
+  const sellerState = sellerRes?.seller?.address?.state as string | undefined;
 
-  // Calculate grand total
-  if (gstCalculation) {
-    gstCalculation.grandTotal = gstCalculation.subtotal + 
-      gstCalculation.totalGST + 
-      gstCalculation.platformCommission + 
-      gstCalculation.platformCommissionGST + 
-      totals.deliveryFee + 
-      gstCalculation.deliveryGST;
-  }
+  const { data: subRes } = useQuery({
+    queryKey: ["user-active-subscription"],
+    queryFn: () => userAPI.getActiveSubscription(),
+    enabled: isLoggedIn,
+  });
+  const activeSubscription = subRes?.subscription as
+    | {
+        remaining_amount?: number;
+        remaining_days?: number;
+        per_day_value?: number;
+      }
+    | null
+    | undefined;
 
-  console.log('🔥 Simple GST Debug:', {
+  const gstCalculation = useMemo(() => {
+    if (cartItems.length === 0 || !gstSettings?.gstApplicable) return null;
+    const subtotal = totals.subtotal;
+    const rawDel =
+      platformConfig &&
+      platformConfig.deliveryFee != null &&
+      String(platformConfig.deliveryFee) !== ""
+        ? Number(platformConfig.deliveryFee)
+        : totals.deliveryFee;
+    const deliveryFee = Number.isFinite(rawDel) ? rawDel : totals.deliveryFee;
+
+    const norm = (s?: string) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
+    const sameState =
+      !!norm(deliveryAddress.state) &&
+      !!norm(sellerState) &&
+      norm(deliveryAddress.state) === norm(sellerState);
+
+    const rC = (Number(gstSettings.foodCGSTRate) || 0) / 100;
+    const rS = (Number(gstSettings.foodSGSTRate) || 0) / 100;
+    const foodIgstRate =
+      (Number(gstSettings.foodIGSTRate) || 0) > 0
+        ? (Number(gstSettings.foodIGSTRate) || 0) / 100
+        : rC + rS;
+
+    let totalCGST = 0;
+    let totalSGST = 0;
+    let foodIGST = 0;
+    if (gstSettings.foodGSTEnabled) {
+      if (sameState || !sellerState) {
+        totalCGST = subtotal * rC;
+        totalSGST = subtotal * rS;
+      } else {
+        foodIGST = subtotal * foodIgstRate;
+      }
+    }
+    const totalFoodGST = totalCGST + totalSGST + foodIGST;
+
+    let deliveryCGST = 0;
+    let deliverySGST = 0;
+    let deliveryIGSTVal = 0;
+    if (gstSettings.deliveryGSTEnabled && deliveryFee > 0) {
+      const dC = (Number(gstSettings.deliveryCGSTRate) || 0) / 100;
+      const dS = (Number(gstSettings.deliverySGSTRate) || 0) / 100;
+      const dIgstRate =
+        (Number(gstSettings.deliveryIGSTRate) || 0) > 0
+          ? (Number(gstSettings.deliveryIGSTRate) || 0) / 100
+          : dC + dS;
+      if (sameState || !sellerState) {
+        deliveryCGST = deliveryFee * dC;
+        deliverySGST = deliveryFee * dS;
+      } else {
+        deliveryIGSTVal = deliveryFee * dIgstRate;
+      }
+    }
+    const deliveryGST = deliveryCGST + deliverySGST + deliveryIGSTVal;
+    const totalGST = totalFoodGST + deliveryGST;
+
+    /** Customer pays: items + food/delivery GST + delivery fee — not platform commission */
+    const grandTotal = subtotal + totalFoodGST + deliveryFee + deliveryGST;
+
+    return {
+      subtotal,
+      deliveryFee,
+      totalCGST,
+      totalSGST,
+      foodIGST,
+      deliveryIGST: deliveryIGSTVal,
+      igst: foodIGST + deliveryIGSTVal,
+      totalFoodGST,
+      totalGST,
+      deliveryCGST,
+      deliverySGST,
+      deliveryGST,
+      grandTotal,
+      sameState,
+    };
+  }, [
+    cartItems.length,
     gstSettings,
-    gstCalculation,
-    platformCommission: gstCalculation?.platformCommission,
-    platformCommissionGST: gstCalculation?.platformCommissionGST
-  });
+    totals.subtotal,
+    totals.deliveryFee,
+    platformConfig,
+    deliveryAddress.state,
+    sellerState,
+  ]);
 
   // Fetch wallet balance
   const { data: walletData } = useQuery({
@@ -190,6 +259,20 @@ export default function CheckoutPage() {
     enabled: isLoggedIn,
   });
   const walletBalance = Number(walletData?.balance || 0);
+
+  const orderGrandTotal = gstCalculation?.grandTotal ?? totalAmount;
+  const remSub = Number(activeSubscription?.remaining_amount) || 0;
+  const subscriptionUsedPreview =
+    activeSubscription && remSub > 0 ? Math.min(orderGrandTotal, remSub) : 0;
+  const pdVal = Number(activeSubscription?.per_day_value) || 0;
+  const daysDeductedPreview =
+    pdVal > 0 && subscriptionUsedPreview > 0 ? Math.ceil(subscriptionUsedPreview / pdVal) : 0;
+  const remainingDaysPreview =
+    activeSubscription != null
+      ? Math.max(0, (Number(activeSubscription.remaining_days) || 0) - daysDeductedPreview)
+      : 0;
+  const payableNow = Math.max(0, orderGrandTotal - subscriptionUsedPreview);
+  const insufficientWallet = walletBalance < payableNow;
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -228,12 +311,13 @@ export default function CheckoutPage() {
     paymentMethod: method,
     totalAmount: gstCalculation ? gstCalculation.grandTotal : totalAmount,
     subtotal: totals.subtotal,
-    deliveryFee: totals.deliveryFee,
-    platformFee: totals.platformFee,
+    deliveryFee: gstCalculation?.deliveryFee ?? totals.deliveryFee,
+    platformFee: 0,
     gstAmount: gstCalculation ? gstCalculation.totalGST : totals.gst,
     gstBreakup: gstCalculation ? {
       cgst: gstCalculation.totalCGST,
       sgst: gstCalculation.totalSGST,
+      igst: gstCalculation.igst,
       totalGST: gstCalculation.totalGST,
       platformCommission: gstCalculation.platformCommission,
       platformCommissionGST: gstCalculation.platformCommissionGST,
@@ -243,9 +327,8 @@ export default function CheckoutPage() {
 
   const placeOrderWithWallet = async () => {
     if (!validateAddress()) return;
-    const finalAmount = gstCalculation ? gstCalculation.grandTotal : totalAmount;
-    if (walletBalance < finalAmount) {
-      toast({ title: "Insufficient Balance", description: `Your wallet has ₹${walletBalance}. You need ₹${finalAmount.toFixed(0)}.`, variant: "destructive" });
+    if (walletBalance < payableNow) {
+      toast({ title: "Insufficient Balance", description: `Your wallet has ₹${walletBalance}. You need ₹${payableNow.toFixed(2)} after subscription (order ₹${orderGrandTotal.toFixed(2)}).`, variant: "destructive" });
       return;
     }
     setIsLoading(true);
@@ -303,13 +386,33 @@ export default function CheckoutPage() {
       console.log('❌ Address validation failed');
       return;
     }
+
+    if (payableNow <= 0) {
+      setIsLoading(true);
+      try {
+        const orderResponse = await userAPI.placeOrder(buildOrderPayload("razorpay"));
+        toast({ title: "Order placed", description: "Fully covered by your subscription." });
+        try {
+          await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
+        } catch {
+          /* optional invoice */
+        }
+        clearCart();
+        navigate("/orders");
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : "Order failed";
+        toast({ title: "Error", description: msg, variant: "destructive" });
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
     
-    const finalAmount = gstCalculation ? gstCalculation.grandTotal : totalAmount;
     setIsLoading(true);
     try {
       console.log(' Creating Razorpay order...');
       const response = await paymentAPI.createRazorpayOrder({
-        amount: finalAmount,
+        amount: payableNow,
         currency: "INR",
         orderId: `ORDER-${Date.now()}`,
         description: `Order from Dabba Nation - ${cartItems.length} items`,
@@ -453,9 +556,6 @@ export default function CheckoutPage() {
     else handleRazorpayPayment();
   };
 
-  const finalAmount = gstCalculation ? gstCalculation.grandTotal : totalAmount;
-  const insufficientWallet = walletBalance < finalAmount;
-
   return (
     <UserLayout>
       <div className="container mx-auto max-w-4xl px-4 py-8">
@@ -548,7 +648,7 @@ export default function CheckoutPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {insufficientWallet 
-                        ? `Insufficient balance (need ₹${totalAmount.toFixed(0)})` 
+                        ? `Insufficient balance (need ₹${payableNow.toFixed(0)} after subscription)` 
                         : "Pay instantly from your wallet balance"}
                     </p>
                   </div>
@@ -589,7 +689,7 @@ export default function CheckoutPage() {
               <h2 className="text-lg font-semibold text-foreground mb-4">Order Summary</h2>
               <div className="space-y-3 text-sm">
                 {cartItems.map((item: any) => {
-                  const itemPrice = item.menuItem.sellingPrice;
+                  const itemPrice = item.menuItem.discountPrice || item.menuItem.sellingPrice;
                   const itemTotal = itemPrice * item.quantity;
                   return (
                     <div key={item.menuItem._id}>
@@ -614,35 +714,86 @@ export default function CheckoutPage() {
                 {/* 🧾 GST Breakup - Only show if GST is enabled */}
                 {gstCalculation && gstSettings?.gstApplicable && gstSettings?.foodGSTEnabled ? (
                   <>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">CGST ({formatGSTPercentage(GST_RATES.FOOD.CGST)})</span>
-                      <span>₹{gstCalculation.totalCGST.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-muted-foreground">SGST ({formatGSTPercentage(GST_RATES.FOOD.SGST)})</span>
-                      <span>₹{gstCalculation.totalSGST.toFixed(2)}</span>
-                    </div>
-                    <div className="flex justify-between text-green-600 font-medium">
-                      <span>Total GST ({formatGSTPercentage(GST_RATES.FOOD.TOTAL)})</span>
-                      <span>₹{gstCalculation.totalGST.toFixed(2)}</span>
-                    </div>
+                    <p className="text-xs text-muted-foreground italic">Food GST (collected on behalf of seller)</p>
+                    {gstCalculation.foodIGST > 0 ? (
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">IGST on items</span>
+                        <span>₹{gstCalculation.foodIGST.toFixed(2)}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">CGST ({formatGSTPercentage(GST_RATES.FOOD.CGST)})</span>
+                          <span>₹{gstCalculation.totalCGST.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">SGST ({formatGSTPercentage(GST_RATES.FOOD.SGST)})</span>
+                          <span>₹{gstCalculation.totalSGST.toFixed(2)}</span>
+                        </div>
+                      </>
+                    )}
                   </>
                 ) : null}
+
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Delivery</span>
+                  <span>₹{(gstCalculation?.deliveryFee ?? totals.deliveryFee).toFixed(2)}</span>
+                </div>
+
+                {gstCalculation && gstSettings?.gstApplicable && gstSettings?.deliveryGSTEnabled && (gstCalculation.deliveryFee ?? 0) > 0 ? (
+                  <>
+                    {gstCalculation.deliveryIGST > 0 ? (
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">IGST on delivery</span>
+                        <span>₹{gstCalculation.deliveryIGST.toFixed(2)}</span>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">CGST on delivery</span>
+                          <span>₹{gstCalculation.deliveryCGST.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">SGST on delivery</span>
+                          <span>₹{gstCalculation.deliverySGST.toFixed(2)}</span>
+                        </div>
+                      </>
+                    )}
+                  </>
+                ) : null}
+
+                {gstCalculation && gstSettings?.gstApplicable ? (
+                  <div className="flex justify-between text-green-700 font-medium">
+                    <span>Total GST</span>
+                    <span>₹{gstCalculation.totalGST.toFixed(2)}</span>
+                  </div>
+                ) : null}
+
+                <div className="flex justify-between font-semibold border-t border-border pt-2">
+                  <span>You pay</span>
+                  <span>₹{orderGrandTotal.toFixed(2)}</span>
+                </div>
                 
+                {/* Platform Fee - HIDDEN from user view */}
+                {/*
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Platform Fee</span>
                   <span>₹{gstCalculation ? gstCalculation.platformCommission.toFixed(2) : totals.platformFee.toFixed(2)}</span>
                 </div>
+                */}
                 
-                {/* Platform Commission GST */}
+                {/* Platform Commission GST - HIDDEN from user view */}
+                {/*
                 {gstCalculation && gstSettings?.gstApplicable && gstSettings?.platformGSTEnabled ? (
                   <div className="flex justify-between text-xs text-muted-foreground ml-4">
                     <span>+ GST on Platform Fee ({formatGSTPercentage(gstSettings.platformGSTRate)})</span>
                     <span>₹{gstCalculation.platformCommissionGST.toFixed(2)}</span>
                   </div>
                 ) : null}
+                */}
                 
-                {/* Delivery GST */}
+                {/* Delivery Fee - HIDDEN from user view */}
+                {/*
                 {gstCalculation && gstSettings?.gstApplicable && gstSettings?.deliveryGSTEnabled ? (
                   <>
                     <div className="flex justify-between">
@@ -670,6 +821,7 @@ export default function CheckoutPage() {
                     </div>
                   </div>
                 )}
+                */}
               </div>
 
               {/* 🧾 GST Info Box - Dynamic based on settings */}
@@ -677,28 +829,46 @@ export default function CheckoutPage() {
                 <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <div className="flex items-center gap-2 text-blue-700 mb-2">
                     <Receipt size={16} />
-                    <span className="text-sm font-medium">GST Invoice Details</span>
+                    <span className="text-sm font-medium">GST on your order</span>
                   </div>
                   <div className="text-xs text-blue-600 space-y-1">
-                    {gstSettings?.foodGSTEnabled ? (
-                      <p>• Food items: {formatGSTPercentage(GST_RATES.FOOD.TOTAL)} GST ({formatGSTPercentage(GST_RATES.FOOD.CGST)} CGST + {formatGSTPercentage(GST_RATES.FOOD.SGST)} SGST)</p>
-                    ) : (
-                      <p>• Food items: No GST applicable</p>
-                    )}
-                    {gstSettings?.platformGSTEnabled ? (
-                      <p>• Platform commission: {formatGSTPercentage(gstSettings.platformGSTRate)} GST applicable</p>
-                    ) : (
-                      <p>• Platform commission: No GST applicable</p>
-                    )}
+                    <p>• Food tax is shown above (CGST/SGST or IGST). It is collected on behalf of the seller.</p>
                     {gstSettings?.deliveryGSTEnabled ? (
-                      <p>• Delivery charges: {formatGSTPercentage(GST_RATES.DELIVERY.TOTAL)} GST applicable</p>
+                      <p>• Delivery may include separate GST as shown above.</p>
                     ) : (
-                      <p>• Delivery charges: No GST applicable</p>
+                      <p>• No GST on delivery with current settings.</p>
                     )}
-                    {gstSettings?.defaultGSTIN && <p>• GSTIN: {gstSettings.defaultGSTIN}</p>}
+                    <p>• Platform commission is not added to your bill; it is settled with the seller separately.</p>
+                    {gstSettings?.defaultGSTIN && <p>• Platform GSTIN: {gstSettings.defaultGSTIN}</p>}
                   </div>
                 </div>
               ) : null}
+
+              {activeSubscription && subscriptionUsedPreview > 0 && (
+                <div className="mt-4 p-3 rounded-lg border border-primary/30 bg-primary/5 text-sm space-y-1">
+                  <p className="font-medium text-foreground">Dabba Express (subscription)</p>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Order amount</span>
+                    <span>₹{orderGrandTotal.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Subscription used</span>
+                    <span>₹{subscriptionUsedPreview.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between text-muted-foreground">
+                    <span>Days deducted (estimate)</span>
+                    <span>{daysDeductedPreview}</span>
+                  </div>
+                  <div className="flex justify-between font-medium text-foreground">
+                    <span>Remaining days (after order)</span>
+                    <span>{remainingDaysPreview}</span>
+                  </div>
+                  <div className="flex justify-between font-semibold text-primary pt-1 border-t border-border">
+                    <span>Pay now</span>
+                    <span>₹{payableNow.toFixed(2)}</span>
+                  </div>
+                </div>
+              )}
 
               {paymentMethod === "wallet" && (
                 <div className="mt-3 p-3 rounded-lg bg-success/10 text-sm">
@@ -708,7 +878,7 @@ export default function CheckoutPage() {
                   </div>
                   <div className="flex justify-between font-semibold text-foreground mt-1">
                     <span>After Payment</span>
-                    <span>₹{(walletBalance - (gstCalculation ? gstCalculation.grandTotal : totalAmount)).toFixed(0)}</span>
+                    <span>₹{(walletBalance - payableNow).toFixed(0)}</span>
                   </div>
                 </div>
               )}
@@ -717,11 +887,11 @@ export default function CheckoutPage() {
                 {isLoading ? (
                   <><Loader2 size={16} className="mr-2 animate-spin" /> Processing...</>
                 ) : paymentMethod === "wallet" ? (
-                  <><Wallet size={16} className="mr-2" /> Pay ₹{gstCalculation ? gstCalculation.grandTotal.toFixed(0) : totalAmount.toFixed(0)} from Wallet</>
+                  <><Wallet size={16} className="mr-2" /> Pay ₹{payableNow.toFixed(0)} from Wallet</>
                 ) : paymentMethod === "cod" ? (
                   <><Banknote size={16} className="mr-2" /> Place Order (COD)</>
                 ) : (
-                  <><IndianRupee size={16} className="mr-2" /> Pay ₹{gstCalculation ? gstCalculation.grandTotal.toFixed(0) : totalAmount.toFixed(0)}</>
+                  <><IndianRupee size={16} className="mr-2" /> Pay ₹{payableNow.toFixed(0)}</>
                 )}
               </Button>
 

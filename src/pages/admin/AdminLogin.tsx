@@ -13,7 +13,7 @@ export default function AdminLogin() {
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,11 +21,21 @@ export default function AdminLogin() {
     setIsLoading(true);
     
     try {
-      await login(email, password, 'admin');
+      const res: any = await login(email, password, 'admin');
+      if (res?.user?.role !== 'admin') {
+        logout('admin');
+        toast({
+          title: 'Access Denied',
+          description: 'This account is not an admin',
+          variant: 'destructive',
+        });
+        return;
+      }
       toast({ title: 'Welcome!', description: 'Admin login successful' });
       navigate('/admin');
-    } catch (error) {
-      toast({ title: 'Login failed', description: 'Invalid credentials', variant: 'destructive' });
+    } catch (error: unknown) {
+      const msg = error instanceof Error ? error.message : 'Invalid credentials';
+      toast({ title: 'Login failed', description: msg, variant: 'destructive' });
     } finally {
       setIsLoading(false);
     }

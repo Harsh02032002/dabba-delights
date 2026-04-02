@@ -15,7 +15,7 @@ export default function SellerLogin() {
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
-  const { login } = useAuth();
+  const { login, logout } = useAuth();
   const navigate = useNavigate();
 
   // ---------- SUBMIT ----------
@@ -29,6 +29,7 @@ export default function SellerLogin() {
 
       // 🧠 role check
       if (res.user.role !== "seller") {
+        logout("seller");
         toast({
           title: "Access Denied",
           description: "This account is not registered as seller",

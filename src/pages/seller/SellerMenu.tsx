@@ -366,7 +366,12 @@ export default function SellerMenu() {
                   <CardContent className="p-3">
                     <div className="flex items-start justify-between gap-1 mb-1">
                       <h3 className="font-semibold text-sm text-foreground line-clamp-1">{item.name}</h3>
-                      <span className="font-bold text-sm text-foreground shrink-0">₹{item.sellingPrice}</span>
+                      <div className="text-right shrink-0">
+                        <span className="font-bold text-sm text-foreground block">₹{item.sellingPrice}</span>
+                        {item.costPrice > 0 && (
+                          <span className="text-xs text-muted-foreground">Cost: ₹{item.costPrice}</span>
+                        )}
+                      </div>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{item.description}</p>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
@@ -612,9 +617,19 @@ export default function SellerMenu() {
                 </div>
               </div>
               <div className="space-y-2"><Label>Description</Label><Textarea name="editDescription" defaultValue={editItem.description} rows={3} /></div>
-              <div className="grid grid-cols-3 gap-4">
-                <div className="space-y-2"><Label>Selling Price (₹)</Label><Input name="editSellingPrice" type="number" defaultValue={editItem.sellingPrice} required /></div>
-                <div className="space-y-2"><Label>Cost Price (₹)</Label><Input name="editCostPrice" type="number" defaultValue={editItem.costPrice || 0} /></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                  <Label className="text-green-700 font-medium">Selling Price (₹)</Label>
+                  <Input name="editSellingPrice" type="number" defaultValue={editItem.sellingPrice} required className="bg-white" />
+                  <p className="text-xs text-green-600">Price customer pays</p>
+                </div>
+                <div className="space-y-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
+                  <Label className="text-orange-700 font-medium">Cost Price (₹)</Label>
+                  <Input name="editCostPrice" type="number" defaultValue={editItem.costPrice || 0} className="bg-white" />
+                  <p className="text-xs text-orange-600">Your cost (private)</p>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2"><Label>Prep Time</Label><Input name="editPrepTime" type="number" defaultValue={editItem.preparationTime} /></div>
                 <div className="space-y-2"><Label>Stock</Label><Input name="editStock" type="number" defaultValue={editItem.stock} /></div>
               </div>

@@ -1,4 +1,4 @@
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface ProtectedRouteProps {
@@ -7,7 +7,8 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) {
-  const { user, isLoading } = useAuth();
+  const { isRoleLoggedIn, getRoleUser, isLoading } = useAuth();
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -20,8 +21,13 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     );
   }
 
-  // Not logged in - redirect to appropriate login page
-  if (!user) {
+  // STRICT ROLE CHECK: Only check the specific role's token
+  const targetRole = requiredRole || 'user';
+  const hasRoleToken = isRoleLoggedIn(targetRole);
+  const roleUser = getRoleUser(targetRole);
+
+  // Not logged in for this specific role - redirect to appropriate login
+  if (!hasRoleToken || !roleUser) {
     if (requiredRole === 'seller') {
       return <Navigate to="/seller/login" replace />;
     } else if (requiredRole === 'admin') {
@@ -33,13 +39,15 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
     }
   }
 
-  // Logged in but wrong role - redirect to correct dashboard
-  if (requiredRole && user.role !== requiredRole) {
-    if (user.role === 'seller') {
+  // STRICT: Logged in but trying to access different role's panel
+  // e.g., Seller trying to access /admin, or User trying to access /seller
+  if (requiredRole && roleUser.role !== requiredRole) {
+    // Redirect to their correct dashboard
+    if (roleUser.role === 'seller') {
       return <Navigate to="/seller" replace />;
-    } else if (user.role === 'admin') {
+    } else if (roleUser.role === 'admin') {
       return <Navigate to="/admin" replace />;
-    } else if (user.role === 'delivery') {
+    } else if (roleUser.role === 'delivery') {
       return <Navigate to="/delivery" replace />;
     } else {
       return <Navigate to="/home" replace />;

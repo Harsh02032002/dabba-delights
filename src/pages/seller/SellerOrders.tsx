@@ -3,10 +3,11 @@ import { SellerLayout } from '@/layouts/SellerLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Checkbox } from '@/components/ui/checkbox';
 import { StatusBadge } from '@/components/shared/Badge';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Search, Filter, Clock, CheckCircle2, AlertCircle, Phone, MapPin, Download } from 'lucide-react';
+import { Search, Filter, Clock, CheckCircle2, AlertCircle, MapPin, Download, Package } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { sellerAPI } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
@@ -18,6 +19,7 @@ export default function SellerOrders() {
   const queryClient = useQueryClient();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('all');
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
 
   const { data, isLoading } = useQuery({
     queryKey: ['seller-orders', activeTab],
@@ -32,9 +34,27 @@ export default function SellerOrders() {
     },
   });
 
+  const bulkUpdateStatusMutation = useMutation({
+    mutationFn: ({ ids, status }: { ids: string[]; status: string }) => sellerAPI.bulkUpdateOrderStatus(ids, status),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      setSelectedIds([]);
+      toast({ title: 'Bulk status updated' });
+    },
+  });
+
   const orders = safeArray(data?.orders || data).filter((order: any) =>
     order?.orderNumber?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]);
+  };
+
+  const selectAll = () => {
+    if (selectedIds.length === orders.length) setSelectedIds([]);
+    else setSelectedIds(orders.map((o: any) => o._id));
+  };
 
   return (
     <SellerLayout title="Orders" subtitle="Manage incoming and past orders">
@@ -56,12 +76,42 @@ export default function SellerOrders() {
         <Button variant="outline" className="gap-2"><Filter size={18} /> Filters</Button>
       </div>
 
+      {/* Bulk Action Bar */}
+      {selectedIds.length > 0 && (
+        <Card className="mb-4 border-primary/30 bg-primary/5">
+          <CardContent className="py-3 flex flex-wrap items-center gap-2">
+            <Checkbox checked={selectedIds.length === orders.length} onCheckedChange={selectAll} className="mr-2" />
+            <span className="text-sm font-medium mr-2">{selectedIds.length} orders selected</span>
+            <Button size="sm" variant="outline" onClick={() => bulkUpdateStatusMutation.mutate({ ids: selectedIds, status: 'confirmed' })}>
+              <CheckCircle2 size={14} className="mr-1" /> Confirm
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => bulkUpdateStatusMutation.mutate({ ids: selectedIds, status: 'preparing' })}>
+              <Clock size={14} className="mr-1" /> Start Preparing
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => bulkUpdateStatusMutation.mutate({ ids: selectedIds, status: 'ready' })}>
+              <Package size={14} className="mr-1" /> Mark Ready
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => bulkUpdateStatusMutation.mutate({ ids: selectedIds, status: 'delivered' })}>
+              <CheckCircle2 size={14} className="mr-1" /> Mark Delivered
+            </Button>
+            <Button size="sm" variant="destructive" onClick={() => bulkUpdateStatusMutation.mutate({ ids: selectedIds, status: 'cancelled' })}>
+              <AlertCircle size={14} className="mr-1" /> Cancel
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
       {isLoading ? <LoadingSpinner /> : (
         <div className="space-y-4">
           {orders.map((order: any) => (
             <Card key={order._id}>
               <CardContent className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+                  <Checkbox 
+                    checked={selectedIds.includes(order._id)} 
+                    onCheckedChange={() => toggleSelect(order._id)} 
+                    className="shrink-0"
+                  />
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-3">
                       <h3 className="font-semibold text-foreground">{order.orderNumber}</h3>

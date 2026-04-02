@@ -41,72 +41,60 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
-        {/* Pricing & Fees */}
+        {/* Pricing & Fees — matches PlatformConfig in DB */}
         <Card>
-          <CardHeader><CardTitle className="font-display text-lg flex items-center gap-2"><Settings size={20} /> Pricing & Fees Configuration</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle className="font-display text-lg flex items-center gap-2"><Settings size={20} /> Delivery & platform fee</CardTitle>
+            <p className="text-sm text-muted-foreground">
+              These values are stored in the database. Leave a field empty and save to skip updating it. Customer checkout uses <strong>delivery fee</strong> from here; platform fee is for internal records (not added to customer total — commission is set under GST settings).
+            </p>
+          </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid sm:grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label>Base Delivery Charge (₹)</Label>
-                <Input 
-                  type="number" 
-                  value={config.baseDeliveryCharge || 40} 
-                  onChange={(e) => setConfig({ ...config, baseDeliveryCharge: Number(e.target.value) })}
-                  placeholder="40"
+                <Label>Delivery charge (₹)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={config.deliveryFee ?? ''}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      deliveryFee: e.target.value === '' ? '' : Number(e.target.value),
+                    })
+                  }
+                  placeholder="e.g. 40"
                 />
-                <p className="text-xs text-muted-foreground">Standard delivery charge for orders</p>
               </div>
               <div className="space-y-2">
-                <Label>Delivery Charge per KM (₹)</Label>
-                <Input 
-                  type="number" 
-                  value={config.deliveryChargePerKm || 10} 
-                  onChange={(e) => setConfig({ ...config, deliveryChargePerKm: Number(e.target.value) })}
-                  placeholder="10"
+                <Label>Platform fee (₹) — internal / settlement</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={config.platformFee ?? ''}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      platformFee: e.target.value === '' ? '' : Number(e.target.value),
+                    })
+                  }
+                  placeholder="e.g. 5"
                 />
-                <p className="text-xs text-muted-foreground">Additional charge per kilometer</p>
               </div>
               <div className="space-y-2">
-                <Label>Platform Fee (%)</Label>
-                <Input 
-                  type="number" 
-                  value={config.platformFee || 5} 
-                  onChange={(e) => setConfig({ ...config, platformFee: Number(e.target.value) })}
-                  placeholder="5"
+                <Label>Free delivery above (₹)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  value={config.freeDeliveryThreshold ?? ''}
+                  onChange={(e) =>
+                    setConfig({
+                      ...config,
+                      freeDeliveryThreshold: e.target.value === '' ? '' : Number(e.target.value),
+                    })
+                  }
+                  placeholder="e.g. 500"
                 />
-                <p className="text-xs text-muted-foreground">Platform commission on orders</p>
-              </div>
-              <div className="space-y-2">
-                <Label>GST (%)</Label>
-                <Input 
-                  type="number" 
-                  value={config.gst || 18} 
-                  onChange={(e) => setConfig({ ...config, gst: Number(e.target.value) })}
-                  placeholder="18"
-                />
-                <p className="text-xs text-muted-foreground">Goods and Services Tax rate</p>
-              </div>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Free Delivery Above (₹)</Label>
-                <Input 
-                  type="number" 
-                  value={config.freeDeliveryAbove || 299} 
-                  onChange={(e) => setConfig({ ...config, freeDeliveryAbove: Number(e.target.value) })}
-                  placeholder="299"
-                />
-                <p className="text-xs text-muted-foreground">Minimum order amount for free delivery</p>
-              </div>
-              <div className="space-y-2">
-                <Label>Maximum Delivery Charge (₹)</Label>
-                <Input 
-                  type="number" 
-                  value={config.maxDeliveryCharge || 100} 
-                  onChange={(e) => setConfig({ ...config, maxDeliveryCharge: Number(e.target.value) })}
-                  placeholder="100"
-                />
-                <p className="text-xs text-muted-foreground">Maximum delivery charge cap</p>
               </div>
             </div>
           </CardContent>
@@ -142,7 +130,18 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
-        <Button variant="gradient" className="gap-2" onClick={() => updateMutation.mutate(config)} disabled={updateMutation.isPending}>
+        <Button
+          variant="gradient"
+          className="gap-2"
+          onClick={() => {
+            const payload: Record<string, unknown> = { ...config };
+            for (const k of ['deliveryFee', 'platformFee', 'freeDeliveryThreshold']) {
+              if (payload[k] === '') payload[k] = 0;
+            }
+            updateMutation.mutate(payload);
+          }}
+          disabled={updateMutation.isPending}
+        >
           <Save size={18} /> {updateMutation.isPending ? 'Saving...' : 'Save All Settings'}
         </Button>
       </div>

@@ -6,133 +6,115 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { Settings, Save, RefreshCw, Receipt, Percent, Truck, Wallet, IndianRupee } from "lucide-react";
-import { apiRequest } from "@/lib/api";
+import { Settings, Save, Receipt, Percent } from "lucide-react";
+import { adminAPI } from "@/lib/api";
 
-interface AllSettings {
-  // GST Settings
-  cgstRate: number;
-  sgstRate: number;
-  commissionGstRate: number;
-  hsnCode: string;
+type GSTForm = {
   gstApplicable: boolean;
-  
-  // Fee Settings
-  platformFee: number;
-  deliveryFee: number;
-  
-  // Commission Settings
+  foodGSTEnabled: boolean;
+  foodCGST: number;
+  foodSGST: number;
+  foodIGST: number;
+  platformGSTEnabled: boolean;
   commissionRate: number;
-  
-  // Other
+  commissionGST: number;
+  deliveryGSTEnabled: boolean;
+  deliveryCGST: number;
+  deliverySGST: number;
+  deliveryIGST: number;
   defaultGSTIN: string;
-}
+  invoicePrefix: string;
+};
+
+const defaultForm: GSTForm = {
+  gstApplicable: false,
+  foodGSTEnabled: false,
+  foodCGST: 0,
+  foodSGST: 0,
+  foodIGST: 0,
+  platformGSTEnabled: false,
+  commissionRate: 0,
+  commissionGST: 0,
+  deliveryGSTEnabled: false,
+  deliveryCGST: 0,
+  deliverySGST: 0,
+  deliveryIGST: 0,
+  defaultGSTIN: "",
+  invoicePrefix: "DN",
+};
 
 export default function AdminGSTSettings() {
-  const [settings, setSettings] = useState<AllSettings>({
-    cgstRate: 2.5,
-    sgstRate: 2.5,
-    commissionGstRate: 18,
-    hsnCode: "996331",
-    gstApplicable: true,
-    platformFee: 5,
-    deliveryFee: 40,
-    commissionRate: 15,
-    defaultGSTIN: "",
-  });
-
+  const [form, setForm] = useState<GSTForm>(defaultForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
-    const fetchSettings = async () => {
+    let cancelled = false;
+    (async () => {
       try {
-        // Fetch all settings in parallel
-        const [gstRes, platformRes, commissionRes] = await Promise.all([
-          apiRequest('/admin/gst'),
-          apiRequest('/admin/config'),
-          apiRequest('/admin/commission')
-        ]);
-        
-        const newSettings: AllSettings = {
-          cgstRate: gstRes?.cgstRate ?? 2.5,
-          sgstRate: gstRes?.sgstRate ?? 2.5,
-          commissionGstRate: gstRes?.commissionGstRate ?? 18,
-          hsnCode: gstRes?.hsnCode ?? "996331",
-          gstApplicable: (gstRes?.cgstRate || 0) > 0,
-          platformFee: platformRes?.platformFee ?? 5,
-          deliveryFee: platformRes?.deliveryFee ?? 40,
-          commissionRate: commissionRes?.defaultRate ?? 15,
-          defaultGSTIN: gstRes?.gstNumber ?? "",
-        };
-        
-        setSettings(newSettings);
-      } catch (error) {
-        console.error('Failed to fetch settings:', error);
-        toast({ 
-          title: "Warning", 
-          description: "Using default values. Save settings to update.",
-          variant: "destructive"
+        const res: any = await adminAPI.getGSTSettingsDoc();
+        const d = res?.data ?? res;
+        if (cancelled || !d) return;
+        setForm({
+          gstApplicable: !!d.gstApplicable,
+          foodGSTEnabled: !!d.foodGSTEnabled,
+          foodCGST: Number(d.foodCGSTRate) || 0,
+          foodSGST: Number(d.foodSGSTRate) || 0,
+          foodIGST: Number(d.foodIGSTRate) || 0,
+          platformGSTEnabled: !!d.platformGSTEnabled,
+          commissionRate: Number(d.platformCommissionRate) || 0,
+          commissionGST: Number(d.platformGSTRate) || 0,
+          deliveryGSTEnabled: !!d.deliveryGSTEnabled,
+          deliveryCGST: Number(d.deliveryCGSTRate) || 0,
+          deliverySGST: Number(d.deliverySGSTRate) || 0,
+          deliveryIGST: Number(d.deliveryIGSTRate) || 0,
+          defaultGSTIN: d.defaultGSTIN || "",
+          invoicePrefix: d.invoicePrefix || "DN",
+        });
+      } catch {
+        toast({
+          title: "Could not load GST settings",
+          description: "Defaults shown; save to create settings.",
+          variant: "destructive",
         });
       } finally {
-        setIsLoading(false);
+        if (!cancelled) setIsLoading(false);
       }
+    })();
+    return () => {
+      cancelled = true;
     };
-
-    fetchSettings();
   }, []);
 
-  const handleInputChange = (key: keyof AllSettings, value: any) => {
-    setSettings(prev => ({
-      ...prev,
-      [key]: value
-    }));
-  };
+  const patch = (k: keyof GSTForm, v: boolean | number | string) =>
+    setForm((prev) => ({ ...prev, [k]: v }));
 
-  const saveSettings = async () => {
+  const save = async () => {
     setIsSaving(true);
     try {
-      // Save all settings to their respective endpoints
-      await Promise.all([
-        // Save GST Config
-        apiRequest('/admin/gst', {
-          method: 'PUT',
-          body: JSON.stringify({
-            cgstRate: settings.cgstRate,
-            sgstRate: settings.sgstRate,
-            commissionGstRate: settings.commissionGstRate,
-            hsnCode: settings.hsnCode,
-            gstNumber: settings.defaultGSTIN
-          })
-        }),
-        // Save Platform Config (fees)
-        apiRequest('/admin/config', {
-          method: 'PUT',
-          body: JSON.stringify({
-            platformFee: settings.platformFee,
-            deliveryFee: settings.deliveryFee
-          })
-        }),
-        // Save Commission Config
-        apiRequest('/admin/commission', {
-          method: 'PUT',
-          body: JSON.stringify({
-            defaultRate: settings.commissionRate
-          })
-        })
-      ]);
-      
-      toast({ 
-        title: "Settings Saved!", 
-        description: "All GST rates, fees, and commission updated successfully" 
+      await adminAPI.saveGSTSettingsDoc({
+        gstApplicable: form.gstApplicable,
+        foodGSTEnabled: form.foodGSTEnabled,
+        foodCGSTRate: form.foodCGST,
+        foodSGSTRate: form.foodSGST,
+        foodIGSTRate: form.foodIGST,
+        platformGSTEnabled: form.platformGSTEnabled,
+        commissionRate: form.commissionRate,
+        commissionGST: form.commissionGST,
+        deliveryGSTEnabled: form.deliveryGSTEnabled,
+        deliveryCGSTRate: form.deliveryCGST,
+        deliverySGSTRate: form.deliverySGST,
+        deliveryIGSTRate: form.deliveryIGST,
+        defaultGSTIN: form.defaultGSTIN || "",
+        invoicePrefix: form.invoicePrefix || "DN",
       });
-    } catch (error) {
-      console.error('Failed to save settings:', error);
-      toast({ 
-        title: "Save Failed", 
-        description: "Could not save settings. Please try again.", 
-        variant: "destructive" 
+      toast({
+        title: "Saved",
+        description: "GST settings updated. Customer checkout shows food + delivery tax only; commission is for platform settlement.",
       });
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Save failed";
+      toast({ title: "Save failed", description: msg, variant: "destructive" });
     } finally {
       setIsSaving(false);
     }
@@ -140,246 +122,185 @@ export default function AdminGSTSettings() {
 
   if (isLoading) {
     return (
-      <div className="p-6">
-        <div className="flex items-center gap-4 mb-8">
-          <Settings className="h-8 w-8 text-primary animate-spin" />
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">Platform Settings</h1>
-            <p className="text-muted-foreground">Loading...</p>
-          </div>
-        </div>
+      <div className="p-6 flex items-center gap-3">
+        <Settings className="h-8 w-8 animate-spin text-primary" />
+        <p className="text-muted-foreground">Loading GST settings…</p>
       </div>
     );
   }
 
   return (
     <div className="space-y-6">
-          
-          {/* GST Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-primary" />
-                GST Configuration (Food Orders)
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <Label className="text-base font-medium">Enable GST</Label>
-                  <p className="text-sm text-muted-foreground">
-                    Apply GST on food orders
-                  </p>
-                </div>
-                <Switch
-                  checked={settings.gstApplicable}
-                  onCheckedChange={(checked) => handleInputChange('gstApplicable', checked)}
-                />
-              </div>
-              
-              <Separator />
-              
-              <div className="grid grid-cols-4 gap-4">
-                <div>
-                  <Label htmlFor="cgstRate">CGST (%)</Label>
-                  <Input
-                    id="cgstRate"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={settings.cgstRate}
-                    onChange={(e) => handleInputChange('cgstRate', parseFloat(e.target.value) || 0)}
-                    disabled={!settings.gstApplicable}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Central GST</p>
-                </div>
-                <div>
-                  <Label htmlFor="sgstRate">SGST (%)</Label>
-                  <Input
-                    id="sgstRate"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={settings.sgstRate}
-                    onChange={(e) => handleInputChange('sgstRate', parseFloat(e.target.value) || 0)}
-                    disabled={!settings.gstApplicable}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">State GST</p>
-                </div>
-                <div>
-                  <Label htmlFor="commissionGstRate">Commission GST (%)</Label>
-                  <Input
-                    id="commissionGstRate"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={settings.commissionGstRate}
-                    onChange={(e) => handleInputChange('commissionGstRate', parseFloat(e.target.value) || 0)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">On platform fee</p>
-                </div>
-                <div>
-                  <Label htmlFor="hsnCode">HSN Code</Label>
-                  <Input
-                    id="hsnCode"
-                    value={settings.hsnCode}
-                    onChange={(e) => handleInputChange('hsnCode', e.target.value)}
-                    disabled={!settings.gstApplicable}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">Food services</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Receipt className="h-5 w-5 text-primary" />
+            GST — customer vs platform
+          </CardTitle>
+          <p className="text-sm text-muted-foreground">
+            <strong>Food GST (CGST/SGST or IGST)</strong> is what the customer sees and pays — collected on behalf of the seller.
+            <strong className="block mt-1">Commission % + GST on commission</strong> are for Dabba Nation only (not added to customer total).
+          </p>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <Label className="text-base">GST applicable</Label>
+              <p className="text-sm text-muted-foreground">Master switch</p>
+            </div>
+            <Switch checked={form.gstApplicable} onCheckedChange={(c) => patch("gstApplicable", c)} />
+          </div>
+          <Separator />
 
-          {/* Fee Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Wallet className="h-5 w-5 text-primary" />
-                Platform & Delivery Fees
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="platformFee" className="flex items-center gap-2">
-                    <IndianRupee className="h-4 w-4" />
-                    Platform Fee (₹)
-                  </Label>
-                  <Input
-                    id="platformFee"
-                    type="number"
-                    min="0"
-                    value={settings.platformFee}
-                    onChange={(e) => handleInputChange('platformFee', parseFloat(e.target.value) || 0)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Fixed fee per order (goes to admin)
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="deliveryFee" className="flex items-center gap-2">
-                    <Truck className="h-4 w-4" />
-                    Delivery Fee (₹)
-                  </Label>
-                  <Input
-                    id="deliveryFee"
-                    type="number"
-                    min="0"
-                    value={settings.deliveryFee}
-                    onChange={(e) => handleInputChange('deliveryFee', parseFloat(e.target.value) || 0)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    Paid by customer, goes to delivery partner
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-center justify-between">
+            <Label>Food GST</Label>
+            <Switch
+              checked={form.foodGSTEnabled}
+              onCheckedChange={(c) => patch("foodGSTEnabled", c)}
+              disabled={!form.gstApplicable}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Same state: CGST + SGST on item subtotal. Different state: IGST — use IGST % below, or leave 0 to use CGST+SGST sum.
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label>CGST %</Label>
+              <Input
+                type="number"
+                step={0.01}
+                min={0}
+                value={form.foodCGST}
+                disabled={!form.gstApplicable || !form.foodGSTEnabled}
+                onChange={(e) => patch("foodCGST", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <Label>SGST %</Label>
+              <Input
+                type="number"
+                step={0.01}
+                min={0}
+                value={form.foodSGST}
+                disabled={!form.gstApplicable || !form.foodGSTEnabled}
+                onChange={(e) => patch("foodSGST", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <Label>IGST % (inter-state)</Label>
+              <Input
+                type="number"
+                step={0.01}
+                min={0}
+                value={form.foodIGST}
+                disabled={!form.gstApplicable || !form.foodGSTEnabled}
+                onChange={(e) => patch("foodIGST", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
 
-          {/* Commission Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Percent className="h-5 w-5 text-primary" />
-                Seller Commission
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="commissionRate">Default Commission Rate (%)</Label>
-                  <Input
-                    id="commissionRate"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={settings.commissionRate}
-                    onChange={(e) => handleInputChange('commissionRate', parseFloat(e.target.value) || 0)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    % deducted from seller's order amount
-                  </p>
-                </div>
-                <div>
-                  <Label htmlFor="defaultGSTIN">Platform GSTIN (Optional)</Label>
-                  <Input
-                    id="defaultGSTIN"
-                    placeholder="Enter your GSTIN"
-                    value={settings.defaultGSTIN}
-                    onChange={(e) => handleInputChange('defaultGSTIN', e.target.value)}
-                  />
-                  <p className="text-xs text-muted-foreground mt-1">
-                    For invoice generation
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <Label className="flex items-center gap-2">
+              <Percent className="h-4 w-4" />
+              Platform commission (not on customer bill)
+            </Label>
+            <Switch
+              checked={form.platformGSTEnabled}
+              onCheckedChange={(c) => patch("platformGSTEnabled", c)}
+              disabled={!form.gstApplicable}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Commission % of subtotal</Label>
+              <Input
+                type="number"
+                step={0.01}
+                min={0}
+                value={form.commissionRate}
+                disabled={!form.gstApplicable || !form.platformGSTEnabled}
+                onChange={(e) => patch("commissionRate", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <Label>GST on commission % (e.g. 18)</Label>
+              <Input
+                type="number"
+                step={0.01}
+                min={0}
+                value={form.commissionGST}
+                disabled={!form.gstApplicable || !form.platformGSTEnabled}
+                onChange={(e) => patch("commissionGST", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
 
-          {/* Summary Card - Centered */}
-          <Card className="bg-primary/5 border-primary/20 max-w-3xl mx-auto">
-            <CardHeader>
-              <CardTitle className="text-lg text-center">Current Configuration Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div className="p-3 rounded-lg bg-card text-center">
-                  <p className="text-muted-foreground">Food GST</p>
-                  <p className="text-xl font-bold">{settings.cgstRate + settings.sgstRate}%</p>
-                  <p className="text-xs text-muted-foreground">CGST {settings.cgstRate}% + SGST {settings.sgstRate}%</p>
-                </div>
-                <div className="p-3 rounded-lg bg-card text-center">
-                  <p className="text-muted-foreground">Platform Fee</p>
-                  <p className="text-xl font-bold">₹{settings.platformFee}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-card text-center">
-                  <p className="text-muted-foreground">Delivery Fee</p>
-                  <p className="text-xl font-bold">₹{settings.deliveryFee}</p>
-                </div>
-                <div className="p-3 rounded-lg bg-card text-center">
-                  <p className="text-muted-foreground">Commission</p>
-                  <p className="text-xl font-bold">{settings.commissionRate}%</p>
-                  <p className="text-xs text-muted-foreground">+ {settings.commissionGstRate}% GST</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          <Separator />
+          <div className="flex items-center justify-between">
+            <Label>GST on delivery charge</Label>
+            <Switch
+              checked={form.deliveryGSTEnabled}
+              onCheckedChange={(c) => patch("deliveryGSTEnabled", c)}
+              disabled={!form.gstApplicable}
+            />
+          </div>
+          <div className="grid grid-cols-3 gap-3">
+            <div>
+              <Label>Delivery CGST %</Label>
+              <Input
+                type="number"
+                step={0.01}
+                min={0}
+                value={form.deliveryCGST}
+                disabled={!form.gstApplicable || !form.deliveryGSTEnabled}
+                onChange={(e) => patch("deliveryCGST", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <Label>Delivery SGST %</Label>
+              <Input
+                type="number"
+                step={0.01}
+                min={0}
+                value={form.deliverySGST}
+                disabled={!form.gstApplicable || !form.deliveryGSTEnabled}
+                onChange={(e) => patch("deliverySGST", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+            <div>
+              <Label>Delivery IGST %</Label>
+              <Input
+                type="number"
+                step={0.01}
+                min={0}
+                value={form.deliveryIGST}
+                disabled={!form.gstApplicable || !form.deliveryGSTEnabled}
+                onChange={(e) => patch("deliveryIGST", parseFloat(e.target.value) || 0)}
+              />
+            </div>
+          </div>
 
-          {/* Action Buttons */}
-          <div className="flex gap-4 justify-end">
-            <Button
-              variant="outline"
-              onClick={() => setSettings({
-                cgstRate: 2.5,
-                sgstRate: 2.5,
-                commissionGstRate: 18,
-                hsnCode: "996331",
-                gstApplicable: true,
-                platformFee: 5,
-                deliveryFee: 40,
-                commissionRate: 15,
-                defaultGSTIN: "",
-              })}
-              disabled={isSaving}
-            >
-              <RefreshCw className="h-4 w-4 mr-2" />
-              Reset to Defaults
-            </Button>
-            <Button
-              onClick={saveSettings}
-              disabled={isSaving}
-              className="gradient-primary text-primary-foreground"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {isSaving ? 'Saving...' : 'Save All Settings'}
+          <Separator />
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <Label>Default GSTIN (platform)</Label>
+              <Input value={form.defaultGSTIN} onChange={(e) => patch("defaultGSTIN", e.target.value)} />
+            </div>
+            <div>
+              <Label>Invoice prefix</Label>
+              <Input value={form.invoicePrefix} onChange={(e) => patch("invoicePrefix", e.target.value)} />
+            </div>
+          </div>
+
+          <div className="flex justify-end pt-2">
+            <Button type="button" onClick={save} disabled={isSaving} className="gap-2">
+              <Save className="h-4 w-4" />
+              {isSaving ? "Saving…" : "Save settings"}
             </Button>
           </div>
-        </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
