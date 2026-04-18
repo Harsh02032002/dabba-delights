@@ -46,7 +46,7 @@ function AnimatedCharacter({
           transition: "opacity 0.3s",
           animationDelay: isLeft ? "0s" : "1.5s",
         }}
-        loading="lazy"
+        loading="eager"
       />
     </div>
   );
@@ -97,7 +97,7 @@ export default function LandingPage() {
     <div className="relative min-h-screen flex flex-col overflow-x-hidden">
       {/* Background */}
       <div className="fixed inset-0 z-0">
-        <img src={heroBg} alt="" className="w-full h-full object-cover" />
+        <img src={heroBg} alt="" className="w-full h-full object-cover" loading="eager" />
         <div className="absolute inset-0 bg-gradient-to-b from-white/60 via-white/40 to-white/80" />
       </div>
 

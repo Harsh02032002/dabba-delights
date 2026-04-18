@@ -12,7 +12,7 @@ import { KYCGate } from "@/components/seller/KYCGate";
 import React, { Suspense, lazy } from "react";
 
 // Lazy load components
-const LandingPage = lazy(() => import("./pages/user/LandingPage"));
+import LandingPage from "./pages/user/LandingPage";
 const UserHome = lazy(() => import("./pages/user/UserHome"));
 const SubscriptionPlans = lazy(() => import("./pages/user/SubscriptionPlans"));
 const UserLogin = lazy(() => import("./pages/user/UserLogin"));
