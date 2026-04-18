@@ -73,8 +73,12 @@ async function apiRequest<T = any>(
       : authToken !== undefined
         ? authToken
         : getTokenForCurrentRole();
+  
+  // Check if body is FormData - don't set Content-Type for FormData
+  const isFormData = fetchOptions.body instanceof FormData;
+  
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
+    ...(isFormData ? {} : { "Content-Type": "application/json" }),
     ...(token && { Authorization: `Bearer ${token}` }),
     ...fetchOptions.headers,
   };
@@ -398,6 +402,8 @@ export const sellerAPI = {
   requestPayout: (amount: number, method: string) =>
     apiRequest("/seller/payouts/request", { method: "POST", body: JSON.stringify({ amount, method }) }),
   getPerformanceInsights: () => apiRequest("/seller/performance-insights"),
+  getSubscriptions: () => apiRequest("/seller/subscriptions"),
+  getSubscriptionUsage: () => apiRequest("/seller/subscriptions/usage"),
   getNotificationPreferences: () => apiRequest("/seller/settings/notifications"),
   updateNotificationPreferences: (data: Record<string, unknown>) =>
     apiRequest("/seller/settings/notifications", { method: "PUT", body: JSON.stringify(data) }),
@@ -463,6 +469,7 @@ export const adminAPI = {
     apiRequest("/admin/gst", { method: "POST", body: JSON.stringify(data) }),
   getSubscriptionReports: () => apiRequest("/admin/subscriptions"),
   getSubscriptionUsageReports: () => apiRequest("/admin/subscriptions/usage"),
+  getSubscriptionPlans: () => apiRequest("/subscriptions/admin/plans"),
   approveMenuProduct: (id: string) =>
     apiRequest(`/admin/products/${id}/approve`, { method: "PATCH" }),
   rejectMenuProduct: (id: string, reason?: string) =>
@@ -581,6 +588,11 @@ export const userAPI = {
       method: "POST",
       body: JSON.stringify({ totalAmount, totalDays }),
     }),
+  verifySubscriptionPayment: (paymentData: any) =>
+    apiRequest("/user/subscriptions/verify-payment", {
+      method: "POST",
+      body: JSON.stringify(paymentData),
+    }),
   getWalletTransactions: () => apiRequest("/user/wallet/transactions"),
   topupWallet: (amount: number) =>
     apiRequest("/user/wallet/topup", { method: "POST", body: JSON.stringify({ amount }) }),
@@ -626,6 +638,7 @@ export const userAPI = {
   markAllNotificationsRead: () => apiRequest('/user/notifications/mark-all-read', { method: 'PATCH' }),
   deleteNotification: (id: string) => apiRequest(`/user/notifications/${id}`, { method: 'DELETE' }),
   getActiveBanners: () => apiRequest("/user/banners"),
+  getSubscriptionPlans: () => apiRequest("/subscriptions/plans"),
 };
 
 const authAPI = {

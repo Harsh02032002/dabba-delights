@@ -5,6 +5,7 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { sellerAPI } from '@/lib/api';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
 import {
   DollarSign, ShoppingBag, TrendingUp, Star, ArrowUpRight, ArrowDownRight, Clock, CheckCircle2, AlertCircle, Bell, X, Check, XCircle,
@@ -15,6 +16,7 @@ import {
 import { toast } from '@/hooks/use-toast';
 
 export default function SellerDashboard() {
+  const navigate = useNavigate();
   const { data: dashboard, isLoading } = useQuery({
     queryKey: ['seller-dashboard'],
     queryFn: () => sellerAPI.getDashboard(),
@@ -136,6 +138,79 @@ export default function SellerDashboard() {
         // Refresh dashboard data
         queryClient.invalidateQueries({ queryKey: ['seller-dashboard'] });
         queryClient.invalidateQueries({ queryKey: ['seller-orders'] });
+      });
+
+      // ─── Subscription Notifications ──────
+      socket.on('new_subscription', (data: any) => {
+        console.log('🎯 New subscription received:', data);
+        
+        setNotifications(prev => [
+          { 
+            id: Date.now(), 
+            type: 'subscription', 
+            title: '🎯 New Subscription!',
+            message: `${data.userName} subscribed with ₹${data.amount} plan`,
+            subscriptionId: data.subscriptionId,
+            userId: data.userId,
+            userName: data.userName,
+            userPhone: data.userPhone,
+            userAddress: data.userAddress,
+            amount: data.amount,
+            days: data.days,
+            perDayValue: data.perDayValue,
+            timestamp: new Date(),
+            actions: [
+              { label: 'View Details', action: 'view', variant: 'default' }
+            ]
+          },
+          ...prev.slice(0, 9)
+        ]);
+        
+        // Show toast
+        toast({ 
+          title: "🎯 New Subscription Received!", 
+          description: `${data.userName} subscribed with ₹${data.amount} (${data.days} days)`,
+          action: (
+            <Button size="sm" onClick={() => navigate('/seller/subscriptions')}>
+              View
+            </Button>
+          )
+        });
+        
+        // Refresh dashboard data
+        queryClient.invalidateQueries({ queryKey: ['seller-dashboard'] });
+      });
+
+      // Subscription usage notification (when user uses subscription for restaurant order)
+      socket.on('subscription_usage', (data: any) => {
+        console.log('💰 Subscription used for order:', data);
+        
+        setNotifications(prev => [
+          { 
+            id: Date.now(), 
+            type: 'subscription_usage', 
+            title: '💰 Subscription Amount Used',
+            message: `${data.userName} used ₹${data.amountUsed} from subscription for order`,
+            orderId: data.orderId,
+            userId: data.userId,
+            userName: data.userName,
+            amountUsed: data.amountUsed,
+            daysDeducted: data.daysDeducted,
+            remainingDays: data.remainingDays,
+            timestamp: new Date()
+          },
+          ...prev.slice(0, 9)
+        ]);
+        
+        // Show toast
+        toast({ 
+          title: "💰 Subscription Amount Used", 
+          description: `${data.userName} used ₹${data.amountUsed}, ${data.daysDeducted} days deducted`,
+          variant: "default"
+        });
+        
+        // Refresh dashboard data
+        queryClient.invalidateQueries({ queryKey: ['seller-dashboard'] });
       });
 
       return () => {

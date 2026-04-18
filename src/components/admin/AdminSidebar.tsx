@@ -28,6 +28,7 @@ import {
   Warehouse,
   Truck,
   CreditCard,
+  Crown,
 } from 'lucide-react';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -70,10 +71,30 @@ const adminNavItems = [
     href: '/admin/products',
   },
   {
+    title: 'Food Items',
+    icon: ShoppingBag,
+    href: '/admin/food-items',
+  },
+  {
+    title: 'Categories',
+    icon: FileText,
+    href: '/admin/category-management',
+  },
+  {
+    title: 'Subscriptions',
+    icon: Crown,
+    href: '/admin/subscriptions',
+  },
+  {
     title: "divider",
     icon: null,
     href: "",
     label: "Finance",
+  },
+  {
+    title: "Wallet",
+    icon: DollarSign,
+    href: "/admin/wallet",
   },
   {
     title: "Settlements",

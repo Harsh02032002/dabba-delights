@@ -16,6 +16,7 @@ import {
   Settings,
   FileText,
   Wallet,
+  Crown,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -148,6 +149,13 @@ export function UserNavbar({ onSearch }: UserNavbarProps) {
                     <Link to="/wallet" className="flex items-center gap-2">
                       <Wallet size={16} />
                       Wallet (₹{(user as any)?.wallet || 0})
+                    </Link>
+                  </DropdownMenuItem>
+
+                  <DropdownMenuItem asChild>
+                    <Link to="/subscriptions" className="flex items-center gap-2">
+                      <Crown size={16} />
+                      Subscription Plans
                     </Link>
                   </DropdownMenuItem>
 

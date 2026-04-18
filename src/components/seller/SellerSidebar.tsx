@@ -8,6 +8,7 @@ import {
   ShoppingBag,
   BarChart3,
   DollarSign,
+  Wallet,
   Gift,
   Megaphone,
   Star,
@@ -64,6 +65,11 @@ const sellerNavItems = [
     title: "Earnings",
     icon: DollarSign,
     href: "/seller/earnings",
+  },
+  {
+    title: "Wallet",
+    icon: Wallet,
+    href: "/seller/wallet",
   },
   {
     title: "Settlements",

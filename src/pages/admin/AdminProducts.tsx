@@ -65,6 +65,38 @@ export default function AdminProducts() {
     queryFn: () => productAPI.getProducts({ pendingApproval: true, limit: 100 }),
   });
 
+  // Fetch custom products from subscription plans
+  const { data: customProductsData, isLoading: customLoading } = useQuery({
+    queryKey: ['admin-custom-products'],
+    queryFn: async () => {
+      try {
+        const res = await adminAPI.getSubscriptionPlans();
+        const plans = res.plans || [];
+        const customProducts: any[] = [];
+        
+        plans.forEach((plan: any) => {
+          if (plan.allowed_items_data && plan.allowed_items_data.length > 0) {
+            plan.allowed_items_data.forEach((item: any, index: number) => {
+              customProducts.push({
+                _id: `${plan._id}-custom-${index}`,
+                name: item.name,
+                price: item.price,
+                planName: plan.plan_name,
+                planId: plan._id,
+                type: 'custom'
+              });
+            });
+          }
+        });
+        
+        return { customProducts };
+      } catch (error) {
+        console.error('Failed to fetch custom products:', error);
+        return { customProducts: [] };
+      }
+    },
+  });
+
   const { data: archivedData } = useQuery({
     queryKey: ['admin-products-archived'],
     queryFn: () => productAPI.getProducts({ isArchived: true }),
@@ -77,6 +109,7 @@ export default function AdminProducts() {
 
   const products = safeArray(productsData?.products || productsData?.data || productsData);
   const pendingProducts = safeArray(pendingData?.products || pendingData?.data || pendingData);
+  const customProducts = safeArray(customProductsData?.customProducts || []);
   const totalProducts = productsData?.total || products.length;
   const archivedProducts = safeArray(archivedData?.products || archivedData?.data || archivedData);
 
@@ -168,6 +201,7 @@ export default function AdminProducts() {
     fd.append('preparationTime', (form.elements.namedItem('preparationTime') as HTMLInputElement).value);
     fd.append('stock', (form.elements.namedItem('stock') as HTMLInputElement).value || '100');
     fd.append('isVeg', String((form.elements.namedItem('isVeg') as HTMLInputElement)?.checked || false));
+    fd.append('isAdminApproved', 'true'); // Auto-approve when admin creates
     fd.append('sellerId', selectedSellerId);
     const fileInput = imageInputRef.current;
     if (fileInput?.files?.[0]) fd.append('image', fileInput.files[0]);
@@ -209,6 +243,7 @@ export default function AdminProducts() {
               </span>
             ) : null}
           </TabsTrigger>
+          <TabsTrigger value="custom">Custom Products</TabsTrigger>
           <TabsTrigger value="add">Add Product</TabsTrigger>
           <TabsTrigger value="archived">Archived</TabsTrigger>
           <TabsTrigger value="metrics">Metrics</TabsTrigger>
@@ -332,6 +367,40 @@ export default function AdminProducts() {
                       >
                         <XCircle size={14} /> Reject
                       </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ═══ CUSTOM PRODUCTS ═══ */}
+        <TabsContent value="custom" className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Custom products manually added to subscription plans. These are not in the main product database.
+          </p>
+          {customLoading ? (
+            <LoadingSpinner />
+          ) : customProducts.length === 0 ? (
+            <p className="text-center py-12 text-muted-foreground">No custom products found in any subscription plans.</p>
+          ) : (
+            <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {customProducts.map((item: any) => (
+                <Card key={item._id} className="overflow-hidden border-green-500/30">
+                  <div className="aspect-[4/3] bg-gradient-to-br from-green-50 to-emerald-50 flex items-center justify-center">
+                    <Package className="w-12 h-12 text-green-500" />
+                  </div>
+                  <CardContent className="p-3 space-y-2">
+                    <h3 className="font-semibold text-sm">{item.name}</h3>
+                    <p className="text-xs text-muted-foreground">₹{item.price}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Plan: {item.planName}
+                    </p>
+                    <div className="flex items-center gap-1 pt-1">
+                      <span className="bg-green-100 text-green-800 text-xs px-2 py-0.5 rounded-full">
+                        Custom Product
+                      </span>
                     </div>
                   </CardContent>
                 </Card>

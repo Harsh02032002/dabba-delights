@@ -12,6 +12,7 @@ import { KYCGate } from "@/components/seller/KYCGate";
 // User Pages
 import LandingPage from "./pages/user/LandingPage";
 import UserHome from "./pages/user/UserHome";
+import SubscriptionPlans from "./pages/user/SubscriptionPlans";
 import UserLogin from "./pages/user/UserLogin";
 import UserRegister from "./pages/user/UserRegister";
 import VerifyEmail from "./pages/auth/VerifyEmail";
@@ -26,6 +27,8 @@ import AllProducts from "./pages/user/AllProducts";
 import MyOrders from "./pages/user/MyOrders";
 import UserSettings from "./pages/user/UserSettings";
 import SellerDetail from "./pages/user/SellerDetail";
+import SubscriptionItems from "./pages/user/SubscriptionItems";
+import UserSubscriptionPlans from "./pages/user/UserSubscriptionPlans";
 import HelpCenter from "./pages/user/HelpCenter";
 import ContactUs from "./pages/user/ContactUs";
 
@@ -43,6 +46,7 @@ import SellerMenu from "./pages/seller/SellerMenu";
 import SellerOrders from "./pages/seller/SellerOrders";
 import SellerAnalytics from "./pages/seller/SellerAnalytics";
 import SellerEarnings from "./pages/seller/SellerEarnings";
+import SellerWallet from "./pages/seller/SellerWallet";
 import SellerSettlements from "./pages/seller/SellerSettlements";
 import SellerKYC from "./pages/seller/SellerKYC";
 import SellerProfile from "./pages/seller/SellerProfile";
@@ -82,6 +86,12 @@ import AdminWarehouses from "./pages/admin/AdminWarehouses";
 import AdminDeliveryPartners from "./pages/admin/AdminDeliveryPartners";
 import AdminDeliveryPayConfig from "./pages/admin/AdminDeliveryPayConfig";
 import AdminWallet from "./pages/admin/AdminWallet";
+import AdminSubscriptions from "./pages/admin/AdminSubscriptions";
+import CategoryManagement from "./pages/admin/CategoryManagement";
+import FoodItemsManagement from "./pages/admin/FoodItemsManagement";
+
+// User Subscription Page
+import UserSubscription from "./pages/user/UserSubscription";
 
 // Other
 import NotFound from "./pages/NotFound";
@@ -130,6 +140,7 @@ const App = () => (
 
               {/* User Routes - Protected for users only */}
               <Route path="/home" element={<RoleGuard allowedRole="user"><UserHome /></RoleGuard>} />
+              <Route path="/subscription-plans" element={<RoleGuard allowedRole="user"><SubscriptionPlans /></RoleGuard>} />
               <Route path="/cart" element={<RoleGuard allowedRole="user"><CartPage /></RoleGuard>} />
               <Route path="/checkout" element={<RoleGuard allowedRole="user"><CheckoutPage /></RoleGuard>} />
               <Route path="/wishlist" element={<RoleGuard allowedRole="user"><UserWishlist /></RoleGuard>} />
@@ -137,6 +148,9 @@ const App = () => (
               <Route path="/wallet" element={<RoleGuard allowedRole="user"><UserWallet /></RoleGuard>} />
               <Route path="/all-products" element={<RoleGuard allowedRole="user"><AllProducts /></RoleGuard>} />
               <Route path="/orders" element={<RoleGuard allowedRole="user"><MyOrders /></RoleGuard>} />
+              <Route path="/subscriptions" element={<RoleGuard allowedRole="user"><UserSubscription /></RoleGuard>} />
+              <Route path="/subscription-items" element={<ProtectedRoute><SubscriptionItems /></ProtectedRoute>} />
+              <Route path="/subscription-plans" element={<ProtectedRoute><UserSubscriptionPlans /></ProtectedRoute>} />
               <Route path="/settings" element={<RoleGuard allowedRole="user"><UserSettings /></RoleGuard>} />
               <Route path="/seller/:id" element={<RoleGuard allowedRole="user"><SellerDetail /></RoleGuard>} />
 
@@ -159,6 +173,7 @@ const App = () => (
               <Route path="/seller/orders" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerOrders /></KYCGate></ProtectedRoute>} />
               <Route path="/seller/analytics" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerAnalytics /></KYCGate></ProtectedRoute>} />
               <Route path="/seller/earnings" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerEarnings /></KYCGate></ProtectedRoute>} />
+              <Route path="/seller/wallet" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerWallet /></KYCGate></ProtectedRoute>} />
               <Route path="/seller/settlements" element={<ProtectedRoute requiredRole="seller"><KYCGate><SellerSettlements /></KYCGate></ProtectedRoute>} />
               <Route path="/seller/kyc" element={<ProtectedRoute requiredRole="seller"><SellerKYC /></ProtectedRoute>} />
               <Route path="/seller/profile" element={<ProtectedRoute requiredRole="seller"><SellerProfile /></ProtectedRoute>} />
@@ -198,6 +213,9 @@ const App = () => (
               <Route path="/admin/delivery-partners" element={<ProtectedRoute requiredRole="admin"><AdminDeliveryPartners /></ProtectedRoute>} />
               <Route path="/admin/delivery-pay-config" element={<ProtectedRoute requiredRole="admin"><AdminDeliveryPayConfig /></ProtectedRoute>} />
               <Route path="/admin/wallet" element={<ProtectedRoute requiredRole="admin"><AdminWallet /></ProtectedRoute>} />
+              <Route path="/admin/subscriptions" element={<ProtectedRoute requiredRole="admin"><AdminSubscriptions /></ProtectedRoute>} />
+              <Route path="/admin/category-management" element={<ProtectedRoute requiredRole="admin"><CategoryManagement /></ProtectedRoute>} />
+              <Route path="/admin/food-items" element={<ProtectedRoute requiredRole="admin"><FoodItemsManagement /></ProtectedRoute>} />
 
               
 

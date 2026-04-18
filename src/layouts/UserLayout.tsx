@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { UserNavbar } from '@/components/user/UserNavbar';
 import Footer from '@/components/shared/Footer';
+import { MobileBottomNav } from '@/components/MobileBottomNav';
 
 interface UserLayoutProps {
   children: ReactNode;
@@ -12,11 +13,15 @@ export function UserLayout({ children, onSearch }: UserLayoutProps) {
     <div className="min-h-screen bg-background flex flex-col">
       <UserNavbar onSearch={onSearch} />
       
-      <main className="flex-1">
+      <main className="flex-1 pb-16 md:pb-0">
         {children}
       </main>
       
-      <Footer />
+      <div className="hidden md:block">
+        <Footer />
+      </div>
+      
+      <MobileBottomNav />
     </div>
   );
 }

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { MapPin, IndianRupee, Loader2, CreditCard, Banknote, ArrowLeft, Wallet, Receipt } from "lucide-react";
+import { MapPin, IndianRupee, Loader2, CreditCard, Banknote, ArrowLeft, Wallet, Receipt,Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { formatGSTPercentage, GST_RATES, updateGSTSettings } from "@/lib/gst";
@@ -27,7 +27,7 @@ function loadRazorpayScript(): Promise<boolean> {
   });
 }
 
-type PaymentMethod = "razorpay" | "cod" | "wallet";
+type PaymentMethod = "razorpay" | "cod" | "wallet" | "subscription" | "hybrid";
 
 export default function CheckoutPage() {
   const navigate = useNavigate();
@@ -156,11 +156,15 @@ export default function CheckoutPage() {
   });
   const activeSubscription = subRes?.subscription as
     | {
+        _id?: string;
         remaining_amount?: number;
         remaining_days?: number;
         per_day_value?: number;
+        seller_id?: {
+          _id?: string;
+          businessName?: string;
+        } | string;
       }
-    | null
     | undefined;
 
   const gstCalculation = useMemo(() => {
@@ -262,17 +266,21 @@ export default function CheckoutPage() {
 
   const orderGrandTotal = gstCalculation?.grandTotal ?? totalAmount;
   const remSub = Number(activeSubscription?.remaining_amount) || 0;
-  const subscriptionUsedPreview =
-    activeSubscription && remSub > 0 ? Math.min(orderGrandTotal, remSub) : 0;
   const pdVal = Number(activeSubscription?.per_day_value) || 0;
-  const daysDeductedPreview =
-    pdVal > 0 && subscriptionUsedPreview > 0 ? Math.ceil(subscriptionUsedPreview / pdVal) : 0;
-  const remainingDaysPreview =
-    activeSubscription != null
-      ? Math.max(0, (Number(activeSubscription.remaining_days) || 0) - daysDeductedPreview)
+
+  const potentialSubUsed = activeSubscription && remSub > 0 ? Math.min(orderGrandTotal, remSub) : 0;
+  const potentialDaysDeducted = pdVal > 0 && potentialSubUsed > 0 ? Math.ceil(potentialSubUsed / pdVal) : 0;
+  const potentialRemainingDays = activeSubscription != null
+      ? Math.max(0, (Number(activeSubscription.remaining_days) || 0) - potentialDaysDeducted)
       : 0;
-  const payableNow = Math.max(0, orderGrandTotal - subscriptionUsedPreview);
-  const insufficientWallet = walletBalance < payableNow;
+
+  const isSubMethod = paymentMethod === "subscription";
+  const subscriptionUsedPreview = isSubMethod ? potentialSubUsed : 0;
+  const daysDeductedPreview = isSubMethod ? potentialDaysDeducted : 0;
+  const remainingDaysPreview = isSubMethod ? potentialRemainingDays : 0;
+
+  const payableNow = isSubMethod ? Math.max(0, orderGrandTotal - potentialSubUsed) : orderGrandTotal;
+  const insufficientWallet = walletBalance < orderGrandTotal;
 
   useEffect(() => {
     if (!isLoggedIn) {
@@ -298,34 +306,93 @@ export default function CheckoutPage() {
     return true;
   };
 
-  const buildOrderPayload = (method: string) => ({
-    items: cartItems.map((item: any) => ({
-      menuItemId: item.menuItem._id,
-      name: item.menuItem.name,
-      sellingPrice: item.menuItem.discountPrice || item.menuItem.sellingPrice,
-      quantity: item.quantity,
-      image: item.menuItem.image,
-    })),
-    sellerId: cart.sellerId,
-    deliveryAddress,
-    paymentMethod: method,
-    totalAmount: gstCalculation ? gstCalculation.grandTotal : totalAmount,
-    subtotal: totals.subtotal,
-    deliveryFee: gstCalculation?.deliveryFee ?? totals.deliveryFee,
-    platformFee: 0,
-    gstAmount: gstCalculation ? gstCalculation.totalGST : totals.gst,
-    gstBreakup: gstCalculation ? {
-      cgst: gstCalculation.totalCGST,
-      sgst: gstCalculation.totalSGST,
-      igst: gstCalculation.igst,
-      totalGST: gstCalculation.totalGST,
-    } : null,
-  });
+  const buildOrderPayload = (method: string, isHybrid = false) => {
+    const subUsed = (method === 'subscription' || isHybrid) ? potentialSubUsed : 0;
+    const subDays = (method === 'subscription' || isHybrid) ? potentialDaysDeducted : 0;
+    const remDays = activeSubscription != null ? Math.max(0, (Number(activeSubscription.remaining_days) || 0) - subDays) : 0;
+
+    return {
+      items: cartItems.map((item: any) => ({
+        menuItemId: item.menuItem._id,
+        name: item.menuItem.name,
+        sellingPrice: item.menuItem.discountPrice || item.menuItem.sellingPrice,
+        quantity: item.quantity,
+        image: item.menuItem.image,
+      })),
+      sellerId: cart.sellerId,
+      deliveryAddress,
+      paymentMethod: isHybrid ? "hybrid" : method,
+      totalAmount: gstCalculation ? gstCalculation.grandTotal : totalAmount,
+      subtotal: totals.subtotal,
+      deliveryFee: gstCalculation?.deliveryFee ?? totals.deliveryFee,
+      platformFee: 0,
+      gstAmount: gstCalculation ? gstCalculation.totalGST : totals.gst,
+      gstBreakup: gstCalculation ? {
+        cgst: gstCalculation.totalCGST,
+        sgst: gstCalculation.totalSGST,
+        igst: gstCalculation.igst,
+        totalGST: gstCalculation.totalGST,
+      } : null,
+      subscriptionDeduction: activeSubscription && subUsed > 0 ? {
+        subscriptionId: activeSubscription._id,
+        amountUsed: subUsed,
+        daysDeducted: subDays,
+        remainingAmount: remSub - subUsed,
+        remainingDays: remDays,
+        perDayValue: pdVal,
+        homeChefId: typeof activeSubscription.seller_id === 'object' ? activeSubscription.seller_id?._id : activeSubscription.seller_id,
+      } : null,
+    };
+  };
+
+  const placeOrderWithSubscription = async () => {
+    if (!validateAddress()) return;
+    if (!activeSubscription || potentialSubUsed <= 0) {
+      toast({ title: "No Active Subscription", description: "You don't have an active subscription to use for this order.", variant: "destructive" });
+      return;
+    }
+    
+    // Calculate remaining amount after subscription
+    const remainingAfterSub = orderGrandTotal - potentialSubUsed;
+    if (remainingAfterSub > 0) {
+      // Launch hybrid payment directly
+      toast({ 
+        title: "Partial Payment", 
+        description: `Subscription covers ₹${potentialSubUsed.toFixed(0)}. Need to pay ₹${remainingAfterSub.toFixed(0)}.`
+      });
+      return handleRazorpayPayment(true);
+    }
+    
+    setIsLoading(true);
+    try {
+      // Full subscription coverage
+      const orderResponse = await userAPI.placeOrder(buildOrderPayload("subscription"));
+      toast({ 
+        title: "Order placed! 🎉", 
+        description: `Paid fully from your subscription. ₹${subscriptionUsedPreview.toFixed(2)} deducted, ${daysDeductedPreview} days used.`
+      });
+      
+      // Generate invoice immediately
+      try {
+        await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
+        toast({ title: "Invoice generated! 📄", description: "Your invoice is ready for download" });
+      } catch (invoiceErr: any) {
+        console.log("Invoice generation failed:", invoiceErr);
+      }
+      
+      clearCart();
+      navigate("/orders");
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   const placeOrderWithWallet = async () => {
     if (!validateAddress()) return;
-    if (walletBalance < payableNow) {
-      toast({ title: "Insufficient Balance", description: `Your wallet has ₹${walletBalance}. You need ₹${payableNow.toFixed(2)} after subscription (order ₹${orderGrandTotal.toFixed(2)}).`, variant: "destructive" });
+    if (walletBalance < orderGrandTotal) {
+      toast({ title: "Insufficient Balance", description: `Your wallet has ₹${walletBalance}. You need ₹${orderGrandTotal.toFixed(2)}.`, variant: "destructive" });
       return;
     }
     setIsLoading(true);
@@ -376,7 +443,7 @@ export default function CheckoutPage() {
     }
   };
 
-  const handleRazorpayPayment = async () => {
+  const handleRazorpayPayment = async (isHybrid = false) => {
     console.log('🚀 Starting Razorpay payment process...');
     
     if (!validateAddress()) {
@@ -384,35 +451,24 @@ export default function CheckoutPage() {
       return;
     }
 
-    if (payableNow <= 0) {
-      setIsLoading(true);
-      try {
-        const orderResponse = await userAPI.placeOrder(buildOrderPayload("razorpay"));
-        toast({ title: "Order placed", description: "Fully covered by your subscription." });
-        try {
-          await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
-        } catch {
-          /* optional invoice */
-        }
-        clearCart();
-        navigate("/orders");
-      } catch (err: unknown) {
-        const msg = err instanceof Error ? err.message : "Order failed";
-        toast({ title: "Error", description: msg, variant: "destructive" });
-      } finally {
-        setIsLoading(false);
-      }
-      return;
-    }
-    
+    const payNow = isHybrid ? Math.max(0, orderGrandTotal - potentialSubUsed) : orderGrandTotal;
+    const subUsed = isHybrid ? potentialSubUsed : 0;
+    const subDays = isHybrid ? potentialDaysDeducted : 0;
+
     setIsLoading(true);
     try {
       console.log(' Creating Razorpay order...');
       const response = await paymentAPI.createRazorpayOrder({
-        amount: payableNow,
+        amount: payNow,
         currency: "INR",
         orderId: `ORDER-${Date.now()}`,
         description: `Order from Dabba Nation - ${cartItems.length} items`,
+        subscriptionDeduction: subUsed > 0 ? {
+          subscriptionId: activeSubscription?._id,
+          amountUsed: subUsed,
+          daysDeducted: subDays,
+          homeChefId: typeof activeSubscription?.seller_id === 'object' ? activeSubscription?.seller_id?._id : activeSubscription?.seller_id,
+        } : undefined,
       });
       
       console.log('📋 Razorpay order response:', response);
@@ -449,11 +505,17 @@ export default function CheckoutPage() {
             if (verifyRes?.verified || verifyRes?.success) {
               console.log('✅ Payment verified, placing order...');
               
-              // Place the order
-              const orderResponse = await userAPI.placeOrder(buildOrderPayload("razorpay"));
+              const orderResponse = await userAPI.placeOrder(buildOrderPayload("razorpay", isHybrid));
               console.log('📦 Order placed successfully:', orderResponse);
               
-              toast({ title: "Payment successful! Order placed. 🎉" });
+              if (isHybrid && subUsed > 0) {
+                toast({ 
+                  title: "Payment successful! Order placed. 🎉",
+                  description: `₹${subUsed.toFixed(0)} from subscription + ₹${payNow.toFixed(0)} via Razorpay. ${subDays} days used.`
+                });
+              } else {
+                toast({ title: "Payment successful! Order placed. 🎉" });
+              }
               
               // Generate invoice
               try {
@@ -548,7 +610,8 @@ export default function CheckoutPage() {
   };
 
   const handlePayment = () => {
-    if (paymentMethod === "wallet") placeOrderWithWallet();
+    if (paymentMethod === "subscription") placeOrderWithSubscription();
+    else if (paymentMethod === "wallet") placeOrderWithWallet();
     else if (paymentMethod === "cod") placeOrderWithCOD();
     else handleRazorpayPayment();
   };
@@ -628,6 +691,41 @@ export default function CheckoutPage() {
                 <CreditCard size={20} className="text-primary" /> Payment Method
               </h2>
               <div className="space-y-3">
+                {/* Subscription - Show first if available */}
+                {activeSubscription && potentialSubUsed > 0 && (
+                  <label className={cn(
+                    "flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all",
+                    paymentMethod === "subscription" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
+                  )}>
+                    <input 
+                      type="radio" 
+                      name="payment" 
+                      checked={paymentMethod === "subscription"} 
+                      onChange={() => setPaymentMethod("subscription")} 
+                      className="accent-primary" 
+                    />
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white">
+                      <span className="text-sm font-bold">₹</span>
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between">
+                        <p className="font-medium text-foreground">Pay from My Plan</p>
+                        <span className="text-sm font-bold text-success">
+                          ₹{potentialSubUsed.toFixed(0)}
+                        </span>
+                      </div>
+                      <p className="text-xs text-muted-foreground">
+                        {potentialSubUsed >= orderGrandTotal 
+                          ? "Fully covered by your subscription" 
+                          : `₹${potentialSubUsed.toFixed(0)} from subscription + ₹${(orderGrandTotal - potentialSubUsed).toFixed(0)} to pay`}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {potentialDaysDeducted} days will be deducted • {potentialRemainingDays} days remaining
+                      </p>
+                    </div>
+                  </label>
+                )}
+
                 {/* Wallet */}
                 <label className={cn(
                   "flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all",
@@ -645,7 +743,7 @@ export default function CheckoutPage() {
                     </div>
                     <p className="text-xs text-muted-foreground">
                       {insufficientWallet 
-                        ? `Insufficient balance (need ₹${payableNow.toFixed(0)} after subscription)` 
+                        ? `Insufficient balance (need ₹${orderGrandTotal.toFixed(0)})` 
                         : "Pay instantly from your wallet balance"}
                     </p>
                   </div>
@@ -824,27 +922,7 @@ export default function CheckoutPage() {
                 */}
               </div>
 
-              {/* 🧾 GST Info Box - Dynamic based on settings */}
-              {gstCalculation && gstSettings?.gstApplicable ? (
-                <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <div className="flex items-center gap-2 text-blue-700 mb-2">
-                    <Receipt size={16} />
-                    <span className="text-sm font-medium">GST on your order</span>
-                  </div>
-                  <div className="text-xs text-blue-600 space-y-1">
-                    <p>• Food tax is shown above (CGST/SGST or IGST). It is collected on behalf of the seller.</p>
-                    {gstSettings?.deliveryGSTEnabled ? (
-                      <p>• Delivery may include separate GST as shown above.</p>
-                    ) : (
-                      <p>• No GST on delivery with current settings.</p>
-                    )}
-                    <p>• Platform commission is not added to your bill; it is settled with the seller separately.</p>
-                    {gstSettings?.defaultGSTIN && <p>• Platform GSTIN: {gstSettings.defaultGSTIN}</p>}
-                  </div>
-                </div>
-              ) : null}
-
-              {activeSubscription && subscriptionUsedPreview > 0 && (
+            {activeSubscription && potentialSubUsed > 0 && paymentMethod === "subscription" && (
                 <div className="mt-4 p-3 rounded-lg border border-primary/30 bg-primary/5 text-sm space-y-1">
                   <p className="font-medium text-foreground">Dabba Express (subscription)</p>
                   <div className="flex justify-between text-muted-foreground">
@@ -883,22 +961,25 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              <Button onClick={handlePayment} disabled={isLoading} className="w-full mt-6 gradient-primary text-primary-foreground" size="lg">
+              <Button onClick={() => handlePayment()} disabled={isLoading} className="w-full mt-6 gradient-primary text-primary-foreground" size="lg">
                 {isLoading ? (
                   <><Loader2 size={16} className="mr-2 animate-spin" /> Processing...</>
+                ) : paymentMethod === "subscription" ? (
+                  <><Crown size={16} className="mr-2" /> Pay ₹{potentialSubUsed.toFixed(0)} from My Plan</>
                 ) : paymentMethod === "wallet" ? (
-                  <><Wallet size={16} className="mr-2" /> Pay ₹{payableNow.toFixed(0)} from Wallet</>
+                  <><Wallet size={16} className="mr-2" /> Pay ₹{orderGrandTotal.toFixed(0)} from Wallet</>
                 ) : paymentMethod === "cod" ? (
                   <><Banknote size={16} className="mr-2" /> Place Order (COD)</>
                 ) : (
-                  <><IndianRupee size={16} className="mr-2" /> Pay ₹{payableNow.toFixed(0)}</>
+                  <><IndianRupee size={16} className="mr-2" /> Pay ₹{orderGrandTotal.toFixed(0)}</>
                 )}
               </Button>
 
               <p className="mt-4 text-center text-xs text-muted-foreground">
-                {paymentMethod === "wallet" ? "Instant payment from your wallet" 
+                {paymentMethod === "subscription" ? `Using your subscription balance. ${potentialDaysDeducted} days will be deducted.`
+                  : paymentMethod === "wallet" ? "Instant payment from your wallet" 
                   : paymentMethod === "cod" ? "Pay cash when your order is delivered" 
-                  : "Secure payment powered by Razorpay"}
+                  : "Secure online payment via Razorpay"}
               </p>
             </Card>
           </div>

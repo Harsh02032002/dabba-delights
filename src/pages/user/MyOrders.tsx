@@ -273,6 +273,23 @@ export default function MyOrders() {
                     </div>
                     <div className="flex flex-col items-end gap-2">
                       <p className="text-xl font-bold text-foreground">₹{order.total}</p>
+                      
+                      {/* Subscription Billing Info */}
+                      {order.subscriptionAmountUsed > 0 && (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-2 text-xs">
+                          <div className="text-green-800 font-semibold">Subscription Used</div>
+                          <div className="text-green-600">-₹{order.subscriptionAmountUsed}</div>
+                          {order.subscriptionDaysDeducted > 0 && (
+                            <div className="text-green-600">-{order.subscriptionDaysDeducted} days</div>
+                          )}
+                          {order.payableAfterSubscription > 0 && (
+                            <div className="border-t border-green-200 mt-1 pt-1">
+                              <div className="text-green-800 font-semibold">Paid: ₹{order.payableAfterSubscription}</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                      
                       <p className="text-xs text-muted-foreground capitalize">{order.paymentMethod?.replace('_', ' ')}</p>
                       
                       {order.status === 'delivered' && !order.rating && (
