@@ -54,138 +54,77 @@ export default function UserWallet() {
     },
     onSuccess: async (razorpayOrder: any) => {
       if (razorpayOrder.success && razorpayOrder.key) {
-        console.log('🔍 Starting Razorpay payment...');
-        
-        // Wait for Razorpay to be available
-        const checkAndInitiate = async () => {
-          // Load Razorpay script if not loaded
-          if (typeof window.Razorpay === 'undefined' || window.Razorpay === null) {
-            console.log('📥 Loading Razorpay script...');
-            const script = document.createElement('script');
-            script.src = 'https://checkout.razorpay.com/v1/razorpay.js';
-            script.async = true;
-            
-            script.onload = () => {
-              console.log('✅ Razorpay script loaded');
-              setTimeout(() => createRazorpayInstance(), 500);
-            };
-            
-            script.onerror = () => {
-              console.error('❌ Failed to load Razorpay script');
-              toast({
-                title: 'Payment Error',
-                description: 'Failed to load payment gateway. Please try again.',
-                variant: 'destructive',
-              });
-            };
-            
-            document.body.appendChild(script);
-          } else {
-            createRazorpayInstance();
-          }
-          
-          function createRazorpayInstance() {
-            if (typeof window.Razorpay === 'undefined' || window.Razorpay === null) {
-              console.error('❌ Razorpay still not available');
-              toast({
-                title: 'Payment Error',
-                description: 'Payment gateway not loaded. Please refresh the page.',
-                variant: 'destructive',
-              });
-              return;
-            }
-            
-            try {
-              console.log('🏗️ Creating Razorpay instance...');
-              
-              const options = {
-                key: razorpayOrder.key,
-                amount: razorpayOrder.amount,
-                currency: razorpayOrder.currency,
-                order_id: razorpayOrder.orderId,
-                name: 'Dabba Nation',
-                description: 'Wallet Top-up',
-                image: '/logo.png',
-                handler: async (response: any) => {
-                  try {
-                    console.log('💳 Payment handler called');
-                    // Verify payment with backend
-                    const verification = await paymentAPI.verifyRazorpayPayment({
-                      razorpayOrderId: response.razorpay_order_id,
-                      razorpayPaymentId: response.razorpay_payment_id,
-                      razorpaySignature: response.razorpay_signature,
-                      amount: Number(topupAmount)
-                    });
+        console.log('🔍 Starting Razorpay payment logic...');
 
-                    if (verification.success) {
-                      // Add money to wallet after successful verification
-                      await userAPI.topupWallet(Number(topupAmount));
-                      
-                      toast({
-                        title: 'Payment Successful',
-                        description: `₹${topupAmount} added to your wallet`,
-                      });
+        const openRazorpay = () => {
+          const options = {
+            key: razorpayOrder.key,
+            amount: razorpayOrder.amount,
+            currency: razorpayOrder.currency,
+            order_id: razorpayOrder.orderId,
+            name: 'Dabba Nation',
+            description: 'Wallet Top-up',
+            image: '/logo.png',
+            handler: async (response: any) => {
+              try {
+                const verification = await paymentAPI.verifyRazorpayPayment({
+                  razorpayOrderId: response.razorpay_order_id,
+                  razorpayPaymentId: response.razorpay_payment_id,
+                  razorpaySignature: response.razorpay_signature,
+                  amount: Number(topupAmount)
+                });
 
-                      queryClient.invalidateQueries({ queryKey: ['user-wallet'] });
-                      setTopupAmount('');
-                    } else {
-                      toast({
-                        title: 'Payment Verification Failed',
-                        description: 'Please contact support',
-                        variant: 'destructive',
-                      });
-                    }
-                  } catch (error: any) {
-                    console.error('❌ Payment handler error:', error);
-                    toast({
-                      title: 'Error',
-                      description: error.message || 'Failed to add money to wallet',
-                      variant: 'destructive',
-                    });
-                  }
-                },
-                prefill: {
-                  name: '',
-                  email: '',
-                  contact: '',
-                },
-                theme: {
-                  color: '#f97316',
-                },
-                modal: {
-                  ondismiss: () => {
-                    toast({
-                      title: 'Payment Cancelled',
-                      description: 'You cancelled the payment',
-                    });
-                  }
+                if (verification.success) {
+                  await userAPI.topupWallet(Number(topupAmount));
+                  toast({
+                    title: 'Payment Successful',
+                    description: `₹${topupAmount} added to your wallet`,
+                  });
+                  queryClient.invalidateQueries({ queryKey: ['user-wallet'] });
+                  setTopupAmount('');
+                } else {
+                  toast({
+                    title: 'Verification Failed',
+                    description: 'Payment could not be verified.',
+                    variant: 'destructive',
+                  });
                 }
-              };
-
-              console.log('🚀 Opening Razorpay modal...');
-              const razorpayInstance = new window.Razorpay(options);
-              razorpayInstance.open();
-              
-            } catch (error: any) {
-              console.error('❌ Razorpay error:', error);
-              toast({
-                title: 'Payment Error',
-                description: error.message || 'Failed to initialize payment',
-                variant: 'destructive',
-              });
+              } catch (error: any) {
+                toast({
+                  title: 'Error',
+                  description: error.message || 'Verification failed',
+                  variant: 'destructive',
+                });
+              }
+            },
+            prefill: {
+              name: '',
+              email: '',
+              contact: '',
+            },
+            theme: {
+              color: '#f97316',
+            },
+            modal: {
+              ondismiss: () => {
+                toast({ title: 'Payment Cancelled' });
+              }
             }
-          }
+          };
+
+          const rzp = new (window as any).Razorpay(options);
+          rzp.open();
         };
-        
-        // Start the process
-        checkAndInitiate();
-        
-      } else {
-        toast({
-          title: 'Error',
-          description: 'Failed to create payment order',
-          variant: 'destructive',
-        });
+
+        if (!(window as any).Razorpay) {
+          const script = document.createElement('script');
+          script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+          script.async = true;
+          script.onload = openRazorpay;
+          document.body.appendChild(script);
+        } else {
+          openRazorpay();
+        }
       }
     },
     onError: (err: any) => {
@@ -296,62 +235,6 @@ export default function UserWallet() {
                       : 'Add Money'}
                   </Button>
                 </div>
-              </CardContent>
-            </Card>
-
-            <Card className="mb-8">
-              <CardHeader>
-                <CardTitle className="font-display text-lg">Dabba Express (subscription wallet)</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {activeSub && activeSub.status === 'active' ? (
-                  <div className="rounded-lg border border-border p-4 text-sm space-y-1">
-                    <p>
-                      <span className="text-muted-foreground">Remaining balance: </span>
-                      <strong>₹{Number(activeSub.remaining_amount ?? 0).toFixed(0)}</strong>
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Days left: </span>
-                      <strong>{activeSub.remaining_days ?? 0}</strong>
-                    </p>
-                    <p>
-                      <span className="text-muted-foreground">Per-day value: </span>
-                      ₹{Number(activeSub.per_day_value ?? 0).toFixed(2)}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">No active subscription. Start a plan to pay from subscription at checkout.</p>
-                )}
-                <div className="grid sm:grid-cols-2 gap-3">
-                  <div>
-                    <Label>Plan amount (₹)</Label>
-                    <Input type="number" value={subAmount} onChange={(e) => setSubAmount(e.target.value)} min={1} />
-                  </div>
-                  <div>
-                    <Label>Duration (days)</Label>
-                    <Input type="number" value={subDays} onChange={(e) => setSubDays(e.target.value)} min={1} />
-                  </div>
-                </div>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={async () => {
-                    try {
-                      await userAPI.purchaseSubscription(Number(subAmount), Number(subDays));
-                      toast({ title: 'Subscription activated' });
-                      await refetchSub();
-                      queryClient.invalidateQueries({ queryKey: ['user-active-subscription'] });
-                    } catch (e: unknown) {
-                      const msg = e instanceof Error ? e.message : 'Failed';
-                      toast({ title: 'Error', description: msg, variant: 'destructive' });
-                    }
-                  }}
-                >
-                  Activate / renew plan
-                </Button>
-                <p className="text-xs text-muted-foreground">
-                  For production, attach Razorpay verification here like wallet top-up. This creates the plan immediately after confirmation.
-                </p>
               </CardContent>
             </Card>
 

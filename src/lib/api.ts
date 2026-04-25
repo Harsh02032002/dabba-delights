@@ -615,7 +615,7 @@ export const userAPI = {
   getSellerRatingBreakdown: (sellerId: string) =>
     apiRequest(`/user/sellers/${sellerId}/rating-breakdown`),
   downloadInvoice: (orderId: string) => {
-    const token = localStorage.getItem("token");
+    const token = getTokenForCurrentRole();
     if (!token) {
       console.error("No token found for invoice download");
       return;
