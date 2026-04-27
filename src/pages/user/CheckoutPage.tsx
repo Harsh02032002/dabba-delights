@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { MapPin, IndianRupee, Loader2, CreditCard, Banknote, ArrowLeft, Wallet, Receipt,Crown } from "lucide-react";
+import { MapPin, IndianRupee, Loader2, CreditCard, Banknote, ArrowLeft, Wallet, Receipt, Crown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { formatGSTPercentage, GST_RATES, updateGSTSettings } from "@/lib/gst";
@@ -56,13 +56,13 @@ export default function CheckoutPage() {
         async (position) => {
           const { latitude, longitude } = position.coords;
           console.log('📍 User location detected:', { latitude, longitude });
-          
+
           try {
             const response = await fetch(
               `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}&zoom=18&addressdetails=1`
             );
             const data = await response.json();
-            
+
             if (data && data.address) {
               setDeliveryAddress(prev => ({
                 ...prev,
@@ -75,18 +75,18 @@ export default function CheckoutPage() {
                   coordinates: [longitude, latitude]
                 }
               }));
-              
-              toast({ 
-                title: "📍 Location Detected", 
-                description: `Address auto-filled: ${data.address.city || 'Unknown'}` 
+
+              toast({
+                title: "📍 Location Detected",
+                description: `Address auto-filled: ${data.address.city || 'Unknown'}`
               });
             }
           } catch (error) {
             console.error('❌ Reverse geocoding failed:', error);
-            toast({ 
-              title: "Location Error", 
-              description: "Could not get address from coordinates", 
-              variant: "destructive" 
+            toast({
+              title: "Location Error",
+              description: "Could not get address from coordinates",
+              variant: "destructive"
             });
           }
         },
@@ -94,16 +94,16 @@ export default function CheckoutPage() {
           console.error('❌ Location detection failed:', error);
           // Handle HTTPS geolocation restriction
           if (error.code === 1) {
-            toast({ 
-              title: "🌐 HTTPS Required", 
-              description: "Location access requires HTTPS in browser. Please enter address manually.", 
-              variant: "destructive" 
+            toast({
+              title: "🌐 HTTPS Required",
+              description: "Location access requires HTTPS in browser. Please enter address manually.",
+              variant: "destructive"
             });
           } else {
-            toast({ 
-              title: "Location Error", 
-              description: "Could not detect your location. Please enter address manually.", 
-              variant: "destructive" 
+            toast({
+              title: "Location Error",
+              description: "Could not detect your location. Please enter address manually.",
+              variant: "destructive"
             });
           }
         },
@@ -114,10 +114,10 @@ export default function CheckoutPage() {
         }
       );
     } else {
-      toast({ 
-        title: "Not Supported", 
-        description: "Geolocation is not supported by your browser", 
-        variant: "destructive" 
+      toast({
+        title: "Not Supported",
+        description: "Geolocation is not supported by your browser",
+        variant: "destructive"
       });
     }
   };
@@ -156,15 +156,15 @@ export default function CheckoutPage() {
   });
   const activeSubscription = subRes?.subscription as
     | {
+      _id?: string;
+      remaining_amount?: number;
+      remaining_days?: number;
+      per_day_value?: number;
+      seller_id?: {
         _id?: string;
-        remaining_amount?: number;
-        remaining_days?: number;
-        per_day_value?: number;
-        seller_id?: {
-          _id?: string;
-          businessName?: string;
-        } | string;
-      }
+        businessName?: string;
+      } | string;
+    }
     | undefined;
 
   const gstCalculation = useMemo(() => {
@@ -172,8 +172,8 @@ export default function CheckoutPage() {
     const subtotal = totals.subtotal;
     const rawDel =
       platformConfig &&
-      platformConfig.deliveryFee != null &&
-      String(platformConfig.deliveryFee) !== ""
+        platformConfig.deliveryFee != null &&
+        String(platformConfig.deliveryFee) !== ""
         ? Number(platformConfig.deliveryFee)
         : totals.deliveryFee;
     const deliveryFee = Number.isFinite(rawDel) ? rawDel : totals.deliveryFee;
@@ -271,8 +271,8 @@ export default function CheckoutPage() {
   const potentialSubUsed = activeSubscription && remSub > 0 ? Math.min(orderGrandTotal, remSub) : 0;
   const potentialDaysDeducted = pdVal > 0 && potentialSubUsed > 0 ? Math.ceil(potentialSubUsed / pdVal) : 0;
   const potentialRemainingDays = activeSubscription != null
-      ? Math.max(0, (Number(activeSubscription.remaining_days) || 0) - potentialDaysDeducted)
-      : 0;
+    ? Math.max(0, (Number(activeSubscription.remaining_days) || 0) - potentialDaysDeducted)
+    : 0;
 
   const isSubMethod = paymentMethod === "subscription";
   const subscriptionUsedPreview = isSubMethod ? potentialSubUsed : 0;
@@ -351,27 +351,27 @@ export default function CheckoutPage() {
       toast({ title: "No Active Subscription", description: "You don't have an active subscription to use for this order.", variant: "destructive" });
       return;
     }
-    
+
     // Calculate remaining amount after subscription
     const remainingAfterSub = orderGrandTotal - potentialSubUsed;
     if (remainingAfterSub > 0) {
       // Launch hybrid payment directly
-      toast({ 
-        title: "Partial Payment", 
+      toast({
+        title: "Partial Payment",
         description: `Subscription covers ₹${potentialSubUsed.toFixed(0)}. Need to pay ₹${remainingAfterSub.toFixed(0)}.`
       });
       return handleRazorpayPayment(true);
     }
-    
+
     setIsLoading(true);
     try {
       // Full subscription coverage
       const orderResponse = await userAPI.placeOrder(buildOrderPayload("subscription"));
-      toast({ 
-        title: "Order placed! 🎉", 
+      toast({
+        title: "Order placed! 🎉",
         description: `Paid fully from your subscription. ₹${subscriptionUsedPreview.toFixed(2)} deducted, ${daysDeductedPreview} days used.`
       });
-      
+
       // Generate invoice immediately
       try {
         await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
@@ -379,7 +379,7 @@ export default function CheckoutPage() {
       } catch (invoiceErr: any) {
         console.log("Invoice generation failed:", invoiceErr);
       }
-      
+
       clearCart();
       navigate("/orders");
     } catch (err: any) {
@@ -399,7 +399,7 @@ export default function CheckoutPage() {
     try {
       const orderResponse = await userAPI.placeOrder(buildOrderPayload("wallet"));
       toast({ title: "Order placed! 🎉", description: "Paid from wallet balance" });
-      
+
       // Generate invoice immediately
       try {
         await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
@@ -408,7 +408,7 @@ export default function CheckoutPage() {
         console.log("Invoice generation failed:", invoiceErr);
         // Don't show error to user, order is still placed
       }
-      
+
       clearCart();
       navigate("/orders");
     } catch (err: any) {
@@ -424,7 +424,7 @@ export default function CheckoutPage() {
     try {
       const orderResponse = await userAPI.placeOrder(buildOrderPayload("cod"));
       toast({ title: "Order placed successfully!", description: "Pay on delivery" });
-      
+
       // Generate invoice immediately
       try {
         await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
@@ -433,7 +433,7 @@ export default function CheckoutPage() {
         console.log("Invoice generation failed:", invoiceErr);
         // Don't show error to user, order is still placed
       }
-      
+
       clearCart();
       navigate("/orders");
     } catch (err: any) {
@@ -445,7 +445,7 @@ export default function CheckoutPage() {
 
   const handleRazorpayPayment = async (isHybrid = false) => {
     console.log('🚀 Starting Razorpay payment process...');
-    
+
     if (!validateAddress()) {
       console.log('❌ Address validation failed');
       return;
@@ -470,16 +470,16 @@ export default function CheckoutPage() {
           homeChefId: typeof activeSubscription?.seller_id === 'object' ? activeSubscription?.seller_id?._id : activeSubscription?.seller_id,
         } : undefined,
       });
-      
+
       console.log('📋 Razorpay order response:', response);
-      
+
       if (!response?.success) {
         console.error('❌ Razorpay order creation failed:', response);
         throw new Error(response?.message || "Failed to create order");
       }
 
       console.log('🎯 Creating direct Razorpay modal...');
-      
+
       // Create a direct Razorpay modal using the script
       const options = {
         key: response.key,
@@ -492,31 +492,31 @@ export default function CheckoutPage() {
         handler: async (paymentRes: any) => {
           try {
             console.log('💳 Razorpay payment response:', paymentRes);
-            
+
             // Verify payment
             const verifyRes = await paymentAPI.verifyRazorpayPayment({
               razorpayOrderId: paymentRes.razorpay_order_id,
               razorpayPaymentId: paymentRes.razorpay_payment_id,
               razorpaySignature: paymentRes.razorpay_signature,
             });
-            
+
             console.log('✅ Payment verification response:', verifyRes);
-            
+
             if (verifyRes?.verified || verifyRes?.success) {
               console.log('✅ Payment verified, placing order...');
-              
+
               const orderResponse = await userAPI.placeOrder(buildOrderPayload("razorpay", isHybrid));
               console.log('📦 Order placed successfully:', orderResponse);
-              
+
               if (isHybrid && subUsed > 0) {
-                toast({ 
+                toast({
                   title: "Payment successful! Order placed. 🎉",
                   description: `₹${subUsed.toFixed(0)} from subscription + ₹${payNow.toFixed(0)} via Razorpay. ${subDays} days used.`
                 });
               } else {
                 toast({ title: "Payment successful! Order placed. 🎉" });
               }
-              
+
               // Generate invoice
               try {
                 await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
@@ -525,7 +525,7 @@ export default function CheckoutPage() {
               } catch (invoiceErr: any) {
                 console.log("Invoice generation failed:", invoiceErr);
               }
-              
+
               clearCart();
               navigate("/orders");
             } else {
@@ -546,7 +546,7 @@ export default function CheckoutPage() {
           color: "#E86F2A"
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             console.log('❌ Razorpay modal dismissed by user');
             setIsLoading(false);
           },
@@ -559,49 +559,49 @@ export default function CheckoutPage() {
           seller_id: cart.sellerId
         }
       };
-      
+
       console.log('🔧 Razorpay options created:', options);
-      
+
       // Load Razorpay script fresh
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.async = true;
-      
+
       script.onload = () => {
         console.log('✅ Razorpay script loaded fresh');
-        
+
         try {
           // Create Razorpay instance directly from global window
           const rzp = new (window as any).Razorpay(options);
           console.log('✅ Razorpay instance created fresh');
-          
+
           // Open the modal
           rzp.open();
           console.log('🚀 Razorpay modal opened');
-          
+
         } catch (err: any) {
           console.error('❌ Error creating Razorpay instance:', err);
-          toast({ 
-            title: "Payment Error", 
-            description: "Cannot open payment modal. Please try another payment method.", 
-            variant: "destructive" 
+          toast({
+            title: "Payment Error",
+            description: "Cannot open payment modal. Please try another payment method.",
+            variant: "destructive"
           });
           setIsLoading(false);
         }
       };
-      
+
       script.onerror = () => {
         console.error('❌ Failed to load Razorpay script');
-        toast({ 
-          title: "Payment Error", 
-          description: "Cannot load payment gateway. Please try another payment method.", 
-          variant: "destructive" 
+        toast({
+          title: "Payment Error",
+          description: "Cannot load payment gateway. Please try another payment method.",
+          variant: "destructive"
         });
         setIsLoading(false);
       };
-      
+
       document.head.appendChild(script);
-      
+
     } catch (err: any) {
       console.error('❌ Payment error:', err);
       toast({ title: "Payment failed", description: err.message, variant: "destructive" });
@@ -633,12 +633,12 @@ export default function CheckoutPage() {
               <h2 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
                 <MapPin size={20} className="text-primary" /> Delivery Address
               </h2>
-              
+
               {/* 🗺️ Location Detection Button */}
               <div className="mb-4">
-                <Button 
-                  type="button" 
-                  variant="outline" 
+                <Button
+                  type="button"
+                  variant="outline"
                   onClick={detectUserLocation}
                   className="w-full flex items-center gap-2"
                 >
@@ -662,7 +662,7 @@ export default function CheckoutPage() {
                   </p>
                 </div>
               )}
-              
+
               <div className="space-y-4">
                 <div>
                   <Label htmlFor="street">Street Address</Label>
@@ -697,12 +697,12 @@ export default function CheckoutPage() {
                     "flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all",
                     paymentMethod === "subscription" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
                   )}>
-                    <input 
-                      type="radio" 
-                      name="payment" 
-                      checked={paymentMethod === "subscription"} 
-                      onChange={() => setPaymentMethod("subscription")} 
-                      className="accent-primary" 
+                    <input
+                      type="radio"
+                      name="payment"
+                      checked={paymentMethod === "subscription"}
+                      onChange={() => setPaymentMethod("subscription")}
+                      className="accent-primary"
                     />
                     <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white">
                       <span className="text-sm font-bold">₹</span>
@@ -715,8 +715,8 @@ export default function CheckoutPage() {
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground">
-                        {potentialSubUsed >= orderGrandTotal 
-                          ? "Fully covered by your subscription" 
+                        {potentialSubUsed >= orderGrandTotal
+                          ? "Fully covered by your subscription"
                           : `₹${potentialSubUsed.toFixed(0)} from subscription + ₹${(orderGrandTotal - potentialSubUsed).toFixed(0)} to pay`}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
@@ -742,8 +742,8 @@ export default function CheckoutPage() {
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground">
-                      {insufficientWallet 
-                        ? `Insufficient balance (need ₹${orderGrandTotal.toFixed(0)})` 
+                      {insufficientWallet
+                        ? `Insufficient balance (need ₹${orderGrandTotal.toFixed(0)})`
                         : "Pay instantly from your wallet balance"}
                     </p>
                   </div>
@@ -805,7 +805,7 @@ export default function CheckoutPage() {
               <Separator className="my-4" />
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>₹{totals.subtotal.toFixed(2)}</span></div>
-                
+
                 {/* 🧾 GST Breakup - Only show if GST is enabled */}
                 {gstCalculation && gstSettings?.gstApplicable && gstSettings?.foodGSTEnabled ? (
                   <>
@@ -871,7 +871,7 @@ export default function CheckoutPage() {
                   <span>You pay</span>
                   <span>₹{orderGrandTotal.toFixed(2)}</span>
                 </div>
-                
+
                 {/* Platform Fee - HIDDEN from user view */}
                 {/*
                 <div className="flex justify-between">
@@ -879,7 +879,7 @@ export default function CheckoutPage() {
                   <span>₹{gstCalculation ? gstCalculation.platformCommission.toFixed(2) : totals.platformFee.toFixed(2)}</span>
                 </div>
                 */}
-                
+
                 {/* Platform Commission GST - HIDDEN from user view */}
                 {/*
                 {gstCalculation && gstSettings?.gstApplicable && gstSettings?.platformGSTEnabled ? (
@@ -889,7 +889,7 @@ export default function CheckoutPage() {
                   </div>
                 ) : null}
                 */}
-                
+
                 {/* Delivery Fee - HIDDEN from user view */}
                 {/*
                 {gstCalculation && gstSettings?.gstApplicable && gstSettings?.deliveryGSTEnabled ? (
@@ -922,9 +922,9 @@ export default function CheckoutPage() {
                 */}
               </div>
 
-            {activeSubscription && potentialSubUsed > 0 && paymentMethod === "subscription" && (
+              {activeSubscription && potentialSubUsed > 0 && paymentMethod === "subscription" && (
                 <div className="mt-4 p-3 rounded-lg border border-primary/30 bg-primary/5 text-sm space-y-1">
-                  <p className="font-medium text-foreground">Dabba Express (subscription)</p>
+                  <p className="font-medium text-foreground">Dabba Nation (subscription)</p>
                   <div className="flex justify-between text-muted-foreground">
                     <span>Order amount</span>
                     <span>₹{orderGrandTotal.toFixed(2)}</span>
@@ -977,9 +977,9 @@ export default function CheckoutPage() {
 
               <p className="mt-4 text-center text-xs text-muted-foreground">
                 {paymentMethod === "subscription" ? `Using your subscription balance. ${potentialDaysDeducted} days will be deducted.`
-                  : paymentMethod === "wallet" ? "Instant payment from your wallet" 
-                  : paymentMethod === "cod" ? "Pay cash when your order is delivered" 
-                  : "Secure online payment via Razorpay"}
+                  : paymentMethod === "wallet" ? "Instant payment from your wallet"
+                    : paymentMethod === "cod" ? "Pay cash when your order is delivered"
+                      : "Secure online payment via Razorpay"}
               </p>
             </Card>
           </div>

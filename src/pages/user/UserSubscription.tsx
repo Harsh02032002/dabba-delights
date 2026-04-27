@@ -99,7 +99,7 @@ export default function UserSubscription() {
         const plansRes = await apiRequest("/subscriptions/plans");
         setPlans(plansRes.plans || []);
       }
-      
+
       const activeRes = await apiRequest("/subscriptions/active");
       setActiveSubscription(activeRes.subscription);
 
@@ -122,12 +122,12 @@ export default function UserSubscription() {
     console.log('🔄 Starting fetchSellers...');
     console.log('🔐 User logged in?', !!user);
     console.log('🔐 User token?', localStorage.getItem('token') ? 'Present' : 'Missing');
-    
+
     if (!user) {
       console.error('❌ User not logged in');
       return;
     }
-    
+
     try {
       // First try: Fetch only home-chef type sellers
       console.log('📡 Fetching from: /user/sellers?type=home-chef');
@@ -135,7 +135,7 @@ export default function UserSubscription() {
       console.log('📥 Response from API:', res);
       setSellers(res.sellers || []);
       console.log('🏠 Home chefs fetched:', res.sellers?.length || 0);
-      
+
       if (res.sellers && res.sellers.length > 0) {
         console.log('✅ First attempt successful');
         return;
@@ -143,7 +143,7 @@ export default function UserSubscription() {
     } catch (error: any) {
       console.error("❌ Failed to fetch sellers with query:", error);
     }
-    
+
     // Fallback: fetch all sellers and filter client-side
     try {
       console.log('📡 Fallback: Fetching from: /user/sellers');
@@ -151,14 +151,14 @@ export default function UserSubscription() {
       console.log('📥 Fallback response:', allRes);
       const allSellers = allRes.sellers || [];
       console.log('🔍 All sellers before filtering:', allSellers);
-      
+
       const homeChefs = allSellers.filter((s: Seller) => s.type === 'home-chef' || s.type === 'home_chef');
       console.log('🏠 Home chefs after filtering:', homeChefs);
       setSellers(homeChefs);
       console.log('🏠 Final home chefs count:', homeChefs.length);
     } catch (fallbackError: any) {
       console.error("❌ Fallback also failed:", fallbackError);
-      
+
       // Mock data for testing - remove when backend is fixed
       console.log("🧪 Using mock home chef data for testing");
       const mockHomeChefs: Seller[] = [
@@ -169,7 +169,7 @@ export default function UserSubscription() {
           logo: ""
         },
         {
-          _id: "mock-chef-2", 
+          _id: "mock-chef-2",
           businessName: "Ghar Ka Swad",
           type: "home_chef",
           logo: ""
@@ -186,66 +186,66 @@ export default function UserSubscription() {
     canvas.width = 400;
     canvas.height = 600;
     const ctx = canvas.getContext('2d');
-    
+
     if (!ctx) return null;
-    
+
     // Background gradient
     const gradient = ctx.createLinearGradient(0, 0, 0, 600);
     gradient.addColorStop(0, '#6366f1');
     gradient.addColorStop(1, '#8b5cf6');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, 400, 600);
-    
+
     // White content area
     ctx.fillStyle = 'rgba(255, 255, 255, 0.95)';
     ctx.roundRect(20, 20, 360, 560, 20);
     ctx.fill();
-    
+
     // Title
     ctx.fillStyle = '#1f2937';
     ctx.font = 'bold 28px Arial';
     ctx.textAlign = 'center';
     ctx.fillText(plan.plan_name, 200, 80);
-    
+
     // Badge
     if (plan.badge) {
       ctx.fillStyle = '#ef4444';
       ctx.font = 'bold 16px Arial';
       ctx.fillText(plan.badge, 200, 110);
     }
-    
+
     // Price
     ctx.fillStyle = '#059669';
     ctx.font = 'bold 36px Arial';
     ctx.fillText(`₹${plan.total_amount}`, 200, 160);
-    
+
     // Duration
     ctx.fillStyle = '#6b7280';
     ctx.font = '18px Arial';
     ctx.fillText(`${plan.total_days} Days`, 200, 190);
-    
+
     // Per day value
     ctx.fillStyle = '#9333ea';
     ctx.font = '20px Arial';
     ctx.fillText(`₹${plan.per_day_value.toFixed(2)}/day`, 200, 220);
-    
+
     // Features
     if (plan.features && plan.features.length > 0) {
       ctx.fillStyle = '#1f2937';
       ctx.font = 'bold 18px Arial';
       ctx.fillText('Features:', 200, 260);
-      
+
       ctx.font = '16px Arial';
       plan.features.slice(0, 4).forEach((feature, index) => {
         ctx.fillText(`• ${feature}`, 200, 290 + (index * 25));
       });
     }
-    
+
     // Footer
     ctx.fillStyle = '#6b7280';
     ctx.font = '14px Arial';
     ctx.fillText('Dabba Delights', 200, 550);
-    
+
     return canvas.toDataURL('image/png');
   };
 
@@ -257,10 +257,10 @@ export default function UserSubscription() {
       link.download = `${plan.plan_name.replace(/[^a-z0-9]/gi, '_').toLowerCase()}_poster.png`;
       link.href = posterUrl;
       link.click();
-      
-      toast({ 
-        title: "Success", 
-        description: "Plan poster generated and downloaded successfully" 
+
+      toast({
+        title: "Success",
+        description: "Plan poster generated and downloaded successfully"
       });
     }
   };
@@ -291,10 +291,10 @@ export default function UserSubscription() {
 
   const proceedWithPurchase = async (plan: SubscriptionPlan, sellerId: string) => {
     setPurchasing(plan._id);
-    
+
     try {
       console.log('🚀 Starting subscription purchase for plan:', plan.plan_name, 'with seller:', sellerId);
-      
+
       // Create Razorpay order first
       const orderRes = await paymentAPI.createRazorpayOrder({
         amount: plan.total_amount,
@@ -316,7 +316,7 @@ export default function UserSubscription() {
         order_id: orderRes.orderId,
         handler: async function (response: any) {
           console.log('💳 Payment successful:', response);
-          
+
           try {
             // Verify payment on backend
             const verifyRes = await paymentAPI.verifyRazorpayPayment({
@@ -330,10 +330,10 @@ export default function UserSubscription() {
             if (verifyRes?.verified || verifyRes?.success) {
               console.log('✅ Payment verified, activating subscription...');
               console.log('📋 Plan data:', { planId: plan._id, totalAmount: plan.total_amount, totalDays: plan.total_days, sellerId });
-              
+
               // NOTE: Backend validation requires plan to have assigned_seller_id
               // But user cannot update admin plans, so we need backend fix
-              
+
               // Create subscription after successful payment
               const requestBody = {
                 planId: plan._id,
@@ -346,7 +346,7 @@ export default function UserSubscription() {
                 razorpay_signature: response.razorpay_signature,
               };
               console.log('📤 API Request body:', requestBody);
-              
+
               const subscriptionRes = await apiRequest('/subscriptions/purchase', {
                 method: 'POST',
                 body: JSON.stringify(requestBody),
@@ -359,7 +359,7 @@ export default function UserSubscription() {
                   title: "🎉 Payment Successful!",
                   description: `Your subscription with home chef has been activated successfully.`,
                 });
-                
+
                 // Force refresh data after successful subscription
                 await fetchData();
                 setActiveTab("active"); // Switch to active tab to show subscription
@@ -371,7 +371,7 @@ export default function UserSubscription() {
             }
           } catch (error: any) {
             console.error('❌ Payment verification error:', error);
-            
+
             // Special handling for backend validation issue
             if (error.message === "Plan has no assigned seller") {
               toast({
@@ -399,7 +399,7 @@ export default function UserSubscription() {
           color: "#E86F2A"
         },
         modal: {
-          ondismiss: function() {
+          ondismiss: function () {
             console.log('❌ Razorpay modal dismissed by user');
             setPurchasing(null);
           },
@@ -413,37 +413,37 @@ export default function UserSubscription() {
           user_id: user?._id
         }
       };
-      
+
       console.log('🔧 Razorpay options created:', options);
-      
+
       // Load Razorpay script fresh
       const script = document.createElement('script');
       script.src = 'https://checkout.razorpay.com/v1/checkout.js';
       script.async = true;
-      
+
       script.onload = () => {
         console.log('✅ Razorpay script loaded fresh');
-        
+
         try {
           // Create Razorpay instance directly from global window
           const rzp = new (window as any).Razorpay(options);
           console.log('✅ Razorpay instance created fresh');
-          
+
           // Open the modal
           rzp.open();
           console.log('🚀 Razorpay modal opened');
-          
+
         } catch (err: any) {
           console.error('❌ Error creating Razorpay instance:', err);
-          toast({ 
-            title: "Payment Error", 
-            description: "Cannot open payment modal. Please try again.", 
-            variant: "destructive" 
+          toast({
+            title: "Payment Error",
+            description: "Cannot open payment modal. Please try again.",
+            variant: "destructive"
           });
           setPurchasing(null);
         }
       };
-      
+
       script.onerror = () => {
         console.error('❌ Failed to load Razorpay script');
         toast({
@@ -453,9 +453,9 @@ export default function UserSubscription() {
         });
         setPurchasing(null);
       };
-      
+
       document.body.appendChild(script);
-      
+
     } catch (error: any) {
       console.error('❌ Purchase error:', error);
       toast({
@@ -487,7 +487,7 @@ export default function UserSubscription() {
           <div>
             <h1 className="text-3xl font-bold flex items-center gap-2">
               <Crown className="w-8 h-8 text-orange-500" />
-              Dabba Express Subscription
+              Dabba Nation Subscription
             </h1>
             <p className="text-muted-foreground mt-1">
               Save more with our subscription plans!
@@ -519,21 +519,20 @@ export default function UserSubscription() {
                 {plans.map((plan) => (
                   <Card
                     key={plan._id}
-                    className={`relative overflow-hidden ${
-                      plan.badge ? "border-2 border-orange-500" : ""
-                    }`}
+                    className={`relative overflow-hidden ${plan.badge ? "border-2 border-orange-500" : ""
+                      }`}
                   >
                     {plan.badge && (
                       <div className="absolute top-0 right-0 bg-orange-500 text-white text-xs font-bold px-3 py-1 rounded-bl-lg">
                         {plan.badge}
                       </div>
                     )}
-                    
+
                     {/* Plan Image */}
                     <div className="relative h-32 overflow-hidden bg-gradient-to-br from-orange-100 to-red-100">
                       {plan.image && plan.image.trim() !== '' ? (
-                        <img 
-                          src={plan.image} 
+                        <img
+                          src={plan.image}
                           alt={plan.plan_name}
                           className="w-full h-full object-cover"
                           onError={(e) => {
@@ -549,7 +548,7 @@ export default function UserSubscription() {
                         <ChefHat className="w-12 h-12 text-orange-500" />
                       </div>
                     </div>
-                    
+
                     <CardHeader>
                       <div className="flex items-start justify-between">
                         <div>
@@ -558,7 +557,7 @@ export default function UserSubscription() {
                             <p className="text-sm text-muted-foreground">{plan.description}</p>
                           )}
                         </div>
-                        
+
                       </div>
                     </CardHeader>
                     <CardContent className="space-y-2 p-4">
@@ -728,7 +727,7 @@ export default function UserSubscription() {
                     {/* Order Now Button */}
                     {activeSubscription.seller_id && activeSubscription.remaining_amount > 0 && (
                       <div className="pt-4 border-t space-y-2">
-                        <Button 
+                        <Button
                           className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
                           onClick={() => navigate(`/subscription-items`)}
                         >
@@ -907,11 +906,10 @@ export default function UserSubscription() {
                   <div
                     key={seller._id}
                     onClick={() => setSelectedSeller(seller._id)}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${
-                      selectedSeller === seller._id
+                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedSeller === seller._id
                         ? "border-green-500 bg-green-50"
                         : "hover:bg-gray-50"
-                    }`}
+                      }`}
                   >
                     {seller.logo ? (
                       <img
