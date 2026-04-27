@@ -195,28 +195,47 @@ export default function SubscriptionPlans() {
                 )}
 
                 {/* Food Image */}
-                <div className="relative h-32 overflow-hidden bg-gradient-to-br from-orange-100 to-red-100">
-                  {plan.image && plan.image.trim() !== '' ? (
-                    <img 
-                      src={plan.image} 
-                      alt={plan.plan_name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        // Fallback to default if image fails to load
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = 'none';
-                        const fallback = target.nextElementSibling as HTMLElement;
-                        if (fallback) fallback.classList.remove('hidden');
-                      }}
-                    />
-                  ) : null}
-                  <div className={`flex items-center justify-center h-full ${plan.image ? 'hidden' : ''}`}>
-                    <ChefHat className="w-12 h-12 text-orange-500" />
-                  </div>
+                <div className="relative h-56 overflow-hidden bg-gradient-to-br from-orange-100 to-red-100">
+                  {(() => {
+                    const planImage = plan.banner_image || plan.image;
+                    const duration = plan.total_days || 0;
+                    
+                    // Determine fallback images based on duration
+                    let localFallback = "/images/weekly_plan.png";
+                    if (duration > 14) localFallback = "/images/monthly_plan.png";
+                    else if (duration > 7) localFallback = "/images/fortnightly_plan.png";
+                    
+                    let src = "";
+                    if (planImage) {
+                      if (planImage.startsWith('http')) {
+                        src = planImage;
+                      } else {
+                        // Prepend base URL (removing /api from the end if present)
+                        const baseUrl = "https://dabbanation.in";
+                        src = `${baseUrl}${planImage.startsWith('/') ? '' : '/'}${planImage}`;
+                      }
+                    } else {
+                      src = localFallback;
+                    }
+
+                    return (
+                      <img 
+                        src={src} 
+                        alt={plan.plan_name}
+                        className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          if (target.src !== window.location.origin + localFallback) {
+                            target.src = localFallback;
+                          }
+                        }}
+                      />
+                    );
+                  })()}
                   
                   {/* Overlay with plan name */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-3">
-                    <h3 className="text-white text-lg font-bold">{plan.plan_name}</h3>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent flex items-end p-4">
+                    <h3 className="text-white text-xl font-bold">{plan.plan_name}</h3>
                   </div>
                 </div>
 
@@ -325,9 +344,10 @@ export default function SubscriptionPlans() {
                   <div className="space-y-3">
                     <Button 
                       onClick={() => handleSubscribe(plan)}
-                      className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3"
+                      className="w-full bg-[#e12d2d] hover:bg-[#c02424] text-white font-bold py-4 rounded-lg shadow-md transition-all uppercase tracking-wider"
                     >
-                      Subscribe Now
+                      <Crown className="w-4 h-4 mr-2" />
+                      Purchase Plan
                     </Button>
                     <Button 
                       variant="outline"

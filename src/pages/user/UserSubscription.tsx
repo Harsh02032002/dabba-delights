@@ -528,25 +528,44 @@ export default function UserSubscription() {
                       </div>
                     )}
 
-                    {/* Plan Image */}
-                    <div className="relative h-32 overflow-hidden bg-gradient-to-br from-orange-100 to-red-100">
-                      {plan.image && plan.image.trim() !== '' ? (
-                        <img
-                          src={plan.image}
-                          alt={plan.plan_name}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // Fallback to default if image fails to load
-                            const target = e.target as HTMLImageElement;
-                            target.style.display = 'none';
-                            const fallback = target.nextElementSibling as HTMLElement;
-                            if (fallback) fallback.classList.remove('hidden');
-                          }}
-                        />
-                      ) : null}
-                      <div className={`flex items-center justify-center h-full ${plan.image ? 'hidden' : ''}`}>
-                        <ChefHat className="w-12 h-12 text-orange-500" />
-                      </div>
+                    {/* Food Image */}
+                    <div className="relative h-56 overflow-hidden bg-gradient-to-br from-orange-100 to-red-100">
+                      {(() => {
+                        const planImage = plan.banner_image || plan.image;
+                        const duration = plan.total_days || 0;
+                        
+                        // Determine fallback images based on duration
+                        let localFallback = "/images/weekly_plan.png";
+                        if (duration > 14) localFallback = "/images/monthly_plan.png";
+                        else if (duration > 7) localFallback = "/images/fortnightly_plan.png";
+                        
+                        let src = "";
+                        if (planImage) {
+                          if (planImage.startsWith('http')) {
+                            src = planImage;
+                          } else {
+                            // Prepend base URL
+                            const baseUrl = "https://dabbanation.in";
+                            src = `${baseUrl}${planImage.startsWith('/') ? '' : '/'}${planImage}`;
+                          }
+                        } else {
+                          src = localFallback;
+                        }
+
+                        return (
+                          <img 
+                            src={src} 
+                            alt={plan.plan_name}
+                            className="w-full h-full object-cover transition-transform duration-500 hover:scale-110"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              if (target.src !== window.location.origin + localFallback) {
+                                target.src = localFallback;
+                              }
+                            }}
+                          />
+                        );
+                      })()}
                     </div>
 
                     <CardHeader>
