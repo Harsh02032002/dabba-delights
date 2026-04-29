@@ -9,6 +9,7 @@ import { useCart } from '@/contexts/CartContext';
 import { Clock, Plus, MapPin, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import logo from '@/assets/logo.png';
 
 interface FoodCardProps {
   item: MenuItem;
@@ -117,14 +118,17 @@ interface SellerCardProps {
 
 export function SellerCard({ seller, className }: SellerCardProps) {
   const navigate = useNavigate();
-  const defaultLogo = 'https://images.unsplash.com/photo-1495195129352-aec325b55b65?w=200&h=200&fit=crop&q=80';
+  const defaultLogo = logo;
   const defaultCover = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1000&h=400&fit=crop&q=80';
+
+  const sellerLogo = (seller.logo && seller.logo.trim() !== '') ? seller.logo : (seller.image && seller.image.trim() !== '') ? seller.image : defaultLogo;
+  const sellerCover = (seller.coverImage && seller.coverImage.trim() !== '') ? seller.coverImage : (seller.image && seller.image.trim() !== '') ? seller.image : defaultCover;
 
   return (
     <div className={cn('food-card overflow-hidden cursor-pointer group', className)} onClick={() => navigate(`/seller/${seller._id}`)}>
       <div className="relative h-32 overflow-hidden">
         <img 
-          src={seller.coverImage || seller.image || defaultCover} 
+          src={sellerCover} 
           alt={seller.businessName} 
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
           onError={(e) => {
@@ -140,7 +144,7 @@ export function SellerCard({ seller, className }: SellerCardProps) {
       <div className="p-4">
         <div className="flex items-start gap-3">
           <img 
-            src={seller.logo || seller.image || defaultLogo} 
+            src={sellerLogo} 
             alt={seller.businessName} 
             className="w-12 h-12 rounded-xl object-cover shadow-md -mt-8 border-2 border-card bg-white" 
             onError={(e) => {
