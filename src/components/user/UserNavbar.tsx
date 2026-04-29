@@ -168,7 +168,7 @@ export function UserNavbar({ onSearch }: UserNavbarProps) {
 
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
-                    onClick={logout}
+                    onClick={() => logout()}
                     className="text-destructive"
                   >
                     <LogOut size={16} className="mr-2" />

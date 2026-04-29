@@ -210,9 +210,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   // 🔹 LOGOUT - Only logout specific role
-  const logout = (role?: UserRoleType) => {
+  const logout = (role?: UserRoleType | any) => {
     // Determine which role to logout based on URL if not specified
-    let targetRole = role;
+    // Also check if 'role' is actually a role string and not an event object
+    let targetRole = (typeof role === 'string') ? role : undefined;
+    
     if (!targetRole && typeof window !== 'undefined') {
       const path = window.location.pathname;
       if (path.startsWith('/admin')) targetRole = 'admin';
