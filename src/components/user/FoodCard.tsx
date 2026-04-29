@@ -118,7 +118,7 @@ interface SellerCardProps {
 
 export function SellerCard({ seller, className }: SellerCardProps) {
   const navigate = useNavigate();
-  const defaultLogo = logo;
+  const defaultLogo = seller.type === 'home_chef' ? '/images/home_chef_placeholder.png' : logo;
   const defaultCover = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1000&h=400&fit=crop&q=80';
 
   const sellerLogo = (seller.logo && seller.logo.trim() !== '') ? seller.logo : (seller.image && seller.image.trim() !== '') ? seller.image : defaultLogo;
@@ -146,7 +146,7 @@ export function SellerCard({ seller, className }: SellerCardProps) {
           <img 
             src={sellerLogo} 
             alt={seller.businessName} 
-            className="w-12 h-12 rounded-xl object-cover shadow-md -mt-8 border-2 border-card bg-white" 
+            className="w-12 h-12 rounded-xl object-cover shadow-lg -mt-8 border-2 border-card bg-white z-10 relative" 
             onError={(e) => {
               (e.target as HTMLImageElement).src = defaultLogo;
             }}
