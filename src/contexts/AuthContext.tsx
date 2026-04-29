@@ -235,6 +235,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     else if (targetRole === 'seller') setSellerSession({ token: null, user: null });
     else if (targetRole === 'admin') setAdminSession({ token: null, user: null });
     else if (targetRole === 'delivery') setDeliverySession({ token: null, user: null });
+
+    // Redirect to home or login after logout
+    window.location.href = '/';
   };
 
   // 🔹 LOGOUT ALL - Clear everything
@@ -247,6 +250,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setSellerSession({ token: null, user: null });
     setAdminSession({ token: null, user: null });
     setDeliverySession({ token: null, user: null });
+    window.location.href = '/';
   };
 
   // 🔹 UPDATE USER for specific role
