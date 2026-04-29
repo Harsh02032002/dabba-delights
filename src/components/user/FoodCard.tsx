@@ -110,11 +110,17 @@ interface SellerCardProps {
 
 export function SellerCard({ seller, className }: SellerCardProps) {
   const navigate = useNavigate();
+  const defaultLogo = 'https://images.unsplash.com/photo-1495195129352-aec325b55b65?w=200&h=200&fit=crop&q=80';
+  const defaultCover = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1000&h=400&fit=crop&q=80';
 
   return (
     <div className={cn('food-card overflow-hidden cursor-pointer group', className)} onClick={() => navigate(`/seller/${seller._id}`)}>
       <div className="relative h-32 overflow-hidden">
-        <img src={seller.coverImage} alt={seller.businessName} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+        <img 
+          src={seller.coverImage || seller.image || defaultCover} 
+          alt={seller.businessName} 
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+        />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="absolute bottom-3 left-3 right-3">
           <SellerBadge type={seller.type} />
@@ -123,10 +129,14 @@ export function SellerCard({ seller, className }: SellerCardProps) {
       
       <div className="p-4">
         <div className="flex items-start gap-3">
-          <img src={seller.logo} alt={seller.businessName} className="w-12 h-12 rounded-xl object-cover shadow-md -mt-8 border-2 border-card" />
+          <img 
+            src={seller.logo || seller.image || defaultLogo} 
+            alt={seller.businessName} 
+            className="w-12 h-12 rounded-xl object-cover shadow-md -mt-8 border-2 border-card bg-white" 
+          />
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-foreground line-clamp-1">{seller.businessName}</h3>
-            <p className="text-sm text-muted-foreground line-clamp-1">{(seller.cuisines || []).join(' • ')}</p>
+            <p className="text-sm text-muted-foreground line-clamp-1">{(seller.cuisines || []).join(' • ') || 'Multi-cuisine'}</p>
           </div>
         </div>
         

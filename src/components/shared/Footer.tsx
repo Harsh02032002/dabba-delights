@@ -77,7 +77,7 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
-          <p>&copy; 2024 Dabba Nation. All rights reserved.</p>
+          <p>&copy; {new Date().getFullYear()} Dabba Nation. All rights reserved.</p>
           <p className="mt-2">Made with ❤️ in India</p>
         </div>
       </div>

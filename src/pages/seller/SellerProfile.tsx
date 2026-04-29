@@ -159,21 +159,41 @@ export default function SellerProfile() {
       return;
     }
     
-    // Create preview
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const base64String = reader.result as string;
-      setFormData((prev: any) => ({
-        ...prev,
-        [field]: base64String
-      }));
+    try {
+      const formDataUpload = new FormData();
+      formDataUpload.append(field === 'logo' ? 'logo' : 'coverImage', file);
       
+      let res;
+      if (field === 'logo') {
+        res = await sellerAPI.uploadLogo(formDataUpload);
+      } else {
+        res = await sellerAPI.uploadCoverImage(formDataUpload);
+      }
+      
+      const newImageUrl = res.logo || res.coverImage || res.data?.logo || res.data?.coverImage;
+      
+      if (newImageUrl) {
+        setFormData((prev: any) => ({
+          ...prev,
+          [field]: newImageUrl
+        }));
+        
+        toast({
+          title: '📷 Image Uploaded',
+          description: `${field === 'logo' ? 'Logo' : 'Cover Image'} updated successfully`,
+        });
+        
+        // Invalidate profile query to refresh data
+        queryClient.invalidateQueries({ queryKey: ['seller-profile'] });
+      }
+    } catch (error: any) {
+      console.error('❌ Upload failed:', error);
       toast({
-        title: '📷 Image Uploaded',
-        description: `${field === 'logo' ? 'Logo' : 'Cover Image'} updated successfully`,
+        title: '❌ Upload Failed',
+        description: error.message || 'Failed to upload image',
+        variant: 'destructive'
       });
-    };
-    reader.readAsDataURL(file);
+    }
   };
 
   return (
@@ -199,7 +219,10 @@ export default function SellerProfile() {
                       <Input 
                         type="file" 
                         accept="image/*"
-                        onChange={(e) => handleImageUpload('logo', e.target.files?.[0])}
+                        onChange={(e) => {
+                          handleImageUpload('logo', e.target.files?.[0]);
+                          e.target.value = '';
+                        }}
                         className="w-full"
                       />
                       <p className="text-xs text-muted-foreground">Recommended: 200x200px, Max 2MB</p>
@@ -220,7 +243,10 @@ export default function SellerProfile() {
                       <Input 
                         type="file" 
                         accept="image/*"
-                        onChange={(e) => handleImageUpload('coverImage', e.target.files?.[0])}
+                        onChange={(e) => {
+                          handleImageUpload('coverImage', e.target.files?.[0]);
+                          e.target.value = '';
+                        }}
                         className="w-full"
                       />
                       <p className="text-xs text-muted-foreground">Recommended: 800x400px, Max 5MB</p>
