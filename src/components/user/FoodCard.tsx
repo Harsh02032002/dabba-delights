@@ -48,7 +48,14 @@ export function FoodCard({ item, seller, className }: FoodCardProps) {
       onClick={() => navigate(`/seller/${seller._id}`)}
     >
       <div className="relative aspect-[4/3] overflow-hidden">
-        <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+        <img 
+          src={item.image} 
+          alt={item.name} 
+          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1000&h=400&fit=crop&q=80';
+          }}
+        />
         <div className="absolute top-3 left-3 flex gap-2">
           <SellerBadge type={seller.type} />
         </div>
@@ -120,6 +127,9 @@ export function SellerCard({ seller, className }: SellerCardProps) {
           src={seller.coverImage || seller.image || defaultCover} 
           alt={seller.businessName} 
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = defaultCover;
+          }}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
         <div className="absolute bottom-3 left-3 right-3">
@@ -133,6 +143,9 @@ export function SellerCard({ seller, className }: SellerCardProps) {
             src={seller.logo || seller.image || defaultLogo} 
             alt={seller.businessName} 
             className="w-12 h-12 rounded-xl object-cover shadow-md -mt-8 border-2 border-card bg-white" 
+            onError={(e) => {
+              (e.target as HTMLImageElement).src = defaultLogo;
+            }}
           />
           <div className="flex-1 min-w-0">
             <h3 className="font-semibold text-foreground line-clamp-1">{seller.businessName}</h3>
