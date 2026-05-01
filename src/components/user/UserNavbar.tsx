@@ -3,6 +3,8 @@ import { Logo } from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
+import { useQuery } from "@tanstack/react-query";
+import { userAPI } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import {
   Search,
@@ -35,6 +37,25 @@ export function UserNavbar({ onSearch }: UserNavbarProps) {
   const { user, isLoggedIn, logout } = useAuth();
   const { itemCount } = useCart();
   const location = useLocation();
+
+  const { data: orders = [] } = useQuery({
+    queryKey: ['active-orders-count-nav'],
+    queryFn: async () => {
+      const res = await userAPI.getOrders();
+      let orders = [];
+      if (Array.isArray(res)) orders = res;
+      else if (res?.orders) orders = res.orders;
+      else if (res?.data) orders = res.data;
+      return orders;
+    },
+    enabled: isLoggedIn,
+    refetchInterval: 30000,
+  });
+
+  const activeOrdersCount = orders.filter((o: any) => 
+    ['pending', 'confirmed', 'preparing', 'out_for_delivery'].includes(o.status)
+  ).length;
+
   const [query, setQuery] = useState("");
 
   const storedLoc = (() => {
@@ -139,9 +160,16 @@ export function UserNavbar({ onSearch }: UserNavbarProps) {
                   <DropdownMenuSeparator />
 
                   <DropdownMenuItem asChild>
-                    <Link to="/orders" className="flex items-center gap-2">
-                      <FileText size={16} />
-                      My Orders
+                    <Link to="/orders" className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <FileText size={16} />
+                        My Orders
+                      </div>
+                      {activeOrdersCount > 0 && (
+                        <span className="flex h-5 min-w-[20px] items-center justify-center rounded-full bg-primary px-1 text-[10px] font-bold text-white">
+                          {activeOrdersCount}
+                        </span>
+                      )}
                     </Link>
                   </DropdownMenuItem>
 

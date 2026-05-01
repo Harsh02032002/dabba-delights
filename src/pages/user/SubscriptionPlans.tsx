@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { UserLayout } from "@/layouts/UserLayout";
 import { userAPI } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,9 @@ function loadRazorpayScript(): Promise<boolean> {
 
 export default function SubscriptionPlans() {
   const [selectedPlan, setSelectedPlan] = useState<any>(null);
+  const [hasAutoSelected, setHasAutoSelected] = useState(false);
+  const [searchParams] = useSearchParams();
+  const urlPlanId = searchParams.get("planId");
 
   // Fetch subscription plans
   const { data: plans = [], isLoading: plansLoading } = useQuery({
@@ -49,6 +53,17 @@ export default function SubscriptionPlans() {
       }
     },
   });
+
+  // Auto-select plan from URL
+  useEffect(() => {
+    if (urlPlanId && plans.length > 0 && !hasAutoSelected) {
+      const plan = plans.find((p: any) => p._id === urlPlanId);
+      if (plan) {
+        setSelectedPlan(plan);
+        setHasAutoSelected(true);
+      }
+    }
+  }, [urlPlanId, plans, hasAutoSelected]);
 
   // Handle subscription purchase with Razorpay
   const handleSubscribe = async (plan: any) => {

@@ -75,7 +75,7 @@ export default function SellerDetail() {
           {sellerData.address?.city && (
             <span className="flex items-center gap-1"><MapPin size={14} /> {sellerData.address.city}</span>
           )}
-          <span className="flex items-center gap-1"><Clock size={14} /> {sellerData.totalOrders || 0} orders</span>
+
           {(sellerData.cuisines || []).length > 0 && (
             <span>{sellerData.cuisines.join(' • ')}</span>
           )}

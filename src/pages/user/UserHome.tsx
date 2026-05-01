@@ -234,7 +234,7 @@ export default function UserHome() {
                             </div>
                           )}
                           
-                          <Link to="/subscriptions">
+                          <Link to={`/subscriptions?planId=${plan._id}`}>
                             <Button className="w-full" variant="outline">
                               View Details
                             </Button>

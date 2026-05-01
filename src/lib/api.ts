@@ -607,6 +607,8 @@ export const userAPI = {
     apiRequest(`/user/orders/${id}`),
   deleteOrder: (id: string) =>
     apiRequest(`/user/orders/${id}/delete`, { method: "DELETE" }),
+  cancelOrder: (id: string) =>
+    apiRequest(`/user/orders/${id}/cancel`, { method: "POST" }),
   rateOrder: (id: string, rating: number, review?: string) =>
     apiRequest(`/user/orders/${id}/rate`, { method: "POST", body: JSON.stringify({ rating, review }) }),
   rateMenuItem: (menuItemId: string, rating: number) =>

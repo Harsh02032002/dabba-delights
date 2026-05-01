@@ -94,7 +94,7 @@ export function FoodCard({ item, seller, className }: FoodCardProps) {
             currentRating={item.rating || 0} 
             size="sm" 
           />
-          <span className="text-xs text-muted-foreground">{(item.totalOrders || 0).toLocaleString()} orders</span>
+
         </div>
         
         <div className="flex items-center justify-between">

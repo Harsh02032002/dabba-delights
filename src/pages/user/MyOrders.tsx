@@ -5,13 +5,23 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Download, Star, Clock, CheckCircle, Package, Truck, ShoppingBag, MapPin } from "lucide-react";
+import { ArrowLeft, Download, Star, Clock, CheckCircle, Package, Truck, ShoppingBag, MapPin,Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { toast } from "@/hooks/use-toast";
 import { UserRatingModal } from "@/components/user/UserRatingModal";
 import OrderTrackingMap from "@/components/user/OrderTrackingMap";
 import { io } from 'socket.io-client';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 const statusTabs = ['all', 'pending', 'confirmed', 'preparing', 'out_for_delivery', 'delivered', 'cancelled'];
 
@@ -82,6 +92,9 @@ export default function MyOrders() {
   const [ratingOrder, setRatingOrder] = useState<string | null>(null);
   const [ratingModalOpen, setRatingModalOpen] = useState(false);
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
+  const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [orderToAction, setOrderToAction] = useState<any>(null);
 
   // Socket.io connection for real-time order updates
   useEffect(() => {
@@ -149,43 +162,55 @@ export default function MyOrders() {
     activeTab === 'all' || o.status === activeTab
   );
 
-  const handleDeleteOrder = async (order: any) => {
-    if (!window.confirm('Are you sure you want to permanently delete this order? This action cannot be undone.')) return;
-    
+  const handleDeleteOrder = (order: any) => {
+    setOrderToAction(order);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteOrder = async () => {
+    if (!orderToAction) return;
     try {
-      await userAPI.deleteOrder(order._id);
+      await userAPI.deleteOrder(orderToAction._id);
       toast({
         title: 'Order Deleted',
-        description: `Order ${order.orderNumber} has been permanently deleted`,
+        description: `Order ${orderToAction.orderNumber} has been permanently deleted`,
       });
-      // Refetch orders
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ['user-orders'] });
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to delete order. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsDeleteDialogOpen(false);
+      setOrderToAction(null);
     }
   };
 
-  const handleCancelOrder = async (order: any) => {
-    if (!window.confirm('Are you sure you want to cancel this order?')) return;
-    
+  const handleCancelOrder = (order: any) => {
+    setOrderToAction(order);
+    setIsCancelDialogOpen(true);
+  };
+
+  const confirmCancelOrder = async () => {
+    if (!orderToAction) return;
     try {
-      await userAPI.cancelOrder(order._id);
+      await userAPI.cancelOrder(orderToAction._id);
       toast({
         title: 'Order Cancelled',
-        description: `Order ${order.orderNumber} has been cancelled`,
+        description: `Order ${orderToAction.orderNumber} has been successfully cancelled.`,
       });
-      // Refetch orders
-      window.location.reload();
+      queryClient.invalidateQueries({ queryKey: ['user-orders'] });
     } catch (error) {
       toast({
         title: 'Error',
         description: 'Failed to cancel order. Please try again.',
         variant: 'destructive',
       });
+    } finally {
+      setIsCancelDialogOpen(false);
+      setOrderToAction(null);
     }
   };
 
@@ -328,7 +353,7 @@ export default function MyOrders() {
                       </Button>
 
                       {/* Cancel Order Button - Only for cancellable orders */}
-                      {['pending', 'confirmed'].includes(order.status) && (
+                      {['pending', 'confirmed', 'preparing'].includes(order.status) && (
                         <Button 
                           size="sm" 
                           variant="destructive" 
@@ -374,6 +399,42 @@ export default function MyOrders() {
           </div>
         )}
       </div>
+
+      {/* Cancel Order Dialog */}
+      <AlertDialog open={isCancelDialogOpen} onOpenChange={setIsCancelDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Order</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel order {orderToAction?.orderNumber}? This action will credit any paid amount back to your wallet or subscription.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, Keep it</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmCancelOrder} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Yes, Cancel Order
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Order Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Order</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to permanently delete order {orderToAction?.orderNumber} from your history? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteOrder} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete Forever
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* Rating Modal */}
       {selectedOrder && (
