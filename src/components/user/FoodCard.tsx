@@ -9,6 +9,7 @@ import { useCart } from '@/contexts/CartContext';
 import { Clock, Plus, MapPin, Heart } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
+import { getImageUrl } from '@/lib/api';
 import logo from '@/assets/logo.png';
 
 interface FoodCardProps {
@@ -50,7 +51,7 @@ export function FoodCard({ item, seller, className }: FoodCardProps) {
     >
       <div className="relative aspect-[4/3] overflow-hidden">
         <img 
-          src={item.image} 
+          src={getImageUrl(item.image)} 
           alt={item.name} 
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
           onError={(e) => {
@@ -118,7 +119,7 @@ interface SellerCardProps {
 
 export function SellerCard({ seller, className }: SellerCardProps) {
   const navigate = useNavigate();
-  const defaultLogo = seller.type === 'home_chef' ? '/images/home_chef_placeholder.png' : logo;
+  const defaultLogo = logo; // Use main Dabba Nation logo as fallback
   const defaultCover = 'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1000&h=400&fit=crop&q=80';
 
   const sellerLogo = (seller.logo && seller.logo.trim() !== '') ? seller.logo : (seller.image && seller.image.trim() !== '') ? seller.image : defaultLogo;
@@ -128,7 +129,7 @@ export function SellerCard({ seller, className }: SellerCardProps) {
     <div className={cn('food-card overflow-hidden cursor-pointer group', className)} onClick={() => navigate(`/seller/${seller._id}`)}>
       <div className="relative h-32 overflow-hidden">
         <img 
-          src={sellerCover} 
+          src={getImageUrl(sellerCover)} 
           alt={seller.businessName} 
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" 
           onError={(e) => {
@@ -144,7 +145,7 @@ export function SellerCard({ seller, className }: SellerCardProps) {
       <div className="p-4">
         <div className="flex items-start gap-3">
           <img 
-            src={sellerLogo} 
+            src={getImageUrl(sellerLogo)} 
             alt={seller.businessName} 
             className="w-12 h-12 rounded-xl object-cover shadow-lg -mt-8 border-2 border-card bg-white z-10 relative" 
             onError={(e) => {

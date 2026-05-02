@@ -8,8 +8,9 @@ import { SellerBadge } from '@/components/shared/Badge';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/api';
+import { apiRequest, getImageUrl } from '@/lib/api';
 import { ArrowLeft, MapPin, Clock, Phone } from 'lucide-react';
+import logo from '@/assets/logo.png';
 
 export default function SellerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -43,16 +44,18 @@ export default function SellerDetail() {
         {/* Seller Header */}
         <div className="relative rounded-2xl overflow-hidden mb-8">
           <img
-            src={sellerData.coverImage || '/placeholder.svg'}
+            src={getImageUrl(sellerData.coverImage)}
             alt={sellerData.businessName}
             className="w-full h-48 md:h-64 object-cover"
+            onError={(e) => { (e.target as HTMLImageElement).src = '/placeholder.svg'; }}
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/70 to-transparent" />
           <div className="absolute bottom-4 left-4 right-4 flex items-end gap-4">
             <img
-              src={sellerData.logo || '/placeholder.svg'}
+              src={getImageUrl(sellerData.logo)}
               alt={sellerData.businessName}
-              className="w-16 h-16 rounded-xl object-cover border-2 border-card shadow-lg"
+              className="w-16 h-16 rounded-xl object-cover border-2 border-card shadow-lg bg-white"
+              onError={(e) => { (e.target as HTMLImageElement).src = logo; }}
             />
             <div className="flex-1 text-white">
               <div className="flex items-center gap-2 mb-1">

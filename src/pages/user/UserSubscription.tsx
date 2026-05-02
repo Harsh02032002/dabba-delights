@@ -77,7 +77,7 @@ export default function UserSubscription() {
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState("plans");
   const [plans, setPlans] = useState<SubscriptionPlan[]>([]);
-  const [activeSubscription, setActiveSubscription] = useState<ActiveSubscription | null>(null);
+  const [activeSubscriptions, setActiveSubscriptions] = useState<ActiveSubscription[]>([]);
   const [history, setHistory] = useState<SubscriptionHistory[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
@@ -101,7 +101,7 @@ export default function UserSubscription() {
       }
 
       const activeRes = await apiRequest("/subscriptions/active");
-      setActiveSubscription(activeRes.subscription);
+      setActiveSubscriptions(activeRes.subscriptions || (activeRes.subscription ? [activeRes.subscription] : []));
 
       if (activeTab === "history") {
         const historyRes = await apiRequest("/subscriptions/my-subscriptions");
@@ -468,16 +468,14 @@ export default function UserSubscription() {
     }
   };
 
-  const getProgressPercentage = () => {
-    if (!activeSubscription) return 0;
-    const used = activeSubscription.total_amount - activeSubscription.remaining_amount;
-    return Math.round((used / activeSubscription.total_amount) * 100);
+  const getProgressPercentage = (sub: ActiveSubscription) => {
+    const used = sub.total_amount - sub.remaining_amount;
+    return Math.round((used / sub.total_amount) * 100);
   };
 
-  const getDaysProgressPercentage = () => {
-    if (!activeSubscription) return 0;
-    const used = activeSubscription.total_days - activeSubscription.remaining_days;
-    return Math.round((used / activeSubscription.total_days) * 100);
+  const getDaysProgressPercentage = (sub: ActiveSubscription) => {
+    const used = sub.total_days - sub.remaining_days;
+    return Math.round((used / sub.total_days) * 100);
   };
 
   return (
@@ -643,124 +641,124 @@ export default function UserSubscription() {
               <div className="flex justify-center py-12">
                 <Loader2 className="w-8 h-8 animate-spin" />
               </div>
-            ) : activeSubscription ? (
+            ) : activeSubscriptions.length > 0 ? (
               <div className="space-y-6">
-                {/* Active Subscription Card */}
-                <Card className="border-2 border-green-500">
-                  <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <Crown className="w-6 h-6 text-green-500" />
-                        <CardTitle>Active Subscription</CardTitle>
+                {activeSubscriptions.map((sub) => (
+                  <Card key={sub._id} className="border-2 border-green-500">
+                    <CardHeader>
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <Crown className="w-6 h-6 text-green-500" />
+                          <CardTitle>Active Subscription</CardTitle>
+                        </div>
+                        <Badge className="bg-green-500">ACTIVE</Badge>
                       </div>
-                      <Badge className="bg-green-500">ACTIVE</Badge>
-                    </div>
-                    {activeSubscription.seller_id && (
-                      <div className="flex items-center gap-2 mt-2">
-                        <Store className="w-4 h-4 text-muted-foreground" />
-                        <p className="text-sm text-muted-foreground">
-                          For {activeSubscription.seller_id.businessName}
-                          {activeSubscription.seller_id.type && (
-                            <span className="capitalize"> ({activeSubscription.seller_id.type.replace('_', ' ')})</span>
-                          )}
+                      {sub.seller_id && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <Store className="w-4 h-4 text-muted-foreground" />
+                          <p className="text-sm text-muted-foreground">
+                            For {sub.seller_id.businessName}
+                            {sub.seller_id.type && (
+                              <span className="capitalize"> ({sub.seller_id.type.replace('_', ' ')})</span>
+                            )}
+                          </p>
+                        </div>
+                      )}
+                      {sub.plan_id && (
+                        <p className="text-muted-foreground mt-1">
+                          {sub.plan_id.plan_name}
                         </p>
-                      </div>
-                    )}
-                    {activeSubscription.plan_id && (
-                      <p className="text-muted-foreground mt-1">
-                        {activeSubscription.plan_id.plan_name}
-                      </p>
-                    )}
-                  </CardHeader>
-                  <CardContent className="space-y-6">
-                    {/* Balance Progress */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Remaining Balance</span>
-                        <span className="font-semibold">
-                          ₹{activeSubscription.remaining_amount.toFixed(2)} / ₹
-                          {activeSubscription.total_amount}
-                        </span>
-                      </div>
-                      <Progress value={100 - getProgressPercentage()} className="h-2" />
-                      <p className="text-xs text-muted-foreground">
-                        ₹
-                        {(
-                          activeSubscription.total_amount - activeSubscription.remaining_amount
-                        ).toFixed(2)}{" "}
-                        used
-                      </p>
-                    </div>
-
-                    {/* Days Progress */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Remaining Days</span>
-                        <span className="font-semibold">
-                          {activeSubscription.remaining_days} / {activeSubscription.total_days} days
-                        </span>
-                      </div>
-                      <Progress value={100 - getDaysProgressPercentage()} className="h-2" />
-                      <p className="text-xs text-muted-foreground">
-                        {activeSubscription.total_days - activeSubscription.remaining_days} days
-                        used
-                      </p>
-                    </div>
-
-                    {/* Stats Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-                      <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-2xl font-bold text-orange-500">
-                          ₹{activeSubscription.per_day_value.toFixed(0)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Per Day Value</p>
-                      </div>
-                      <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-2xl font-bold text-green-500">
-                          {activeSubscription.remaining_days}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Days Left</p>
-                      </div>
-                      <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-2xl font-bold text-blue-500">
-                          ₹{activeSubscription.remaining_amount.toFixed(0)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">Balance Left</p>
-                      </div>
-                      <div className="text-center p-4 bg-muted rounded-lg">
-                        <p className="text-2xl font-bold text-purple-500">
-                          {getDaysProgressPercentage()}%
-                        </p>
-                        <p className="text-xs text-muted-foreground">Used</p>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground pt-4 border-t">
-                      <Clock className="w-4 h-4" />
-                      <span>
-                        Activated on{" "}
-                        {format(new Date(activeSubscription.createdAt), "MMMM d, yyyy")}
-                      </span>
-                    </div>
-
-                    {/* Order Now Button */}
-                    {activeSubscription.seller_id && activeSubscription.remaining_amount > 0 && (
-                      <div className="pt-4 border-t space-y-2">
-                        <Button
-                          className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
-                          onClick={() => navigate(`/subscription-items`)}
-                        >
-                          <ShoppingBag className="w-4 h-4 mr-2" />
-                          View My Subscription Items
-                          <span className="ml-2 text-xs bg-white/20 px-2 py-0.5 rounded">
-                            ₹{activeSubscription.remaining_amount.toFixed(0)} available
+                      )}
+                    </CardHeader>
+                    <CardContent className="space-y-6">
+                      {/* Balance Progress */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Remaining Balance</span>
+                          <span className="font-semibold">
+                            ₹{sub.remaining_amount.toFixed(2)} / ₹
+                            {sub.total_amount}
                           </span>
-                        </Button>
+                        </div>
+                        <Progress value={100 - getProgressPercentage(sub)} className="h-2" />
+                        <p className="text-xs text-muted-foreground">
+                          ₹
+                          {(
+                            sub.total_amount - sub.remaining_amount
+                          ).toFixed(2)}{" "}
+                          used
+                        </p>
                       </div>
-                    )}
-                  </CardContent>
-                </Card>
 
+                      {/* Days Progress */}
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Remaining Days</span>
+                          <span className="font-semibold">
+                            {sub.remaining_days} / {sub.total_days} days
+                          </span>
+                        </div>
+                        <Progress value={100 - getDaysProgressPercentage(sub)} className="h-2" />
+                        <p className="text-xs text-muted-foreground">
+                          {sub.total_days - sub.remaining_days} days
+                          used
+                        </p>
+                      </div>
+
+                      {/* Stats Grid */}
+                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
+                        <div className="text-center p-4 bg-muted rounded-lg">
+                          <p className="text-2xl font-bold text-orange-500">
+                            ₹{sub.per_day_value.toFixed(0)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Per Day Value</p>
+                        </div>
+                        <div className="text-center p-4 bg-muted rounded-lg">
+                          <p className="text-2xl font-bold text-green-500">
+                            {sub.remaining_days}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Days Left</p>
+                        </div>
+                        <div className="text-center p-4 bg-muted rounded-lg">
+                          <p className="text-2xl font-bold text-blue-500">
+                            ₹{sub.remaining_amount.toFixed(0)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">Balance Left</p>
+                        </div>
+                        <div className="text-center p-4 bg-muted rounded-lg">
+                          <p className="text-2xl font-bold text-purple-500">
+                            {getDaysProgressPercentage(sub)}%
+                          </p>
+                          <p className="text-xs text-muted-foreground">Used</p>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground pt-4 border-t">
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          Activated on{" "}
+                          {format(new Date(sub.createdAt), "MMMM d, yyyy")}
+                        </span>
+                      </div>
+
+                      {/* Order Now Button */}
+                      {sub.seller_id && sub.remaining_amount > 0 && (
+                        <div className="pt-4 border-t space-y-2">
+                          <Button
+                            className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold"
+                            onClick={() => navigate(`/subscription-items`)}
+                          >
+                            <ShoppingBag className="w-4 h-4 mr-2" />
+                            View My Subscription Items
+                            <span className="ml-2 text-xs bg-white/20 px-2 py-0.5 rounded">
+                              ₹{sub.remaining_amount.toFixed(0)} available
+                            </span>
+                          </Button>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+                ))}
                 {/* Benefits Card */}
                 <Card>
                   <CardHeader>

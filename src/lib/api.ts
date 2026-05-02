@@ -5,6 +5,21 @@ const API_BASE_URL =
   import.meta.env.VITE_API_URL || 
   (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:5000/api` : "http://localhost:5000/api");
 
+// Helper to get full image URL
+export const getImageUrl = (path: string | undefined): string => {
+  if (!path || path === '/placeholder.svg') return '/placeholder.svg';
+  if (path.startsWith('http') || path.startsWith('data:') || path.startsWith('blob:')) return path;
+  
+  // If it's already a local frontend asset path, don't prepend backend URL
+  if (path.startsWith('/src') || path.startsWith('/assets') || path.startsWith('/images') || path.startsWith('@/')) {
+    return path;
+  }
+
+  const baseUrl = API_BASE_URL.replace('/api', '');
+  const cleanPath = path.startsWith('/') ? path : `/${path}`;
+  return `${baseUrl}${cleanPath}`;
+};
+
 // Request timeout in milliseconds
 const REQUEST_TIMEOUT = 10000; // 10 seconds
 
