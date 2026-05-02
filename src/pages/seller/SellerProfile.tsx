@@ -202,7 +202,10 @@ export default function SellerProfile() {
         variant: 'destructive'
       });
       // Revert preview on failure
-      queryClient.invalidateQueries({ queryKey: ['seller-profile'] });
+      setFormData((prev: any) => ({
+        ...prev,
+        [field]: profile?.[field]
+      }));
     }
   };
 
