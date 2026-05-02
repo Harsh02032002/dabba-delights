@@ -441,6 +441,9 @@ export const sellerAPI = {
   // GST
   getGSTReport: (period?: string) =>
     apiRequest(`/seller/gst/reports${period ? `?period=${period}` : ""}`),
+  
+  // Image Helper
+  getImageUrl: (path: string | undefined) => getImageUrl(path),
 };
 
 // ADMIN APIs
@@ -657,6 +660,7 @@ export const userAPI = {
   deleteNotification: (id: string) => apiRequest(`/user/notifications/${id}`, { method: 'DELETE' }),
   getActiveBanners: () => apiRequest("/user/banners"),
   getSubscriptionPlans: () => apiRequest("/subscriptions/plans"),
+  getImageUrl: (path: string | undefined) => getImageUrl(path),
 };
 
 const authAPI = {
@@ -754,6 +758,8 @@ const authAPI = {
   
   uploadBanner: (formData: FormData) =>
     apiUpload("/auth/profile/banner", formData),
+  
+  getImageUrl: (path: string | undefined) => getImageUrl(path),
 };
 
 export const paymentAPI = {

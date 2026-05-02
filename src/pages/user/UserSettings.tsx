@@ -65,15 +65,21 @@ export default function UserSettings() {
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Set local preview immediately
+      const localPreview = URL.createObjectURL(file);
+      setFormData((prev: any) => ({ ...prev, avatar: localPreview }));
+      
       const formData = new FormData();
       formData.append('avatar', file);
       
       try {
-        await authAPI.uploadAvatar(formData);
+        const res = await authAPI.uploadAvatar(formData);
+        console.log('📡 Avatar upload response:', res);
         queryClient.invalidateQueries({ queryKey: ['user-profile'] });
         toast({ title: 'Profile picture updated successfully' });
       } catch (error: any) {
         toast({ title: 'Error', description: error.message || 'Failed to upload image', variant: 'destructive' });
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
       }
     }
   };
@@ -81,15 +87,21 @@ export default function UserSettings() {
   const handleBannerUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      // Set local preview immediately
+      const localPreview = URL.createObjectURL(file);
+      setFormData((prev: any) => ({ ...prev, banner: localPreview }));
+      
       const formData = new FormData();
       formData.append('banner', file);
       
       try {
-        await authAPI.uploadBanner(formData);
+        const res = await authAPI.uploadBanner(formData);
+        console.log('📡 Banner upload response:', res);
         queryClient.invalidateQueries({ queryKey: ['user-profile'] });
         toast({ title: 'Banner image updated successfully' });
       } catch (error: any) {
         toast({ title: 'Error', description: error.message || 'Failed to upload image', variant: 'destructive' });
+        queryClient.invalidateQueries({ queryKey: ['user-profile'] });
       }
     }
   };
@@ -113,7 +125,9 @@ export default function UserSettings() {
               {/* Profile Picture */}
               <div className="flex items-center gap-4">
                 <Avatar className="w-20 h-20">
-                  <AvatarImage src={profile?.avatar || profile?.profileImage} />
+                  <AvatarImage 
+                    src={(formData.avatar?.startsWith('blob:') ? formData.avatar : authAPI.getImageUrl(formData.avatar || profile?.avatar || profile?.profileImage))} 
+                  />
                   <AvatarFallback>
                     {profile?.name?.charAt(0)?.toUpperCase() || 'U'}
                   </AvatarFallback>
@@ -139,8 +153,12 @@ export default function UserSettings() {
               <div className="space-y-2">
                 <Label>Banner Image</Label>
                 <div className="relative h-32 rounded-lg overflow-hidden bg-secondary/50 border-2 border-dashed border-border">
-                  {profile?.banner ? (
-                    <img src={profile.banner} alt="Banner" className="w-full h-full object-cover" />
+                  {(formData.banner || profile?.banner) ? (
+                    <img 
+                      src={(formData.banner?.startsWith('blob:') ? formData.banner : authAPI.getImageUrl(formData.banner || profile?.banner))} 
+                      alt="Banner" 
+                      className="w-full h-full object-cover" 
+                    />
                   ) : (
                     <div className="flex flex-col items-center justify-center h-full">
                       <Camera size={24} className="text-muted-foreground mb-2" />

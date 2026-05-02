@@ -158,6 +158,13 @@ export default function SellerProfile() {
       });
       return;
     }
+
+    // Set local preview immediately
+    const localPreview = URL.createObjectURL(file);
+    setFormData((prev: any) => ({
+      ...prev,
+      [field]: localPreview
+    }));
     
     try {
       const formDataUpload = new FormData();
@@ -170,7 +177,8 @@ export default function SellerProfile() {
         res = await sellerAPI.uploadCoverImage(formDataUpload);
       }
       
-      const newImageUrl = res.logo || res.coverImage || res.data?.logo || res.data?.coverImage;
+      console.log('📡 Upload response:', res);
+      const newImageUrl = res.logo || res.coverImage || res.data?.logo || res.data?.coverImage || res.data?.url || res.url;
       
       if (newImageUrl) {
         setFormData((prev: any) => ({
@@ -183,7 +191,7 @@ export default function SellerProfile() {
           description: `${field === 'logo' ? 'Logo' : 'Cover Image'} updated successfully`,
         });
         
-        // Invalidate profile query to refresh data
+        // Invalidate profile query to refresh data from server
         queryClient.invalidateQueries({ queryKey: ['seller-profile'] });
       }
     } catch (error: any) {
@@ -193,6 +201,8 @@ export default function SellerProfile() {
         description: error.message || 'Failed to upload image',
         variant: 'destructive'
       });
+      // Revert preview on failure
+      queryClient.invalidateQueries({ queryKey: ['seller-profile'] });
     }
   };
 
@@ -210,7 +220,7 @@ export default function SellerProfile() {
                   <div className="flex items-center gap-4">
                     {formData.logo && (
                       <img 
-                        src={formData.logo} 
+                        src={formData.logo.startsWith('blob:') ? formData.logo : sellerAPI.getImageUrl(formData.logo)} 
                         alt="Store Logo" 
                         className="w-20 h-20 object-cover rounded-lg border"
                       />
@@ -234,7 +244,7 @@ export default function SellerProfile() {
                   <div className="flex items-center gap-4">
                     {formData.coverImage && (
                       <img 
-                        src={formData.coverImage} 
+                        src={formData.coverImage.startsWith('blob:') ? formData.coverImage : sellerAPI.getImageUrl(formData.coverImage)} 
                         alt="Cover Image" 
                         className="w-20 h-20 object-cover rounded-lg border"
                       />
