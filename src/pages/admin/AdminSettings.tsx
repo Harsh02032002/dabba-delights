@@ -9,6 +9,87 @@ import { adminAPI } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Settings, Bell, Lock, Globe, Save } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { authAPI } from '@/lib/api';
+
+// Password Changer Component
+function AdminPasswordChanger() {
+  const [passwords, setPasswords] = useState({ current: '', new: '', confirm: '' });
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handlePasswordChange = async () => {
+    if (!passwords.current || !passwords.new || !passwords.confirm) {
+      toast({ title: 'Error', description: 'All fields are required' });
+      return;
+    }
+
+    if (passwords.new !== passwords.confirm) {
+      toast({ title: 'Error', description: 'New passwords do not match' });
+      return;
+    }
+
+    if (passwords.new.length < 6) {
+      toast({ title: 'Error', description: 'Password must be at least 6 characters' });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      const response = await authAPI.changePassword({
+        currentPassword: passwords.current,
+        newPassword: passwords.new,
+      });
+      
+      if (response.success) {
+        toast({ title: 'Success', description: 'Password updated successfully' });
+        setPasswords({ current: '', new: '', confirm: '' });
+      } else {
+        toast({ title: 'Error', description: response.message || 'Failed to update password' });
+      }
+    } catch (error: any) {
+      toast({ title: 'Error', description: error.message || 'Failed to update password' });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <>
+      <div className="space-y-2">
+        <Label>Current Password</Label>
+        <Input 
+          type="password" 
+          value={passwords.current}
+          onChange={(e) => setPasswords({ ...passwords, current: e.target.value })}
+        />
+      </div>
+      <div className="grid sm:grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label>New Password</Label>
+          <Input 
+            type="password" 
+            value={passwords.new}
+            onChange={(e) => setPasswords({ ...passwords, new: e.target.value })}
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Confirm Password</Label>
+          <Input 
+            type="password" 
+            value={passwords.confirm}
+            onChange={(e) => setPasswords({ ...passwords, confirm: e.target.value })}
+          />
+        </div>
+      </div>
+      <Button 
+        variant="outline" 
+        onClick={handlePasswordChange}
+        disabled={isLoading}
+      >
+        {isLoading ? 'Updating...' : 'Update Password'}
+      </Button>
+    </>
+  );
+}
 
 export default function AdminSettings() {
   const queryClient = useQueryClient();
@@ -121,12 +202,7 @@ export default function AdminSettings() {
         <Card>
           <CardHeader><CardTitle className="font-display text-lg flex items-center gap-2"><Lock size={20} /> Admin Security</CardTitle></CardHeader>
           <CardContent className="space-y-4">
-            <div className="space-y-2"><Label>Current Password</Label><Input type="password" /></div>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2"><Label>New Password</Label><Input type="password" /></div>
-              <div className="space-y-2"><Label>Confirm Password</Label><Input type="password" /></div>
-            </div>
-            <Button variant="outline">Update Password</Button>
+            <AdminPasswordChanger />
           </CardContent>
         </Card>
 
