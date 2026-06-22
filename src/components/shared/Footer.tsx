@@ -37,6 +37,7 @@ export default function Footer() {
   const socialLinkedin =
     config?.socialLinkedin ||
     "https://www.linkedin.com/in/akash-diwivedi-a01a65411?utm_source=share_via&utm_content=profile&utm_medium=member_android";
+  const footerCopyright = config?.footerCopyright || "Made with ❤️ in India";
 
   return (
     <footer className="bg-gray-900 text-white">
@@ -208,7 +209,7 @@ export default function Footer() {
             &copy; {new Date().getFullYear()} {platformName}. All rights
             reserved.
           </p>
-          <p className="mt-1">Made with ❤️ in India</p>
+          <p className="mt-1">{footerCopyright}</p>
         </div>
       </div>
     </footer>

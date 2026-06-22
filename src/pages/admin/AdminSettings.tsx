@@ -15,10 +15,95 @@ import {
   Save,
   Share2,
   FileText,
+  Phone,
+  Clock,
+  Trash2,
+  Plus,
+  ShieldCheck,
+  ReceiptText,
 } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { authAPI } from "@/lib/api";
+
+// ── Sections Editor (for static pages) ───────────────────────────────────────
+type Section = { title: string; content: string };
+
+function SectionsEditor({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const sections: Section[] = useMemo(() => {
+    try {
+      return JSON.parse(value || "[]");
+    } catch {
+      return [];
+    }
+  }, [value]);
+
+  const update = (next: Section[]) => onChange(JSON.stringify(next));
+
+  const set = (i: number, field: keyof Section, val: string) => {
+    const next = sections.map((s, idx) =>
+      idx === i ? { ...s, [field]: val } : s,
+    );
+    update(next);
+  };
+
+  const remove = (i: number) => update(sections.filter((_, idx) => idx !== i));
+
+  const add = () => update([...sections, { title: "", content: "" }]);
+
+  return (
+    <div className="space-y-4">
+      {sections.map((s, i) => (
+        <div
+          key={i}
+          className="border border-border rounded-xl p-4 space-y-3 bg-secondary/30"
+        >
+          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider w-5">
+              {i + 1}
+            </span>
+            <Input
+              value={s.title}
+              onChange={(e) => set(i, "title", e.target.value)}
+              placeholder="Section heading (e.g. 1. Information We Collect)"
+              className="flex-1"
+            />
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:bg-destructive/10 shrink-0"
+              onClick={() => remove(i)}
+            >
+              <Trash2 size={16} />
+            </Button>
+          </div>
+          <Textarea
+            rows={3}
+            value={s.content}
+            onChange={(e) => set(i, "content", e.target.value)}
+            placeholder="Section content. Bullet points ke liye • likh ke start karo. Nayi line ke liye Enter dabo."
+          />
+        </div>
+      ))}
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="gap-2"
+        onClick={add}
+      >
+        <Plus size={15} /> Section Add Karo
+      </Button>
+    </div>
+  );
+}
 
 // Password Changer Component
 function AdminPasswordChanger() {
@@ -506,6 +591,132 @@ export default function AdminSettings() {
                 placeholder="UDYAM-UP-21-0060612"
               />
             </div>
+          </CardContent>
+        </Card>
+
+        {/* Contact Us Page */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-display text-lg flex items-center gap-2">
+              <Phone size={20} /> Contact Us Page
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Phone, email aur address footer & Contact Us page dono pe update
+              ho jayega.
+            </p>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label>Support Phone</Label>
+                <Input
+                  value={config.supportPhone || ""}
+                  onChange={(e) =>
+                    setConfig({ ...config, supportPhone: e.target.value })
+                  }
+                  placeholder="+91 73030 23539"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Support Email</Label>
+                <Input
+                  value={config.supportEmail || ""}
+                  onChange={(e) =>
+                    setConfig({ ...config, supportEmail: e.target.value })
+                  }
+                  placeholder="support@dabbanation.com"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label>
+                Office Address (footer & contact page dono mein dikhega)
+              </Label>
+              <Input
+                value={config.footerAddress || ""}
+                onChange={(e) =>
+                  setConfig({ ...config, footerAddress: e.target.value })
+                }
+                placeholder="East Shastri Nagar, Ram Gulam Tola, Deoria 274001"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5">
+                <Clock size={14} /> Working Hours
+              </Label>
+              <Input
+                value={config.contactWorkingHours || ""}
+                onChange={(e) =>
+                  setConfig({ ...config, contactWorkingHours: e.target.value })
+                }
+                placeholder="Monday – Saturday, 9:00 AM – 9:00 PM IST"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label>Footer Copyright Line (neeche wali line)</Label>
+              <Input
+                value={config.footerCopyright || ""}
+                onChange={(e) =>
+                  setConfig({ ...config, footerCopyright: e.target.value })
+                }
+                placeholder="Made with ❤️ in India"
+              />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Privacy Policy Sections */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-display text-lg flex items-center gap-2">
+              <ShieldCheck size={20} /> Privacy Policy Content
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Har section ka heading aur content change karo. Bullet points ke
+              liye • se shuru karo.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <SectionsEditor
+              value={config.privacyPageContent || "[]"}
+              onChange={(v) => setConfig({ ...config, privacyPageContent: v })}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Terms of Service Sections */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-display text-lg flex items-center gap-2">
+              <FileText size={20} /> Terms of Service Content
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Har section ka heading aur content change karo.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <SectionsEditor
+              value={config.termsPageContent || "[]"}
+              onChange={(v) => setConfig({ ...config, termsPageContent: v })}
+            />
+          </CardContent>
+        </Card>
+
+        {/* Refund Policy Sections */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="font-display text-lg flex items-center gap-2">
+              <ReceiptText size={20} /> Refund & Cancellation Policy Content
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              Har section ka heading aur content change karo.
+            </p>
+          </CardHeader>
+          <CardContent>
+            <SectionsEditor
+              value={config.refundPageContent || "[]"}
+              onChange={(v) => setConfig({ ...config, refundPageContent: v })}
+            />
           </CardContent>
         </Card>
 
