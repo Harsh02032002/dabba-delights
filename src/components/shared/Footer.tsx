@@ -14,29 +14,45 @@ export default function Footer() {
   const { data: config } = useQuery({
     queryKey: ["platform-config"],
     queryFn: () => adminAPI.getPlatformConfig(),
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    staleTime: 1000 * 60 * 10,
   });
 
   const supportEmail = config?.supportEmail || "support@dabbanation.com";
   const supportPhone = config?.supportPhone || "+91 73030 23539";
   const platformName = config?.platformName || "Dabba Nation";
+  const footerTagline =
+    config?.footerTagline ||
+    "Your trusted food delivery partner, bringing delicious homemade and restaurant meals to your doorstep.";
+  const footerAddress =
+    config?.footerAddress ||
+    "East Shastri Nagar, Ram Gulam Tola, Deoria 274001";
+  const socialYoutube =
+    config?.socialYoutube ||
+    "https://youtube.com/@dabbanationofficial?si=hjZTZz5eQ-t0gMlO";
+  const socialInstagram =
+    config?.socialInstagram ||
+    "https://www.instagram.com/dabbanation?utm_source=qr&igsh=aGlweTZ1cDRvZjQ5";
+  const socialFacebook =
+    config?.socialFacebook || "https://www.facebook.com/share/1D1u1We4vN/";
+  const socialLinkedin =
+    config?.socialLinkedin ||
+    "https://www.linkedin.com/in/akash-diwivedi-a01a65411?utm_source=share_via&utm_content=profile&utm_medium=member_android";
 
   return (
     <footer className="bg-gray-900 text-white">
-      <div className="container mx-auto px-4 py-12">
+      <div className="container mx-auto px-4 py-10">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           {/* Company Info */}
           <div className="space-y-4">
             <h3 className="text-xl font-bold text-orange-500">
               {platformName}
             </h3>
-            <p className="text-gray-300 text-sm">
-              Your trusted food delivery partner, bringing delicious homemade
-              and restaurant meals to your doorstep.
+            <p className="text-gray-300 text-sm leading-relaxed">
+              {footerTagline}
             </p>
-            <div className="flex space-x-3 mt-2">
+            <div className="flex space-x-3 pt-1">
               <a
-                href="https://youtube.com/@dabbanationofficial?si=hjZTZz5eQ-t0gMlO"
+                href={socialYoutube}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="YouTube"
@@ -45,16 +61,16 @@ export default function Footer() {
                 <Youtube size={18} />
               </a>
               <a
-                href="https://www.instagram.com/dabbanation?utm_source=qr&igsh=aGlweTZ1cDRvZjQ5"
+                href={socialInstagram}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Instagram"
-                className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-800 text-gray-400 hover:bg-gradient-to-br hover:from-pink-500 hover:via-purple-500 hover:to-orange-400 hover:text-white transition-all duration-300 hover:scale-110"
+                className="flex items-center justify-center w-9 h-9 rounded-full bg-gray-800 text-gray-400 hover:bg-pink-600 hover:text-white transition-all duration-300 hover:scale-110"
               >
                 <Instagram size={18} />
               </a>
               <a
-                href="https://www.facebook.com/share/1D1u1We4vN/"
+                href={socialFacebook}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="Facebook"
@@ -63,7 +79,7 @@ export default function Footer() {
                 <Facebook size={18} />
               </a>
               <a
-                href="https://www.linkedin.com/in/akash-diwivedi-a01a65411?utm_source=share_via&utm_content=profile&utm_medium=member_android"
+                href={socialLinkedin}
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label="LinkedIn"
@@ -161,7 +177,7 @@ export default function Footer() {
             <h4 className="text-lg font-semibold">Contact Us</h4>
             <div className="space-y-3 text-gray-300 text-sm">
               <div className="flex items-center gap-3">
-                <Phone size={18} className="text-orange-500" />
+                <Phone size={18} className="text-orange-500 shrink-0" />
                 <a
                   href={`tel:${supportPhone}`}
                   className="hover:text-orange-500 transition-colors"
@@ -170,20 +186,14 @@ export default function Footer() {
                 </a>
               </div>
               <div className="flex items-start gap-3">
-                <MapPin size={18} className="text-orange-500 mt-1" />
-                <span>
-                  East Shastri Nagar
-                  <br />
-                  Ram Gulam Tola
-                  <br />
-                  Deoria 274001
-                </span>
+                <MapPin size={18} className="text-orange-500 mt-0.5 shrink-0" />
+                <span>{footerAddress}</span>
               </div>
               <div className="flex items-center gap-3">
-                <Mail size={18} className="text-orange-500" />
+                <Mail size={18} className="text-orange-500 shrink-0" />
                 <a
                   href={`mailto:${supportEmail}`}
-                  className="hover:text-orange-500 transition-colors"
+                  className="hover:text-orange-500 transition-colors break-all"
                 >
                   {supportEmail}
                 </a>
@@ -193,12 +203,12 @@ export default function Footer() {
         </div>
 
         {/* Bottom Bar */}
-        <div className="border-t border-gray-800 mt-8 pt-8 text-center text-gray-400 text-sm">
+        <div className="border-t border-gray-800 mt-8 pt-6 text-center text-gray-400 text-sm">
           <p>
             &copy; {new Date().getFullYear()} {platformName}. All rights
             reserved.
           </p>
-          <p className="mt-2">Made with ❤️ in India</p>
+          <p className="mt-1">Made with ❤️ in India</p>
         </div>
       </div>
     </footer>
