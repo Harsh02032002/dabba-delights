@@ -49,8 +49,8 @@ const WHAT_WE_DO = [
 
 export default function AboutUs() {
   const { data: config } = useQuery({
-    queryKey: ["platform-config"],
-    queryFn: () => adminAPI.getPlatformConfig(),
+    queryKey: ['public-platform-config'],
+    queryFn: () => publicAPI.getPlatformConfig(),
     staleTime: 1000 * 60 * 10,
   });
 

@@ -21,8 +21,8 @@ import { toast } from "@/hooks/use-toast";
 
 export default function ContactUs() {
   const { data: config } = useQuery({
-    queryKey: ["platform-config"],
-    queryFn: () => adminAPI.getPlatformConfig(),
+    queryKey: ['public-platform-config'],
+    queryFn: () => publicAPI.getPlatformConfig(),
     staleTime: 1000 * 60 * 10,
   });
 
