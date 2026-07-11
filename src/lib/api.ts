@@ -873,6 +873,11 @@ export const userAPI = {
     apiRequest(`/user/notifications/${id}`, { method: "DELETE" }),
   getActiveBanners: () => apiRequest("/user/banners"),
   getSubscriptionPlans: () => apiRequest("/subscriptions/plans"),
+  getNearbySellers: async (params: { lat: number; lng: number; radius?: number; type?: string }) => {
+    const res = await apiRequest<any>(`/user/sellers/nearby${toQuery(params as Record<string, unknown>)}`);
+    const sellers = Array.isArray(res) ? res : Array.isArray(res?.sellers) ? res.sellers : [];
+    return { sellers, total: sellers.length, success: true };
+  },
   getImageUrl: (path: string | undefined) => getImageUrl(path),
 };
 

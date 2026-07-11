@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { UserLayout } from "@/layouts/UserLayout";
 import { FoodCard, SellerCard } from "@/components/user/FoodCard";
 import { userAPI } from "@/lib/api";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { SellerType } from "@/types";
 import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
@@ -16,48 +16,102 @@ import { ChefHat, Clock, MapPin, Star, CheckCircle, Crown, TrendingUp, Store, Ch
 import { toast } from "@/hooks/use-toast";
 
 export default function UserHome() {
-  const savedType = (localStorage.getItem("preferredFoodType") || "restaurant") as SellerType;
+  const [savedType, setSavedType] = useState<SellerType>(
+    (localStorage.getItem("preferredFoodType") || "all") as SellerType
+  );
   const [searchQuery, setSearchQuery] = useState("");
-  
-  // Handle "all" case by showing both restaurants and home chefs
+  const queryClient = useQueryClient();
+  const [locationCoords, setLocationCoords] = useState(() => {
+    try { return JSON.parse(localStorage.getItem("userLocationCoords") || "null"); } catch { return null; }
+  });
+  const [locationName, setLocationName] = useState(() =>
+    localStorage.getItem("userLocationName") || ""
+  );
+
+  // Re-read location when navbar updates it
+  useEffect(() => {
+    const onLocationUpdate = () => {
+      try {
+        setLocationCoords(JSON.parse(localStorage.getItem("userLocationCoords") || "null"));
+        setLocationName(localStorage.getItem("userLocationName") || "");
+      } catch {}
+    };
+    window.addEventListener("locationUpdated", onLocationUpdate);
+    return () => window.removeEventListener("locationUpdated", onLocationUpdate);
+  }, []);
+
+  // Re-read preferredFoodType when user navigates back from Landing
+  useEffect(() => {
+    const onFocus = () => {
+      const t = (localStorage.getItem("preferredFoodType") || "all") as SellerType;
+      setSavedType(t);
+    };
+    window.addEventListener("focus", onFocus);
+    // Also listen for custom event from Landing
+    window.addEventListener("foodTypeUpdated", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      window.removeEventListener("foodTypeUpdated", onFocus);
+    };
+  }, []);
+
   const showAllTypes = savedType === "all";
 
-  // Sellers — dynamic only
+  // Sellers — nearby if location available, else all
   const { data: sellers = [] as any[], isLoading: sellersLoading } = useQuery({
-    queryKey: ["sellers", savedType, searchQuery],
+    queryKey: ["sellers", savedType, searchQuery, locationCoords?.lat, locationCoords?.lng],
     queryFn: async () => {
       try {
+        if (locationCoords?.lat && locationCoords?.lng) {
+          const res: any = await userAPI.getNearbySellers({
+            lat: locationCoords.lat,
+            lng: locationCoords.lng,
+            radius: 10000,
+            type: showAllTypes ? undefined : savedType,
+          });
+          return Array.isArray(res) ? res : res?.sellers || [];
+        }
         const res: any = await userAPI.getSellers({
           type: showAllTypes ? undefined : savedType,
           search: searchQuery || undefined,
         });
-        const s = Array.isArray(res) ? res : res?.sellers || res?.data || [];
-        return s;
+        return Array.isArray(res) ? res : res?.sellers || res?.data || [];
       } catch {
         return [];
       }
     },
   });
 
-  // Menu Items — dynamic only with proper filtering
+  // Menu Items — pass sellerIds to backend so it filters correctly
   const { data: menuItems = [] as any[], isLoading: menuLoading } = useQuery({
-    queryKey: ["menu-items", savedType, searchQuery],
+    queryKey: ["menu-items", savedType, searchQuery, sellers.map((s:any) => s._id).join(',')],
     queryFn: async () => {
       try {
-        const res: any = await userAPI.getMenuItems({ 
-          type: showAllTypes ? undefined : savedType,
-          search: searchQuery || undefined 
-        });
-        let p = Array.isArray(res) ? res : res?.products || res?.data || res?.menu || [];
-        return p;
+        const params: Record<string, any> = { search: searchQuery || undefined };
+        if (locationCoords?.lat && locationCoords?.lng) {
+          // Location set - only show menus of nearby sellers (empty if none found)
+          if (sellers.length > 0) {
+            params.sellerIds = sellers.map((s: any) => s._id).join(',');
+          } else {
+            return []; // No nearby sellers = no menus
+          }
+        } else if (!showAllTypes) {
+          params.type = savedType;
+        }
+        const res: any = await userAPI.getMenuItems(params);
+        return Array.isArray(res) ? res : res?.products || res?.data || res?.menu || [];
       } catch {
         return [];
       }
     },
+    enabled: !sellersLoading,
   });
 
+  // locationFilteredMenuItems = menuItems (already filtered by backend)
+  const locationFilteredMenuItems = menuItems;
+
   // Filter by search
-  const filteredItems = menuItems.filter((item: any) => {
+  const filteredItems = locationFilteredMenuItems.filter((item: any) => {
     if (!searchQuery) return true;
     const q = searchQuery.toLowerCase();
     return (
@@ -120,7 +174,7 @@ export default function UserHome() {
             <section className="mb-12">
               <div className="flex items-center justify-between mb-6">
                 <h2 className="text-2xl font-display font-bold text-foreground">
-                  {savedType === "home_chef" ? "Home Chefs Near You" : savedType === "restaurant" ? "Top Restaurants" : "All Sellers"}
+                  {locationName ? `Near ${locationName}` : savedType === "home_chef" ? "Home Chefs Near You" : savedType === "restaurant" ? "Top Restaurants" : "All Sellers"}
                 </h2>
               </div>
               <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -129,7 +183,9 @@ export default function UserHome() {
                 ))}
               </div>
               {filteredSellers.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">No {typeLabel.toLowerCase()}s found.</p>
+                <p className="text-center text-muted-foreground py-8">
+                  {locationCoords?.lat && locationCoords?.lng ? "No service available at this location" : `No ${typeLabel.toLowerCase()}s found.`}
+                </p>
               )}
             </section>
 
@@ -154,7 +210,9 @@ export default function UserHome() {
               })}
               </div>
               {filteredItems.length === 0 && (
-                <p className="text-center text-muted-foreground py-8">No dishes found. Try a different search.</p>
+                <p className="text-center text-muted-foreground py-8">
+                  {locationCoords?.lat && locationCoords?.lng ? "No service available at this location" : "No dishes found. Try a different search."}
+                </p>
               )}
             </section>
 

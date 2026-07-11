@@ -23,7 +23,7 @@ export default function ContactUs() {
   const { data: config } = useQuery({
     queryKey: ['public-platform-config'],
     queryFn: () => publicAPI.getPlatformConfig(),
-    staleTime: 1000 * 60 * 10,
+    staleTime: 0,
   });
 
   const supportPhone = config?.supportPhone || "+91 73030 23539";

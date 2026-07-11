@@ -223,9 +223,9 @@ export default function AdminSettings() {
   const updateMutation = useMutation({
     mutationFn: (data: any) => adminAPI.updatePlatformConfig(data),
     onSuccess: () => {
-      // Invalidate both keys so footer, about us, contact & static pages update instantly
+      // Invalidate both admin and public config queries so footer, about us, contact & static pages update instantly
       queryClient.invalidateQueries({ queryKey: ["admin-platform-config"] });
-      queryClient.invalidateQueries({ queryKey: ["platform-config"] });
+      queryClient.invalidateQueries({ queryKey: ["public-platform-config"] });
       toast({ title: "Settings updated" });
     },
   });

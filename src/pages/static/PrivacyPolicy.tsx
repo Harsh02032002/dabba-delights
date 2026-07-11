@@ -44,7 +44,7 @@ export default function PrivacyPolicy() {
   const { data: config } = useQuery({
     queryKey: ['public-platform-config'],
     queryFn: () => publicAPI.getPlatformConfig(),
-    staleTime: 1000 * 60 * 10,
+    staleTime: 0,
   });
 
   const platformName = config?.platformName || "Dabba Nation";

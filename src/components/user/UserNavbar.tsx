@@ -3,7 +3,7 @@ import { Logo } from "@/components/shared/Logo";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCart } from "@/contexts/CartContext";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { userAPI } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import {
@@ -19,6 +19,7 @@ import {
   FileText,
   Wallet,
   Crown,
+  Loader2,
 } from "lucide-react";
 import {
   DropdownMenu,
@@ -27,7 +28,7 @@ import {
   DropdownMenuItem,
   DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface UserNavbarProps {
   onSearch?: (query: string) => void;
@@ -37,6 +38,7 @@ export function UserNavbar({ onSearch }: UserNavbarProps) {
   const { user, isLoggedIn, logout } = useAuth();
   const { itemCount } = useCart();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   const { data: orders = [] } = useQuery({
     queryKey: ['active-orders-count-nav'],
@@ -57,14 +59,52 @@ export function UserNavbar({ onSearch }: UserNavbarProps) {
   ).length;
 
   const [query, setQuery] = useState("");
+  const [detecting, setDetecting] = useState(false);
+  const [locationName, setLocationName] = useState(() => 
+    localStorage.getItem("userLocationName") || "Set Location"
+  );
 
-  const storedLoc = (() => {
-    try {
-      const raw = localStorage.getItem("userLocation");
-      return raw ? JSON.parse(raw) : null;
-    } catch { return null; }
-  })();
-  const displayLocation = storedLoc?.display || "Set Location";
+  // Sync locationName if it changes in another component
+  useEffect(() => {
+    const onLocationUpdate = () => {
+      setLocationName(localStorage.getItem("userLocationName") || "Set Location");
+    };
+    window.addEventListener("locationUpdated", onLocationUpdate);
+    return () => window.removeEventListener("locationUpdated", onLocationUpdate);
+  }, []);
+
+  const detectLocation = () => {
+    if (!navigator.geolocation) return;
+    setDetecting(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json`
+          );
+          const data = await res.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || "Your Location";
+          const state = data.address?.state || "";
+          const name = `${city}, ${state}`;
+          setLocationName(name);
+          localStorage.setItem("userLocationName", name);
+          localStorage.setItem("userLocationCoords", JSON.stringify({
+            lat: pos.coords.latitude,
+            lng: pos.coords.longitude,
+          }));
+          // Notify UserHome to re-fetch
+          window.dispatchEvent(new Event("locationUpdated"));
+          // Invalidate seller/menu queries so UserHome refetches
+          queryClient.invalidateQueries({ queryKey: ["sellers"] });
+          queryClient.invalidateQueries({ queryKey: ["menu-items"] });
+        } catch {
+          setLocationName("Location detected");
+        }
+        setDetecting(false);
+      },
+      () => setDetecting(false)
+    );
+  };
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const v = e.target.value;
@@ -82,11 +122,14 @@ export function UserNavbar({ onSearch }: UserNavbarProps) {
           </Link>
 
           {/* Location (hidden on small screens) */}
-          <button className="hidden items-center gap-2 rounded-xl bg-secondary px-4 py-2 transition-colors hover:bg-secondary/90 md:flex">
-            <MapPin size={18} className="text-primary" />
+          <button 
+            onClick={detectLocation}
+            className="hidden items-center gap-2 rounded-xl bg-secondary px-4 py-2 transition-colors hover:bg-secondary/90 md:flex"
+          >
+            {detecting ? <Loader2 size={18} className="animate-spin text-primary" /> : <MapPin size={18} className="text-primary" />}
             <div className="text-left">
               <p className="text-xs text-muted-foreground">Deliver to</p>
-              <p className="text-sm font-medium">{displayLocation}</p>
+              <p className="text-sm font-medium max-w-[140px] truncate">{detecting ? "Detecting..." : locationName}</p>
             </div>
             <ChevronDown size={16} className="text-muted-foreground" />
           </button>

@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home, Store, MapPin, ChevronDown, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -58,6 +58,12 @@ export default function LandingPage() {
   const [location, setLocation] = useState("");
   const [detecting, setDetecting] = useState(false);
 
+  // Load previously saved location on mount
+  useEffect(() => {
+    const saved = localStorage.getItem("userLocationName");
+    if (saved) setLocation(saved);
+  }, []);
+
   const detectLocation = () => {
     setDetecting(true);
     if (navigator.geolocation) {
@@ -74,7 +80,14 @@ export default function LandingPage() {
               data.address?.village ||
               "Your Location";
             const state = data.address?.state || "";
-            setLocation(`${city}, ${state}`);
+            const locationStr = `${city}, ${state}`;
+            setLocation(locationStr);
+            // Save to localStorage so UserHome can use it
+            localStorage.setItem("userLocationName", locationStr);
+            localStorage.setItem("userLocationCoords", JSON.stringify({
+              lat: pos.coords.latitude,
+              lng: pos.coords.longitude,
+            }));
           } catch {
             setLocation("Mumbai, Maharashtra");
           }
@@ -90,6 +103,7 @@ export default function LandingPage() {
 
   const handleSelect = (type: string) => {
     localStorage.setItem("preferredFoodType", type);
+    window.dispatchEvent(new Event("foodTypeUpdated"));
     navigate("/home");
   };
 
@@ -228,6 +242,7 @@ export default function LandingPage() {
         <button
           onClick={() => {
             localStorage.setItem("preferredFoodType", "all");
+            window.dispatchEvent(new Event("foodTypeUpdated"));
             navigate("/home");
           }}
           className="mt-6 text-sm text-muted-foreground hover:text-primary transition-colors"
