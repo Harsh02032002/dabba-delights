@@ -919,7 +919,14 @@ export default function UserSubscription() {
               {sellers.filter(s => s.type === 'home-chef' || s.type === 'home_chef').length === 0 ? (
                 <p className="text-center text-muted-foreground">No home chefs available</p>
               ) : (
-                sellers.filter(s => s.type === 'home-chef' || s.type === 'home_chef').map((seller) => (
+                sellers.filter(s => s.type === 'home-chef' || s.type === 'home_chef').map((seller) => {
+                  const initials = seller.businessName
+                    .split(' ')
+                    .map((w: string) => w[0])
+                    .join('')
+                    .toUpperCase()
+                    .slice(0, 2);
+                  return (
                   <div
                     key={seller._id}
                     onClick={() => setSelectedSeller(seller._id)}
@@ -928,17 +935,25 @@ export default function UserSubscription() {
                         : "hover:bg-gray-50"
                       }`}
                   >
-                    {seller.logo ? (
-                      <img
-                        src={seller.logo}
-                        alt={seller.businessName}
-                        className="w-12 h-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-                        <Store className="w-6 h-6 text-gray-500" />
-                      </div>
-                    )}
+                    <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-orange-100 flex items-center justify-center">
+                      {seller.logo ? (
+                        <img
+                          src={seller.logo}
+                          alt={seller.businessName}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            const target = e.currentTarget;
+                            target.style.display = 'none';
+                            const parent = target.parentElement;
+                            if (parent) {
+                              parent.innerHTML = `<span style="font-size:14px;font-weight:700;color:#E86F2A;">${initials}</span>`;
+                            }
+                          }}
+                        />
+                      ) : (
+                        <span className="text-sm font-bold text-orange-500">{initials}</span>
+                      )}
+                    </div>
                     <div className="flex-1">
                       <p className="font-medium">{seller.businessName}</p>
                       <p className="text-sm text-muted-foreground capitalize">
@@ -949,7 +964,8 @@ export default function UserSubscription() {
                       <CheckCircle className="w-5 h-5 text-green-500" />
                     )}
                   </div>
-                ))
+                  );
+                })
               )}
             </div>
             <div className="flex gap-3 mt-4">
