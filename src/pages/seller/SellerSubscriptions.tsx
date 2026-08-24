@@ -3,7 +3,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useQuery } from '@tanstack/react-query';
-import { sellerAPI } from '@/lib/api';
+import { apiRequest } from '@/lib/api';
+import { OnlinePaymentModal } from '@/components/OnlinePaymentModal';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useState } from 'react';
 import { Users, Phone, MapPin, Calendar, IndianRupee, Clock, AlertCircle, CheckCircle2 } from 'lucide-react';
@@ -49,10 +50,32 @@ interface Subscription {
 export default function SellerSubscriptions() {
   const [selectedSubscription, setSelectedSubscription] = useState<Subscription | null>(null);
   const [showDetailsDialog, setShowDetailsDialog] = useState(false);
+  const [isSubscribeDialogOpen, setIsSubscribeDialogOpen] = useState(false);
+  const [isOnlinePayOpen, setIsOnlinePayOpen] = useState(false);
+  const [selectedPlanToBuy, setSelectedPlanToBuy] = useState<any>(null);
 
   const { data: subscriptions, isLoading, refetch } = useQuery({
     queryKey: ['seller-subscriptions'],
-    queryFn: () => sellerAPI.getSubscriptions(),
+    queryFn: async () => {
+      const res = await apiRequest('/seller/subscriptions');
+      return res.subscriptions || res.data || [];
+    },
+  });
+
+  const { data: sellerSubData, refetch: refetchSellerSub } = useQuery({
+    queryKey: ['seller-own-subscription'],
+    queryFn: async () => {
+      const res = await apiRequest('/subscriptions/seller/active');
+      return res;
+    },
+  });
+
+  const { data: availablePlans } = useQuery({
+    queryKey: ['seller-available-plans'],
+    queryFn: async () => {
+      const res = await apiRequest('/subscriptions/plans');
+      return res.plans || [];
+    },
   });
 
   const activeSubscriptions = subscriptions?.filter((s: Subscription) => s.status === 'active') || [];
@@ -73,10 +96,39 @@ export default function SellerSubscriptions() {
 
   return (
     <SellerLayout 
-      title="My Subscribers" 
-      subtitle="Users who have subscribed to your home chef services"
+      title="My Subscribers & Subscriptions" 
+      subtitle="Manage your subscriber customers and your restaurant platform subscription"
     >
       <div className="space-y-6">
+        {/* Seller Own Subscription Banner */}
+        <Card className="bg-gradient-to-r from-emerald-900 via-teal-900 to-slate-900 text-white border-emerald-700 shadow-xl overflow-hidden relative">
+          <CardContent className="p-6">
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <Badge className="bg-emerald-500 text-slate-950 font-bold uppercase tracking-wider text-xs">
+                    Restaurant Platform Membership
+                  </Badge>
+                </div>
+                <h3 className="text-2xl font-extrabold mt-2 text-white">
+                  {sellerSubData?.subscriptions?.length ? sellerSubData.subscriptions[0].plan_id?.plan_name || 'Active Membership' : 'Activate Restaurant Subscription'}
+                </h3>
+                <p className="text-sm text-emerald-200 mt-1 max-w-xl">
+                  {sellerSubData?.subscriptions?.length 
+                    ? `Active until ${sellerSubData.subscriptions[0].remaining_days} days remaining. Benefits include priority order distribution and listing.`
+                    : 'Subscribe your restaurant to access full features, receive customer meal subscriptions, and get priority visibility.'}
+                </p>
+              </div>
+              <Button
+                onClick={() => setIsSubscribeDialogOpen(true)}
+                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold px-6 py-3 rounded-xl shadow-lg transition-all"
+              >
+                {sellerSubData?.subscriptions?.length ? 'Renew / Change Plan' : '➕ Add Subscription Plan'}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card className="bg-gradient-to-br from-green-500 to-emerald-600 text-white">
@@ -285,15 +337,101 @@ export default function SellerSubscriptions() {
                   </div>
                 </div>
 
-                <div className="bg-orange-50 border border-orange-200 rounded-lg p-3">
-                  <p className="text-sm text-orange-800">
-                    <strong>Admin will pay you</strong> for this subscription. Contact admin for payout.
-                  </p>
-                </div>
+        {/* Subscribe Restaurant Plan Dialog */}
+        <Dialog open={isSubscribeDialogOpen} onOpenChange={setIsSubscribeDialogOpen}>
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-bold">Select Restaurant Subscription Plan</DialogTitle>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <p className="text-sm text-muted-foreground">
+                Choose a membership subscription plan for your restaurant to activate platform privileges.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(availablePlans || []).map((plan: any) => (
+                  <Card 
+                    key={plan._id} 
+                    className={`border-2 cursor-pointer transition-all hover:border-emerald-500 ${selectedPlanToBuy?._id === plan._id ? 'border-emerald-600 bg-emerald-50/40 dark:bg-emerald-950/20' : 'border-gray-200'}`}
+                    onClick={() => setSelectedPlanToBuy(plan)}
+                  >
+                    <CardContent className="p-4 space-y-2">
+                      <div className="flex justify-between items-start">
+                        <h4 className="font-bold text-base">{plan.plan_name}</h4>
+                        {plan.badge && <Badge className="bg-emerald-600 text-white text-[10px]">{plan.badge}</Badge>}
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{plan.description}</p>
+                      <div className="pt-2 flex justify-between items-baseline">
+                        <span className="text-2xl font-extrabold text-emerald-600">₹{plan.total_amount}</span>
+                        <span className="text-xs text-muted-foreground">{plan.total_days} Days validity</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        className="w-full mt-2 bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedPlanToBuy(plan);
+                          setIsSubscribeDialogOpen(false);
+                          setIsOnlinePayOpen(true);
+                        }}
+                      >
+                        Subscribe & Pay Online
+                      </Button>
+                    </CardContent>
+                  </Card>
+                ))}
+                {(!availablePlans || availablePlans.length === 0) && (
+                  <div className="col-span-2 text-center py-8 border-2 border-dashed rounded-xl">
+                    <p className="font-semibold text-gray-700">Standard Seller Membership Plan</p>
+                    <p className="text-xs text-muted-foreground mt-1">₹2,999 for 30 Days Full Access</p>
+                    <Button
+                      className="mt-4 bg-emerald-600 hover:bg-emerald-700 text-white"
+                      onClick={() => {
+                        setSelectedPlanToBuy({ total_amount: 2999, total_days: 30, plan_name: 'Standard Restaurant Membership' });
+                        setIsSubscribeDialogOpen(false);
+                        setIsOnlinePayOpen(true);
+                      }}
+                    >
+                      Subscribe ₹2,999 / 30 Days
+                    </Button>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </DialogContent>
         </Dialog>
+
+        {/* Online Payment Modal for Seller Subscription */}
+        <OnlinePaymentModal
+          isOpen={isOnlinePayOpen}
+          onClose={() => setIsOnlinePayOpen(false)}
+          amount={selectedPlanToBuy?.total_amount || 2999}
+          title={`Activate ${selectedPlanToBuy?.plan_name || 'Restaurant Membership'}`}
+          description="Scan the PhonePe QR code to complete your restaurant subscription payment online."
+          onPaymentSuccess={async (txnId) => {
+            try {
+              await apiRequest('/subscriptions/seller/purchase', {
+                method: 'POST',
+                body: JSON.stringify({
+                  planId: selectedPlanToBuy?._id,
+                  totalAmount: selectedPlanToBuy?.total_amount || 2999,
+                  totalDays: selectedPlanToBuy?.total_days || 30,
+                  transactionId: txnId || `SELLER_UPI_${Date.now()}`
+                })
+              });
+              toast({
+                title: 'Subscription Activated! 🎉',
+                description: 'Your restaurant membership subscription has been activated successfully.',
+              });
+              refetchSellerSub();
+            } catch (err: any) {
+              toast({
+                title: 'Activation Error',
+                description: err?.message || 'Failed to activate subscription',
+                variant: 'destructive',
+              });
+            }
+          }}
+        />
       </div>
     </SellerLayout>
   );

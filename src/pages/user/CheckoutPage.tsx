@@ -14,6 +14,7 @@ import { MapPin, IndianRupee, Loader2, CreditCard, Banknote, ArrowLeft, Wallet, 
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { formatGSTPercentage, GST_RATES, updateGSTSettings } from "@/lib/gst";
+import { OnlinePaymentModal } from "@/components/OnlinePaymentModal";
 
 // Load Razorpay SDK dynamically
 function loadRazorpayScript(): Promise<boolean> {
@@ -40,6 +41,7 @@ export default function CheckoutPage() {
 
   const [isLoading, setIsLoading] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("razorpay");
+  const [isOnlineModalOpen, setIsOnlineModalOpen] = useState(false);
 
   const [deliveryAddress, setDeliveryAddress] = useState({
     street: "",
@@ -444,169 +446,10 @@ export default function CheckoutPage() {
   };
 
   const handleRazorpayPayment = async (isHybrid = false) => {
-    console.log('🚀 Starting Razorpay payment process...');
-
     if (!validateAddress()) {
-      console.log('❌ Address validation failed');
       return;
     }
-
-    const payNow = isHybrid ? Math.max(0, orderGrandTotal - potentialSubUsed) : orderGrandTotal;
-    const subUsed = isHybrid ? potentialSubUsed : 0;
-    const subDays = isHybrid ? potentialDaysDeducted : 0;
-
-    setIsLoading(true);
-    try {
-      console.log(' Creating Razorpay order...');
-      const response = await paymentAPI.createRazorpayOrder({
-        amount: payNow,
-        currency: "INR",
-        orderId: `ORDER-${Date.now()}`,
-        description: `Order from Dabba Nation - ${cartItems.length} items`,
-        subscriptionDeduction: subUsed > 0 ? {
-          subscriptionId: activeSubscription?._id,
-          amountUsed: subUsed,
-          daysDeducted: subDays,
-          homeChefId: typeof activeSubscription?.seller_id === 'object' ? activeSubscription?.seller_id?._id : activeSubscription?.seller_id,
-        } : undefined,
-      });
-
-      console.log('📋 Razorpay order response:', response);
-
-      if (!response?.success) {
-        console.error('❌ Razorpay order creation failed:', response);
-        throw new Error(response?.message || "Failed to create order");
-      }
-
-      console.log('🎯 Creating direct Razorpay modal...');
-
-      // Create a direct Razorpay modal using the script
-      const options = {
-        key: response.key,
-        amount: response.amount,
-        currency: response.currency,
-        order_id: response.orderId,
-        name: 'Dabba Nation',
-        description: `Order - ${cartItems.length} items`,
-        image: 'https://via.placeholder.com/150x150.png?text=DabbaNation',
-        handler: async (paymentRes: any) => {
-          try {
-            console.log('💳 Razorpay payment response:', paymentRes);
-
-            // Verify payment
-            const verifyRes = await paymentAPI.verifyRazorpayPayment({
-              razorpayOrderId: paymentRes.razorpay_order_id,
-              razorpayPaymentId: paymentRes.razorpay_payment_id,
-              razorpaySignature: paymentRes.razorpay_signature,
-            });
-
-            console.log('✅ Payment verification response:', verifyRes);
-
-            if (verifyRes?.verified || verifyRes?.success) {
-              console.log('✅ Payment verified, placing order...');
-
-              const orderResponse = await userAPI.placeOrder(buildOrderPayload("razorpay", isHybrid));
-              console.log('📦 Order placed successfully:', orderResponse);
-
-              if (isHybrid && subUsed > 0) {
-                toast({
-                  title: "Payment successful! Order placed. 🎉",
-                  description: `₹${subUsed.toFixed(0)} from subscription + ₹${payNow.toFixed(0)} via Razorpay. ${subDays} days used.`
-                });
-              } else {
-                toast({ title: "Payment successful! Order placed. 🎉" });
-              }
-
-              // Generate invoice
-              try {
-                await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
-                console.log('📄 Invoice generated successfully');
-                toast({ title: "Invoice generated! 📄", description: "Your invoice is ready for download" });
-              } catch (invoiceErr: any) {
-                console.log("Invoice generation failed:", invoiceErr);
-              }
-
-              clearCart();
-              navigate("/orders");
-            } else {
-              throw new Error("Payment verification failed");
-            }
-          } catch (err: any) {
-            console.error('❌ Payment handler error:', err);
-            toast({ title: "Payment failed", description: err.message, variant: "destructive" });
-            setIsLoading(false);
-          }
-        },
-        prefill: {
-          name: user?.name || "",
-          email: user?.email || "",
-          contact: user?.phone || ""
-        },
-        theme: {
-          color: "#E86F2A"
-        },
-        modal: {
-          ondismiss: function () {
-            console.log('❌ Razorpay modal dismissed by user');
-            setIsLoading(false);
-          },
-          backdropclose: true,
-          escape: true,
-          handleback: true
-        },
-        notes: {
-          address: `${deliveryAddress.street}, ${deliveryAddress.city}, ${deliveryAddress.state} - ${deliveryAddress.pincode}`,
-          seller_id: cart.sellerId
-        }
-      };
-
-      console.log('🔧 Razorpay options created:', options);
-
-      // Load Razorpay script fresh
-      const script = document.createElement('script');
-      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
-      script.async = true;
-
-      script.onload = () => {
-        console.log('✅ Razorpay script loaded fresh');
-
-        try {
-          // Create Razorpay instance directly from global window
-          const rzp = new (window as any).Razorpay(options);
-          console.log('✅ Razorpay instance created fresh');
-
-          // Open the modal
-          rzp.open();
-          console.log('🚀 Razorpay modal opened');
-
-        } catch (err: any) {
-          console.error('❌ Error creating Razorpay instance:', err);
-          toast({
-            title: "Payment Error",
-            description: "Cannot open payment modal. Please try another payment method.",
-            variant: "destructive"
-          });
-          setIsLoading(false);
-        }
-      };
-
-      script.onerror = () => {
-        console.error('❌ Failed to load Razorpay script');
-        toast({
-          title: "Payment Error",
-          description: "Cannot load payment gateway. Please try another payment method.",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-      };
-
-      document.head.appendChild(script);
-
-    } catch (err: any) {
-      console.error('❌ Payment error:', err);
-      toast({ title: "Payment failed", description: err.message, variant: "destructive" });
-      setIsLoading(false);
-    }
+    setIsOnlineModalOpen(true);
   };
 
   const handlePayment = () => {
@@ -749,7 +592,7 @@ export default function CheckoutPage() {
                   </div>
                 </label>
 
-                {/* Razorpay */}
+                {/* Pay Online */}
                 <label className={cn(
                   "flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all",
                   paymentMethod === "razorpay" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
@@ -757,8 +600,8 @@ export default function CheckoutPage() {
                   <input type="radio" name="payment" checked={paymentMethod === "razorpay"} onChange={() => setPaymentMethod("razorpay")} className="accent-primary" />
                   <CreditCard size={24} className="text-primary" />
                   <div>
-                    <p className="font-medium text-foreground">Razorpay</p>
-                    <p className="text-xs text-muted-foreground">UPI • Cards • Netbanking • Wallets</p>
+                    <p className="font-medium text-foreground">Pay Online</p>
+                    <p className="text-xs text-muted-foreground">UPI • PhonePe • GPay • Paytm</p>
                   </div>
                 </label>
 
@@ -979,12 +822,35 @@ export default function CheckoutPage() {
                 {paymentMethod === "subscription" ? `Using your subscription balance. ${potentialDaysDeducted} days will be deducted.`
                   : paymentMethod === "wallet" ? "Instant payment from your wallet"
                     : paymentMethod === "cod" ? "Pay cash when your order is delivered"
-                      : "Secure online payment via Razorpay"}
+                      : "Secure online payment via UPI / PhonePe"}
               </p>
             </Card>
           </div>
         </div>
       </div>
+
+      <OnlinePaymentModal
+        isOpen={isOnlineModalOpen}
+        onClose={() => setIsOnlineModalOpen(false)}
+        amount={orderGrandTotal}
+        onPaymentSuccess={async (txnId) => {
+          setIsLoading(true);
+          try {
+            const isHybrid = paymentMethod === "hybrid";
+            const orderResponse = await userAPI.placeOrder(buildOrderPayload("online", isHybrid));
+            try {
+              await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
+            } catch (invErr) {}
+            toast({ title: "Payment successful! Order placed. 🎉" });
+            clearCart();
+            navigate("/orders");
+          } catch (err: any) {
+            toast({ title: "Order Placement Error", description: err?.message || "Failed to place order", variant: "destructive" });
+          } finally {
+            setIsLoading(false);
+          }
+        }}
+      />
     </UserLayout>
   );
 }

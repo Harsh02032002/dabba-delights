@@ -129,7 +129,21 @@ export default function UserSubscription() {
     }
 
     try {
-      // First try: Fetch only home-chef type sellers
+      const savedLoc = localStorage.getItem("user_location_coords");
+      if (savedLoc) {
+        const parsed = JSON.parse(savedLoc);
+        if (parsed?.lat && parsed?.lng) {
+          console.log(`📡 Fetching nearby home chefs for coords:`, parsed);
+          const nearbyRes = await apiRequest(`/user/sellers/nearby?lat=${parsed.lat}&lng=${parsed.lng}&radius=20000&type=home_chef`);
+          if (nearbyRes?.success && Array.isArray(nearbyRes.sellers) && nearbyRes.sellers.length > 0) {
+            console.log('🏠 Nearby home chefs found:', nearbyRes.sellers.length);
+            setSellers(nearbyRes.sellers);
+            return;
+          }
+        }
+      }
+
+      // Fallback: Fetch only home-chef type sellers
       console.log('📡 Fetching from: /user/sellers?type=home-chef');
       const res = await apiRequest("/user/sellers?type=home-chef");
       console.log('📥 Response from API:', res);
@@ -137,7 +151,7 @@ export default function UserSubscription() {
       console.log('🏠 Home chefs fetched:', res.sellers?.length || 0);
 
       if (res.sellers && res.sellers.length > 0) {
-        console.log('✅ First attempt successful');
+        console.log('✅ Home-chef filter attempt successful');
         return;
       }
     } catch (error: any) {

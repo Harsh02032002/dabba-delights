@@ -59,14 +59,15 @@ export default function UserHome() {
 
   // Sellers — nearby if location available, else all
   const { data: sellers = [] as any[], isLoading: sellersLoading } = useQuery({
-    queryKey: ["sellers", savedType, searchQuery, locationCoords?.lat, locationCoords?.lng],
+    queryKey: ["sellers", savedType, searchQuery, locationCoords?.lat, locationCoords?.lng, locationName],
     queryFn: async () => {
       try {
         if (locationCoords?.lat && locationCoords?.lng) {
           const res: any = await userAPI.getNearbySellers({
             lat: locationCoords.lat,
             lng: locationCoords.lng,
-            radius: 10000,
+            radius: 50000,
+            city: locationName,
             type: showAllTypes ? undefined : savedType,
           });
           return Array.isArray(res) ? res : res?.sellers || [];

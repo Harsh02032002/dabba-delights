@@ -21,6 +21,7 @@ interface FormData {
   features: string;
   banner_image: string;
   is_active: boolean;
+  target_type?: string;
 }
 
 interface SubscriptionPlan {
@@ -35,6 +36,7 @@ interface SubscriptionPlan {
   features?: string[];
   banner_image?: string;
   image?: string;
+  target_type?: string;
   assigned_seller_id?: {
     _id: string;
     businessName: string;
@@ -124,6 +126,7 @@ export default function AdminSubscriptions() {
     features: "",
     banner_image: "",
     is_active: true,
+    target_type: "user",
   });
 
   const resetForm = () => {
@@ -136,11 +139,13 @@ export default function AdminSubscriptions() {
       features: "",
       banner_image: "",
       is_active: true,
+      target_type: "user",
     });
   };
 
-  // Form state for assigning subscription to user
+  // Form state for assigning subscription to user or restaurant/seller
   const [assignFormData, setAssignFormData] = useState({
+    assignFor: "user", // "user" or "seller"
     userId: "",
     sellerId: "",
     planId: "",
@@ -200,6 +205,7 @@ export default function AdminSubscriptions() {
       if (formData.max_orders_per_day) formDataObj.append("max_orders_per_day", formData.max_orders_per_day);
       if (formData.features) formDataObj.append("features", formData.features);
       if (formData.banner_image) formDataObj.append("banner_image", formData.banner_image);
+      if (formData.target_type) formDataObj.append("target_type", formData.target_type);
       
       // Always append boolean values
       formDataObj.append("is_active", String(formData.is_active));
@@ -251,6 +257,7 @@ export default function AdminSubscriptions() {
       if (formData.max_orders_per_day) formDataObj.append("max_orders_per_day", formData.max_orders_per_day);
       if (formData.features) formDataObj.append("features", formData.features);
       if (formData.banner_image) formDataObj.append("banner_image", formData.banner_image);
+      if (formData.target_type) formDataObj.append("target_type", formData.target_type);
       
       // Always append boolean values
       formDataObj.append("is_active", String(formData.is_active));
@@ -338,7 +345,8 @@ export default function AdminSubscriptions() {
   const handleAssignSubscription = async () => {
     try {
       const data = {
-        userId: assignFormData.userId,
+        assignFor: assignFormData.assignFor,
+        userId: assignFormData.assignFor === "user" ? assignFormData.userId : undefined,
         sellerId: assignFormData.sellerId,
         planId: assignFormData.planId || null,
         totalAmount: Number(assignFormData.totalAmount),
@@ -351,9 +359,9 @@ export default function AdminSubscriptions() {
         body: JSON.stringify(data),
       });
 
-      toast({ title: "Success", description: "Subscription assigned successfully" });
+      toast({ title: "Success", description: `Subscription assigned to ${assignFormData.assignFor === "seller" ? "Restaurant/Seller" : "User"} successfully` });
       setIsAssignDialogOpen(false);
-      setAssignFormData({ userId: "", sellerId: "", planId: "", totalAmount: "", totalDays: "", notes: "" });
+      setAssignFormData({ assignFor: "user", userId: "", sellerId: "", planId: "", totalAmount: "", totalDays: "", notes: "" });
       fetchData();
     } catch (error: any) {
       toast({
@@ -817,6 +825,19 @@ export default function AdminSubscriptions() {
                 />
               </div>
               <div className="space-y-2">
+                <Label>Subscription For (Target Audience) *</Label>
+                <select
+                  className="w-full px-3 py-2 border rounded-md text-sm bg-background font-medium"
+                  value={formData.target_type || "user"}
+                  onChange={(e) => setFormData({ ...formData, target_type: e.target.value })}
+                >
+                  <option value="user">🧑‍🍳 Customer / User (Meal Plan)</option>
+                  <option value="home_chef">🏡 Home Chef (Home Chef Plan)</option>
+                  <option value="restaurant">🏪 Restaurant (Restaurant Plan)</option>
+                  <option value="seller">🏬 Cloud Kitchen / General Seller Plan</option>
+                </select>
+              </div>
+              <div className="space-y-2">
                 <Label>Description</Label>
                 <Input
                   value={formData.description}
@@ -1033,32 +1054,79 @@ export default function AdminSubscriptions() {
           onOpenChange={(open) => {
             if (!open) {
               setIsAssignDialogOpen(false);
-              setAssignFormData({ userId: "", sellerId: "", planId: "", totalAmount: "", totalDays: "", notes: "" });
+              setAssignFormData({ assignFor: "user", userId: "", sellerId: "", planId: "", totalAmount: "", totalDays: "", notes: "" });
             }
           }}
         >
           <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle>Assign Subscription to User</DialogTitle>
+              <DialogTitle>
+                Assign Subscription {assignFormData.assignFor === "seller" ? "to Restaurant / Seller" : "to User"}
+              </DialogTitle>
             </DialogHeader>
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label>Select User *</Label>
-                <select
-                  className="w-full px-3 py-2 border rounded-md text-sm"
-                  value={assignFormData.userId}
-                  onChange={(e) => setAssignFormData({ ...assignFormData, userId: e.target.value })}
-                >
-                  <option value="">-- Select a user --</option>
-                  {users.map((user) => (
-                    <option key={user._id} value={user._id}>
-                      {user.name} ({user.email})
-                    </option>
-                  ))}
-                </select>
+                <Label>Assign Subscription To *</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant={assignFormData.assignFor === "user" ? "default" : "outline"}
+                    className="w-full text-xs font-semibold"
+                    onClick={() => setAssignFormData({ ...assignFormData, assignFor: "user" })}
+                  >
+                    🧑‍🍳 Customer / User
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={assignFormData.assignFor === "home_chef" ? "default" : "outline"}
+                    className="w-full text-xs font-semibold"
+                    onClick={() => setAssignFormData({ ...assignFormData, assignFor: "home_chef" })}
+                  >
+                    🏡 Home Chef
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={assignFormData.assignFor === "restaurant" ? "default" : "outline"}
+                    className="w-full text-xs font-semibold"
+                    onClick={() => setAssignFormData({ ...assignFormData, assignFor: "restaurant" })}
+                  >
+                    🏪 Restaurant
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={assignFormData.assignFor === "seller" ? "default" : "outline"}
+                    className="w-full text-xs font-semibold"
+                    onClick={() => setAssignFormData({ ...assignFormData, assignFor: "seller" })}
+                  >
+                    🏬 Cloud Kitchen
+                  </Button>
+                </div>
               </div>
+
+              {assignFormData.assignFor === "user" && (
+                <div className="space-y-2">
+                  <Label>Select User *</Label>
+                  <select
+                    className="w-full px-3 py-2 border rounded-md text-sm bg-background"
+                    value={assignFormData.userId}
+                    onChange={(e) => setAssignFormData({ ...assignFormData, userId: e.target.value })}
+                  >
+                    <option value="">-- Select a user --</option>
+                    {users.map((user) => (
+                      <option key={user._id} value={user._id}>
+                        {user.name} ({user.email})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
               <div className="space-y-2">
-                <Label>Select Seller/Restaurant *</Label>
+                <Label>
+                  {assignFormData.assignFor === "home_chef" ? "Select Home Chef *" :
+                   assignFormData.assignFor === "restaurant" ? "Select Restaurant *" :
+                   assignFormData.assignFor === "seller" ? "Select Seller / Cloud Kitchen *" :
+                   "Select Seller / Restaurant *"}
+                </Label>
                 <select
                   className="w-full px-3 py-2 border rounded-md text-sm"
                   value={assignFormData.sellerId}

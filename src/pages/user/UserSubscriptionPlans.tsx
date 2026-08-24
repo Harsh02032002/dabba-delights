@@ -58,10 +58,29 @@ export default function UserSubscriptionPlans() {
 
   const fetchHomeChefs = async () => {
     try {
-      const res = await apiRequest("/sellers?type=home_chef&active=true");
-      if (res.success) {
-        setHomeChefs(res.sellers || []);
+      const savedLoc = localStorage.getItem("user_location_coords");
+      let chefs: any[] = [];
+      if (savedLoc) {
+        try {
+          const parsed = JSON.parse(savedLoc);
+          if (parsed?.lat && parsed?.lng) {
+            const res = await apiRequest(`/user/sellers/nearby?lat=${parsed.lat}&lng=${parsed.lng}&radius=20000&type=home_chef`);
+            if (res?.success && Array.isArray(res.sellers) && res.sellers.length > 0) {
+              chefs = res.sellers;
+            }
+          }
+        } catch (e) {
+          console.error("Error parsing user location for subscription plans:", e);
+        }
       }
+
+      if (chefs.length === 0) {
+        const res = await apiRequest("/sellers?type=home_chef&active=true");
+        if (res?.success) {
+          chefs = res.sellers || [];
+        }
+      }
+      setHomeChefs(chefs);
     } catch (err: any) {
       toast.error("Failed to load home chefs");
     } finally {
