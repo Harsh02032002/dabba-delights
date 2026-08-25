@@ -972,30 +972,30 @@ export default function UserSubscription() {
                     })
                   )}
                 </div>
+                <div className="flex gap-3 mt-4">
+                  <Button
+                    variant="outline"
+                    className="flex-1"
+                    onClick={() => {
+                      setShowSellerDialog(false);
+                      setSelectedSeller("");
+                      setSelectedPlanId(null);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                    disabled={!selectedSeller}
+                    onClick={handleConfirmPurchase}
+                  >
+                    Continue
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
           );
         })()}
-            <div className="flex gap-3 mt-4">
-              <Button
-                variant="outline"
-                className="flex-1"
-                onClick={() => {
-                  setShowSellerDialog(false);
-                  setSelectedSeller("");
-                  setSelectedPlanId(null);
-                }}
-              >
-                Cancel
-              </Button>
-              <Button
-                className="flex-1 bg-green-600 hover:bg-green-700"
-                disabled={!selectedSeller}
-                onClick={handleConfirmPurchase}
-              >
-                Continue
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
       </div>
     </UserLayout>
   );
