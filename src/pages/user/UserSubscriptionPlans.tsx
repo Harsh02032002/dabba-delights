@@ -58,14 +58,24 @@ export default function UserSubscriptionPlans() {
 
   const fetchHomeChefs = async () => {
     try {
-      const savedLoc = localStorage.getItem("user_location_coords");
+      const savedLoc = localStorage.getItem("userLocationCoords") || localStorage.getItem("user_location_coords");
+      const savedName = localStorage.getItem("userLocationName") || localStorage.getItem("user_location_name");
       let chefs: any[] = [];
+
       if (savedLoc) {
         try {
           const parsed = JSON.parse(savedLoc);
           if (parsed?.lat && parsed?.lng) {
-            const res = await apiRequest(`/user/sellers/nearby?lat=${parsed.lat}&lng=${parsed.lng}&radius=20000&type=home_chef`);
-            if (res?.success && Array.isArray(res.sellers) && res.sellers.length > 0) {
+            const queryParams = new URLSearchParams({
+              lat: parsed.lat.toString(),
+              lng: parsed.lng.toString(),
+              radius: "50000",
+              type: "home_chef",
+            });
+            if (savedName) queryParams.append("city", savedName);
+
+            const res = await apiRequest(`/user/sellers/nearby?${queryParams.toString()}`);
+            if (res?.success && Array.isArray(res.sellers)) {
               chefs = res.sellers;
             }
           }
@@ -74,7 +84,7 @@ export default function UserSubscriptionPlans() {
         }
       }
 
-      if (chefs.length === 0) {
+      if (chefs.length === 0 && !savedLoc) {
         const res = await apiRequest("/sellers?type=home_chef&active=true");
         if (res?.success) {
           chefs = res.sellers || [];
@@ -250,37 +260,65 @@ export default function UserSubscriptionPlans() {
               </CardContent>
             </Card>
 
-            <h2 className="text-lg font-semibold mt-6 mb-4">Choose your Home Chef</h2>
+            {(() => {
+              const currentPlanType = selectedPlan?.plan_type || selectedPlan?.target_type || 'home_chef';
+              const isRestaurantPlan = currentPlanType === 'restaurant';
+              const isCloudKitchen = currentPlanType === 'cloud_kitchen' || currentPlanType === 'all' || currentPlanType === 'seller';
+              
+              const availableChefs = homeChefs.filter(chef => {
+                if (isCloudKitchen) return true; // Both Home Chefs & Restaurants
+                if (isRestaurantPlan) return chef.type === 'restaurant';
+                return chef.type === 'home-chef' || chef.type === 'home_chef';
+              });
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {homeChefs.map((chef) => (
-                <Card
-                  key={chef._id}
-                  className="cursor-pointer transition-all hover:shadow-md"
-                  onClick={() => handleSelectChef(chef)}
-                >
-                  <CardContent className="p-4">
-                    <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {chef.image ? (
-                          <img src={chef.image} alt={chef.businessName} className="w-full h-full object-cover" />
-                        ) : (
-                          <ChefHat className="w-8 h-8 text-gray-400" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <h3 className="font-medium">{chef.businessName}</h3>
-                        <p className="text-sm text-muted-foreground">
-                          {chef.address?.city || "Location not specified"}
-                        </p>
-                        <Badge variant="outline" className="mt-1">Home Chef</Badge>
-                      </div>
-                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
+              const targetLabel = isCloudKitchen ? 'Seller (Home Chef / Restaurant)' : isRestaurantPlan ? 'Restaurant' : 'Home Chef';
+
+              return (
+                <>
+                  <h2 className="text-lg font-semibold mt-6 mb-4">
+                    Choose your {targetLabel}
+                  </h2>
+
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {availableChefs.length === 0 ? (
+                      <p className="text-muted-foreground col-span-2 py-4">
+                        No {isCloudKitchen ? 'sellers' : isRestaurantPlan ? 'restaurants' : 'home chefs'} available at this location
+                      </p>
+                    ) : (
+                      availableChefs.map((chef) => (
+                        <Card
+                          key={chef._id}
+                          className="cursor-pointer transition-all hover:shadow-md"
+                          onClick={() => handleSelectChef(chef)}
+                        >
+                          <CardContent className="p-4">
+                            <div className="flex items-center gap-4">
+                              <div className="w-16 h-16 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+                                {chef.image || chef.logo ? (
+                                  <img src={chef.image || chef.logo} alt={chef.businessName} className="w-full h-full object-cover" />
+                                ) : (
+                                  <ChefHat className="w-8 h-8 text-gray-400" />
+                                )}
+                              </div>
+                              <div className="flex-1">
+                                <h3 className="font-medium">{chef.businessName}</h3>
+                                <p className="text-sm text-muted-foreground">
+                                  {chef.address?.city || "Location not specified"}
+                                </p>
+                                <Badge variant="outline" className="mt-1">
+                                  {chef.type === 'restaurant' ? 'Restaurant' : 'Home Chef'}
+                                </Badge>
+                              </div>
+                              <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    )}
+                  </div>
+                </>
+              );
+            })()}
           </div>
         )}
 

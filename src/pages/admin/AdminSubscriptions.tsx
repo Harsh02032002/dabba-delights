@@ -828,13 +828,12 @@ export default function AdminSubscriptions() {
                 <Label>Subscription For (Target Audience) *</Label>
                 <select
                   className="w-full px-3 py-2 border rounded-md text-sm bg-background font-medium"
-                  value={formData.target_type || "user"}
+                  value={formData.target_type === "user" ? "home_chef" : (formData.target_type || "home_chef")}
                   onChange={(e) => setFormData({ ...formData, target_type: e.target.value })}
                 >
-                  <option value="user">🧑‍🍳 Customer / User (Meal Plan)</option>
-                  <option value="home_chef">🏡 Home Chef (Home Chef Plan)</option>
-                  <option value="restaurant">🏪 Restaurant (Restaurant Plan)</option>
-                  <option value="seller">🏬 Cloud Kitchen / General Seller Plan</option>
+                  <option value="home_chef">🏡 Home Chef Plan (Home Chefs Only)</option>
+                  <option value="restaurant">🏪 Restaurant Plan (Restaurants Only)</option>
+                  <option value="cloud_kitchen">☁️ Cloud Kitchen / All Sellers Plan (Both Home Chefs & Restaurants)</option>
                 </select>
               </div>
               <div className="space-y-2">

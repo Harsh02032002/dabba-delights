@@ -119,59 +119,45 @@ export default function UserSubscription() {
   };
 
   const fetchSellers = async () => {
-    console.log('🔄 Starting fetchSellers...');
-    console.log('🔐 User logged in?', !!user);
-    console.log('🔐 User token?', localStorage.getItem('token') ? 'Present' : 'Missing');
-
-    if (!user) {
-      console.error('❌ User not logged in');
-      return;
-    }
+    if (!user) return;
 
     try {
-      const savedLoc = localStorage.getItem("user_location_coords");
+      const savedLoc = localStorage.getItem("userLocationCoords") || localStorage.getItem("user_location_coords");
+      const savedName = localStorage.getItem("userLocationName") || localStorage.getItem("user_location_name");
+
       if (savedLoc) {
-        const parsed = JSON.parse(savedLoc);
-        if (parsed?.lat && parsed?.lng) {
-          console.log(`📡 Fetching nearby home chefs for coords:`, parsed);
-          const nearbyRes = await apiRequest(`/user/sellers/nearby?lat=${parsed.lat}&lng=${parsed.lng}&radius=20000&type=home_chef`);
-          if (nearbyRes?.success && Array.isArray(nearbyRes.sellers) && nearbyRes.sellers.length > 0) {
-            console.log('🏠 Nearby home chefs found:', nearbyRes.sellers.length);
-            setSellers(nearbyRes.sellers);
-            return;
+        try {
+          const parsed = JSON.parse(savedLoc);
+          if (parsed?.lat && parsed?.lng) {
+            console.log(`📡 Fetching nearby sellers for coords:`, parsed, savedName);
+            const queryParams = new URLSearchParams({
+              lat: parsed.lat.toString(),
+              lng: parsed.lng.toString(),
+              radius: "50000",
+            });
+            if (savedName) queryParams.append("city", savedName);
+
+            const nearbyRes = await apiRequest(`/user/sellers/nearby?${queryParams.toString()}`);
+            if (nearbyRes?.success && Array.isArray(nearbyRes.sellers)) {
+              console.log('🏠 Nearby sellers found:', nearbyRes.sellers.length);
+              setSellers(nearbyRes.sellers);
+              return;
+            }
           }
+        } catch (e) {
+          console.error("Error parsing location in UserSubscription:", e);
         }
       }
 
-      // Fallback: Fetch only home-chef type sellers
-      console.log('📡 Fetching from: /user/sellers?type=home-chef');
-      const res = await apiRequest("/user/sellers?type=home-chef");
-      console.log('📥 Response from API:', res);
-      setSellers(res.sellers || []);
-      console.log('🏠 Home chefs fetched:', res.sellers?.length || 0);
-
-      if (res.sellers && res.sellers.length > 0) {
-        console.log('✅ Home-chef filter attempt successful');
-        return;
-      }
+      // Fallback if location is not set: Fetch all sellers
+      console.log('📡 Fetching all sellers...');
+      const res = await apiRequest("/user/sellers");
+      const rawSellers = res.sellers || res.data || [];
+      setSellers(rawSellers);
     } catch (error: any) {
-      console.error("❌ Failed to fetch sellers with query:", error);
+      console.error("❌ Failed to fetch sellers:", error);
     }
-
-    // Fallback: fetch all sellers and filter client-side
-    try {
-      console.log('📡 Fallback: Fetching from: /user/sellers');
-      const allRes = await apiRequest("/user/sellers");
-      console.log('📥 Fallback response:', allRes);
-      const allSellers = allRes.sellers || [];
-      console.log('🔍 All sellers before filtering:', allSellers);
-
-      const homeChefs = allSellers.filter((s: Seller) => s.type === 'home-chef' || s.type === 'home_chef');
-      console.log('🏠 Home chefs after filtering:', homeChefs);
-      setSellers(homeChefs);
-      console.log('🏠 Final home chefs count:', homeChefs.length);
-    } catch (fallbackError: any) {
-      console.error("❌ Fallback also failed:", fallbackError);
+  };
 
       // Mock data for testing - remove when backend is fixed
       console.log("🧪 Using mock home chef data for testing");
@@ -280,9 +266,13 @@ export default function UserSubscription() {
   };
 
   const handlePurchase = async (plan: SubscriptionPlan) => {
-    // Show seller selection dialog first
     setSelectedPlanId(plan._id);
-    setShowSellerDialog(true);
+    if (plan.assigned_seller_id?._id) {
+      setSelectedSeller(plan.assigned_seller_id._id);
+      proceedWithPurchase(plan, plan.assigned_seller_id._id);
+    } else {
+      setShowSellerDialog(true);
+    }
   };
 
   const handleConfirmPurchase = async () => {
@@ -619,9 +609,16 @@ export default function UserSubscription() {
 
                       {/* Seller Info */}
                       {plan.assigned_seller_id?.businessName && (
-                        <div className="flex items-center gap-2 text-gray-600 text-xs">
-                          <Store className="w-3 h-3" />
-                          <span>{plan.assigned_seller_id.businessName}</span>
+                        <div className="mt-2 p-2.5 bg-gradient-to-r from-orange-50 to-amber-50 border border-orange-200 rounded-lg flex items-center gap-2.5">
+                          <div className="w-8 h-8 rounded-full bg-orange-500 text-white font-bold flex items-center justify-center text-xs flex-shrink-0">
+                            {plan.assigned_seller_id.businessName.charAt(0)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-xs font-bold text-gray-900 truncate">{plan.assigned_seller_id.businessName}</p>
+                            <p className="text-[10px] text-orange-700 font-medium capitalize">
+                              Exclusive Plan by {plan.assigned_seller_id.type === 'restaurant' ? 'Restaurant' : 'Home Chef'}
+                            </p>
+                          </div>
                         </div>
                       )}
 
@@ -916,72 +913,88 @@ export default function UserSubscription() {
           </TabsContent>
         </Tabs>
 
-        {/* Home Chef Selection Dialog */}
-        <Dialog open={showSellerDialog} onOpenChange={setShowSellerDialog}>
-          <DialogContent className="max-w-md">
-            <DialogHeader>
-              <DialogTitle>Select Home Chef</DialogTitle>
-              <DialogDescription>
-                Choose which home chef you want this subscription for. Your payment will go to admin first, then admin will pay the home chef.
-              </DialogDescription>
-            </DialogHeader>
-            <div className="grid gap-3 max-h-[400px] overflow-y-auto py-4">
-              {/* Debug info */}
-              <div className="text-xs text-gray-500 text-center">
-                Total sellers fetched: {sellers.length} | Home chefs: {sellers.filter(s => s.type === 'home-chef' || s.type === 'home_chef').length}
-              </div>
-              {sellers.filter(s => s.type === 'home-chef' || s.type === 'home_chef').length === 0 ? (
-                <p className="text-center text-muted-foreground">No home chefs available</p>
-              ) : (
-                sellers.filter(s => s.type === 'home-chef' || s.type === 'home_chef').map((seller) => {
-                  const initials = seller.businessName
-                    .split(' ')
-                    .map((w: string) => w[0])
-                    .join('')
-                    .toUpperCase()
-                    .slice(0, 2);
-                  return (
-                  <div
-                    key={seller._id}
-                    onClick={() => setSelectedSeller(seller._id)}
-                    className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedSeller === seller._id
-                        ? "border-green-500 bg-green-50"
-                        : "hover:bg-gray-50"
-                      }`}
-                  >
-                    <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-orange-100 flex items-center justify-center">
-                      {seller.logo ? (
-                        <img
-                          src={seller.logo}
-                          alt={seller.businessName}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            const target = e.currentTarget;
-                            target.style.display = 'none';
-                            const parent = target.parentElement;
-                            if (parent) {
-                              parent.innerHTML = `<span style="font-size:14px;font-weight:700;color:#E86F2A;">${initials}</span>`;
-                            }
-                          }}
-                        />
-                      ) : (
-                        <span className="text-sm font-bold text-orange-500">{initials}</span>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">{seller.businessName}</p>
-                      <p className="text-sm text-muted-foreground capitalize">
-                        Home Chef
-                      </p>
-                    </div>
-                    {selectedSeller === seller._id && (
-                      <CheckCircle className="w-5 h-5 text-green-500" />
-                    )}
-                  </div>
-                  );
-                })
-              )}
-            </div>
+        {/* Seller Selection Dialog */}
+        {(() => {
+          const currentPlan = plans.find(p => p._id === selectedPlanId);
+          const currentPlanType = currentPlan?.plan_type || currentPlan?.target_type || 'home_chef';
+          const isRestaurant = currentPlanType === 'restaurant';
+          const isCloudKitchen = currentPlanType === 'cloud_kitchen' || currentPlanType === 'all' || currentPlanType === 'seller';
+          
+          const availableSellers = sellers.filter(s => {
+            if (isCloudKitchen) return true; // Both Home Chefs and Restaurants!
+            if (isRestaurant) return s.type === 'restaurant';
+            return s.type === 'home-chef' || s.type === 'home_chef';
+          });
+
+          const dialogTitle = isCloudKitchen ? 'Select Seller (Home Chef / Restaurant)' : isRestaurant ? 'Select Restaurant' : 'Select Home Chef';
+          const dialogTargetName = isCloudKitchen ? 'seller' : isRestaurant ? 'restaurant' : 'home chef';
+
+          return (
+            <Dialog open={showSellerDialog} onOpenChange={setShowSellerDialog}>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>{dialogTitle}</DialogTitle>
+                  <DialogDescription>
+                    Choose which {dialogTargetName} you want this subscription for. Your payment will go to admin first, then admin will pay the seller.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-3 max-h-[400px] overflow-y-auto py-4">
+                  {availableSellers.length === 0 ? (
+                    <p className="text-center text-muted-foreground py-4">
+                      No {dialogTargetName}s available at this location
+                    </p>
+                  ) : (
+                    availableSellers.map((seller) => {
+                      const initials = seller.businessName
+                        .split(' ')
+                        .map((w: string) => w[0])
+                        .join('')
+                        .toUpperCase()
+                        .slice(0, 2);
+                      return (
+                      <div
+                        key={seller._id}
+                        onClick={() => setSelectedSeller(seller._id)}
+                        className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors ${selectedSeller === seller._id
+                            ? "border-green-500 bg-green-50"
+                            : "hover:bg-gray-50"
+                          }`}
+                      >
+                        <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-orange-100 flex items-center justify-center">
+                          {seller.logo ? (
+                            <img
+                              src={seller.logo}
+                              alt={seller.businessName}
+                              className="w-full h-full object-cover"
+                              onError={(e) => {
+                                const target = e.currentTarget;
+                                target.style.display = 'none';
+                                const parent = target.parentElement;
+                                if (parent) {
+                                  parent.innerHTML = `<span style="font-size:14px;font-weight:700;color:#E86F2A;">${initials}</span>`;
+                                }
+                              }}
+                            />
+                          ) : (
+                            <span className="text-sm font-bold text-orange-500">{initials}</span>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-medium">{seller.businessName}</p>
+                          <p className="text-sm text-muted-foreground capitalize">
+                            {seller.type === 'restaurant' ? 'Restaurant' : 'Home Chef'}
+                          </p>
+                        </div>
+                        {selectedSeller === seller._id && (
+                          <CheckCircle className="w-5 h-5 text-green-500" />
+                        )}
+                      </div>
+                      );
+                    })
+                  )}
+                </div>
+          );
+        })()}
             <div className="flex gap-3 mt-4">
               <Button
                 variant="outline"
