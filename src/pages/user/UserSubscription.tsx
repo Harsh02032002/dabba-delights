@@ -159,27 +159,6 @@ export default function UserSubscription() {
     }
   };
 
-      // Mock data for testing - remove when backend is fixed
-      console.log("🧪 Using mock home chef data for testing");
-      const mockHomeChefs: Seller[] = [
-        {
-          _id: "mock-chef-1",
-          businessName: "Maa ke Haath Ka Khana",
-          type: "home_chef",
-          logo: ""
-        },
-        {
-          _id: "mock-chef-2",
-          businessName: "Ghar Ka Swad",
-          type: "home_chef",
-          logo: ""
-        }
-      ];
-      setSellers(mockHomeChefs);
-      console.log("🧪 Mock home chefs set:", mockHomeChefs.length);
-    }
-  };
-
   const generatePlanPoster = (plan: SubscriptionPlan) => {
     // Create a canvas-based poster with dynamic data
     const canvas = document.createElement('canvas');
