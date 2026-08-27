@@ -213,14 +213,28 @@ export default function AdminProducts() {
     if (!editItem) return;
     const form = e.currentTarget;
     const fd = new FormData();
-    fd.append('name', (form.elements.namedItem('editName') as HTMLInputElement).value);
-    fd.append('description', (form.elements.namedItem('editDescription') as HTMLTextAreaElement).value);
-    fd.append('price', (form.elements.namedItem('editPrice') as HTMLInputElement).value);
-    fd.append('discountPrice', (form.elements.namedItem('editDiscountPrice') as HTMLInputElement).value || '');
-    fd.append('category', (form.elements.namedItem('editCategory') as HTMLInputElement)?.value || editItem.category);
-    fd.append('preparationTime', (form.elements.namedItem('editPrepTime') as HTMLInputElement).value);
-    fd.append('stock', (form.elements.namedItem('editStock') as HTMLInputElement).value || '0');
-    fd.append('isVeg', String((form.elements.namedItem('editIsVeg') as HTMLInputElement)?.checked || false));
+
+    const nameInput = (form.elements.namedItem('editName') as HTMLInputElement)?.value;
+    const descInput = (form.elements.namedItem('editDescription') as HTMLTextAreaElement)?.value;
+    const priceInput = (form.elements.namedItem('editSellingPrice') as HTMLInputElement)?.value || (form.elements.namedItem('editPrice') as HTMLInputElement)?.value || '0';
+    const costInput = (form.elements.namedItem('editCostPrice') as HTMLInputElement)?.value || '';
+    const discountInput = (form.elements.namedItem('editDiscountPrice') as HTMLInputElement)?.value || '';
+    const categoryInput = (form.elements.namedItem('editCategory') as HTMLSelectElement)?.value || editItem.category;
+    const prepInput = (form.elements.namedItem('editPrepTime') as HTMLInputElement)?.value || '15';
+    const stockInput = (form.elements.namedItem('editStock') as HTMLInputElement)?.value || '100';
+    const isVegInput = (form.elements.namedItem('editIsVeg') as HTMLInputElement)?.checked || false;
+
+    fd.append('name', nameInput || editItem.name);
+    fd.append('description', descInput ?? editItem.description ?? '');
+    fd.append('sellingPrice', priceInput);
+    fd.append('price', priceInput);
+    if (costInput) fd.append('costPrice', costInput);
+    if (discountInput) fd.append('discountPrice', discountInput);
+    fd.append('category', categoryInput);
+    fd.append('preparationTime', prepInput);
+    fd.append('stock', stockInput);
+    fd.append('isVeg', String(isVegInput));
+
     const fileInput = editImageRef.current;
     if (fileInput?.files?.[0]) fd.append('image', fileInput.files[0]);
     updateMutation.mutate({ id: editItem._id, fd });

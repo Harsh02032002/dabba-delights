@@ -226,8 +226,9 @@ export default function CheckoutPage() {
     const deliveryGST = deliveryCGST + deliverySGST + deliveryIGSTVal;
     const totalGST = totalFoodGST + deliveryGST;
 
-    /** Customer pays: items + food/delivery GST + delivery fee — not platform commission */
-    const grandTotal = subtotal + totalFoodGST + deliveryFee + deliveryGST;
+    const rawPlat = platformConfig?.platformFee != null ? Number(platformConfig.platformFee) : 5;
+    const platformFee = Number.isFinite(rawPlat) ? rawPlat : 5;
+    const grandTotal = subtotal + totalFoodGST + deliveryFee + deliveryGST + platformFee;
 
     return {
       subtotal,
