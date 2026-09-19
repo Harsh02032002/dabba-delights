@@ -650,6 +650,11 @@ export const adminAPI = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  updateCategory: (id: string, data: Record<string, unknown>) =>
+    apiRequest(`/admin/categories/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    }),
   deleteCategory: (id: string) =>
     apiRequest(`/admin/categories/${id}`, { method: "DELETE" }),
   bulkProcessSettlements: (ids: string[]) =>

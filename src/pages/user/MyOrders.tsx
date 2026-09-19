@@ -376,19 +376,33 @@ export default function MyOrders() {
                         </Button>
                       )}
 
-                      {/* Live Location Tracking */}
-                      {order.status === 'out_for_delivery' && deliveryLocations[order._id] && (
-                        <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                          <div className="flex items-center gap-2 mb-2">
-                            <MapPin size={16} className="text-blue-600" />
-                            <span className="text-sm font-semibold text-blue-800">Live Delivery Tracking</span>
+                      {/* Blinkit-style Delivery Partner Card */}
+                      {order.status === 'out_for_delivery' && (
+                        <div className="mt-3 p-3 bg-orange-50 rounded-xl border border-orange-200">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-orange-500 flex items-center justify-center text-white font-bold text-sm shrink-0">
+                              {(order.deliveryPartnerId?.name || order.partnerName || '🛵')[0]?.toUpperCase() || '🛵'}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-sm font-bold text-gray-900 truncate">
+                                {order.deliveryPartnerId?.name || order.partnerName || 'Your Delivery Partner'}
+                              </p>
+                              <p className="text-xs text-orange-600 font-medium">On the way to you 🛵</p>
+                            </div>
+                            {(order.deliveryPartnerId?.phone || order.partnerPhone) && (
+                              <a
+                                href={`tel:${order.deliveryPartnerId?.phone || order.partnerPhone}`}
+                                className="w-9 h-9 rounded-full bg-green-500 flex items-center justify-center shrink-0 hover:bg-green-600 transition-colors"
+                              >
+                                <span className="text-white text-sm">📞</span>
+                              </a>
+                            )}
                           </div>
-                          <div className="text-xs text-blue-600">
-                            Last updated: {new Date(deliveryLocations[order._id].timestamp).toLocaleTimeString()}
-                          </div>
-                          <div className="text-sm text-blue-800">
-                            📍 {deliveryLocations[order._id].address || 'Location updating...'}
-                          </div>
+                          {deliveryLocations[order._id] && (
+                            <div className="mt-2 text-xs text-orange-700">
+                              📍 Location updating... Last: {new Date(deliveryLocations[order._id].timestamp).toLocaleTimeString()}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>

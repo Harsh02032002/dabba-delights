@@ -169,16 +169,31 @@ export default function CheckoutPage() {
     }
     | undefined;
 
+  const custLng = (deliveryAddress as any)?.location?.coordinates?.[0];
+  const custLat = (deliveryAddress as any)?.location?.coordinates?.[1];
+
+  const { data: deliveryFeeRes } = useQuery({
+    queryKey: ["calc-delivery-fee", cart?.sellerId, custLng, custLat],
+    queryFn: async () => {
+      const url = `${import.meta.env.VITE_API_URL || "http://localhost:5000/api"}/delivery/calculate-fee?sellerId=${cart?.sellerId}&customerLng=${custLng}&customerLat=${custLat}`;
+      const r = await fetch(url);
+      return r.json();
+    },
+    enabled: !!cart?.sellerId && custLng != null && custLat != null && custLng !== 0,
+  });
+
   const gstCalculation = useMemo(() => {
     if (cartItems.length === 0 || !gstSettings?.gstApplicable) return null;
     const subtotal = totals.subtotal;
     const rawDel =
-      platformConfig &&
-        platformConfig.deliveryFee != null &&
-        String(platformConfig.deliveryFee) !== ""
-        ? Number(platformConfig.deliveryFee)
-        : totals.deliveryFee;
-    const deliveryFee = Number.isFinite(rawDel) ? rawDel : totals.deliveryFee;
+      deliveryFeeRes?.success && typeof deliveryFeeRes.customerFee === "number"
+        ? deliveryFeeRes.customerFee
+        : platformConfig &&
+          platformConfig.deliveryFee != null &&
+          String(platformConfig.deliveryFee) !== ""
+          ? Number(platformConfig.deliveryFee)
+          : totals.deliveryFee;
+    const deliveryFee = Number.isFinite(rawDel) ? rawDel : 30;
 
     const norm = (s?: string) => (s || "").trim().toLowerCase().replace(/\s+/g, " ");
     const sameState =
@@ -251,6 +266,7 @@ export default function CheckoutPage() {
     gstSettings,
     totals.subtotal,
     totals.deliveryFee,
+    deliveryFeeRes,
     platformConfig,
     deliveryAddress.state,
     sellerState,
@@ -674,46 +690,54 @@ export default function CheckoutPage() {
                   </>
                 ) : null}
 
-                {/* Delivery - HIDDEN from user view */}
-                {/*
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Delivery</span>
-                  <span>₹{(gstCalculation?.deliveryFee ?? totals.deliveryFee).toFixed(2)}</span>
+                {/* Delivery Fee Breakdown */}
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground flex items-center gap-1.5">
+                    <Truck size={14} className="text-orange-500" />
+                    <span>Delivery Fee</span>
+                    {deliveryFeeRes?.distanceKm ? (
+                      <span className="text-xs bg-orange-100 text-orange-700 dark:bg-orange-950/40 dark:text-orange-400 px-1.5 py-0.5 rounded font-medium">
+                        {deliveryFeeRes.distanceKm} km
+                      </span>
+                    ) : null}
+                  </span>
+                  <span className="font-semibold text-foreground">
+                    ₹{(gstCalculation?.deliveryFee ?? totals.deliveryFee).toFixed(2)}
+                  </span>
                 </div>
 
                 {gstCalculation && gstSettings?.gstApplicable && gstSettings?.deliveryGSTEnabled && (gstCalculation.deliveryFee ?? 0) > 0 ? (
                   <>
                     {gstCalculation.deliveryIGST > 0 ? (
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">IGST on delivery</span>
+                      <div className="flex justify-between text-xs text-muted-foreground ml-5">
+                        <span>+ IGST on delivery</span>
                         <span>₹{gstCalculation.deliveryIGST.toFixed(2)}</span>
                       </div>
                     ) : (
                       <>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">CGST on delivery</span>
+                        <div className="flex justify-between text-xs text-muted-foreground ml-5">
+                          <span>+ CGST on delivery</span>
                           <span>₹{gstCalculation.deliveryCGST.toFixed(2)}</span>
                         </div>
-                        <div className="flex justify-between text-sm">
-                          <span className="text-muted-foreground">SGST on delivery</span>
+                        <div className="flex justify-between text-xs text-muted-foreground ml-5">
+                          <span>+ SGST on delivery</span>
                           <span>₹{gstCalculation.deliverySGST.toFixed(2)}</span>
                         </div>
                       </>
                     )}
                   </>
                 ) : null}
-                */}
 
                 {gstCalculation && gstSettings?.gstApplicable ? (
-                  <div className="flex justify-between text-green-700 font-medium">
+                  <div className="flex justify-between text-green-700 font-medium pt-1">
                     <span>Total GST</span>
                     <span>₹{gstCalculation.totalGST.toFixed(2)}</span>
                   </div>
                 ) : null}
 
-                <div className="flex justify-between font-semibold border-t border-border pt-2">
+                <div className="flex justify-between font-bold text-base border-t border-border pt-3">
                   <span>You pay</span>
-                  <span>₹{orderGrandTotal.toFixed(2)}</span>
+                  <span className="text-primary">₹{orderGrandTotal.toFixed(2)}</span>
                 </div>
 
                 {/* Platform Fee - HIDDEN from user view */}
@@ -805,9 +829,28 @@ export default function CheckoutPage() {
                 </div>
               )}
 
-              <Button onClick={() => handlePayment()} disabled={isLoading} className="w-full mt-6 gradient-primary text-primary-foreground" size="lg">
+              {deliveryFeeRes && deliveryFeeRes.serviceable === false && (
+                <div className="mt-4 p-3 rounded-xl bg-red-50 dark:bg-red-950/30 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-400 text-sm flex items-start gap-2">
+                  <AlertTriangle size={18} className="shrink-0 text-red-500 mt-0.5" />
+                  <div>
+                    <p className="font-semibold">🚫 Order Not Serviceable</p>
+                    <p className="text-xs mt-0.5">
+                      Your location is <strong>{deliveryFeeRes.distanceKm} km</strong> away. We deliver up to <strong>{platformConfig?.maxServiceableKm || 12} km</strong>.
+                    </p>
+                  </div>
+                </div>
+              )}
+
+              <Button
+                onClick={() => handlePayment()}
+                disabled={isLoading || deliveryFeeRes?.serviceable === false}
+                className="w-full mt-6 gradient-primary text-primary-foreground"
+                size="lg"
+              >
                 {isLoading ? (
                   <><Loader2 size={16} className="mr-2 animate-spin" /> Processing...</>
+                ) : deliveryFeeRes?.serviceable === false ? (
+                  <>🚫 Not Serviceable (&gt;{platformConfig?.maxServiceableKm || 12}km)</>
                 ) : paymentMethod === "subscription" ? (
                   <><Crown size={16} className="mr-2" /> Pay ₹{potentialSubUsed.toFixed(0)} from My Plan</>
                 ) : paymentMethod === "wallet" ? (

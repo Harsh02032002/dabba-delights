@@ -85,7 +85,7 @@ export default function FoodItemsManagement() {
 
   const fetchCategories = async () => {
     try {
-      const res = await apiRequest("/categories");
+      const res = await apiRequest("/admin/categories");
       setCategories(res.categories || []);
     } catch (error: any) {
       console.error("Failed to fetch categories:", error);
@@ -94,7 +94,7 @@ export default function FoodItemsManagement() {
 
   const fetchSellers = async () => {
     try {
-      const res = await apiRequest("/sellers");
+      const res = await apiRequest("/admin/sellers");
       setSellers(res.sellers || []);
     } catch (error: any) {
       console.error("Failed to fetch sellers:", error);

@@ -26,7 +26,7 @@ interface Category {
   name: string;
   description?: string;
   image?: string;
-  is_active: boolean;
+  isActive: boolean;
   createdAt: string;
 }
 
@@ -39,7 +39,7 @@ export default function CategoryManagement() {
     name: "",
     description: "",
     image: "",
-    is_active: true,
+    isActive: true,
   });
   const { toast } = useToast();
 
@@ -50,7 +50,7 @@ export default function CategoryManagement() {
   const fetchCategories = async () => {
     try {
       setLoading(true);
-      const res = await apiRequest("/categories");
+      const res = await apiRequest("/admin/categories");
       setCategories(res.categories || []);
     } catch (error: any) {
       toast({
@@ -66,13 +66,13 @@ export default function CategoryManagement() {
   const handleSubmit = async () => {
     try {
       if (editingCategory) {
-        await apiRequest(`/categories/${editingCategory._id}`, {
+        await apiRequest(`/admin/categories/${editingCategory._id}`, {
           method: "PUT",
           body: JSON.stringify(formData),
         });
         toast({ title: "Success", description: "Category updated successfully" });
       } else {
-        await apiRequest("/categories", {
+        await apiRequest("/admin/categories", {
           method: "POST",
           body: JSON.stringify(formData),
         });
@@ -80,7 +80,7 @@ export default function CategoryManagement() {
       }
       setIsDialogOpen(false);
       setEditingCategory(null);
-      setFormData({ name: "", description: "", image: "", is_active: true });
+      setFormData({ name: "", description: "", image: "", isActive: true });
       fetchCategories();
     } catch (error: any) {
       toast({
@@ -94,7 +94,7 @@ export default function CategoryManagement() {
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure you want to delete this category?")) return;
     try {
-      await apiRequest(`/categories/${id}`, { method: "DELETE" });
+      await apiRequest(`/admin/categories/${id}`, { method: "DELETE" });
       toast({ title: "Success", description: "Category deleted successfully" });
       fetchCategories();
     } catch (error: any) {
@@ -112,14 +112,14 @@ export default function CategoryManagement() {
       name: category.name,
       description: category.description || "",
       image: category.image || "",
-      is_active: category.is_active,
+      isActive: category.isActive,
     });
     setIsDialogOpen(true);
   };
 
   const openCreateDialog = () => {
     setEditingCategory(null);
-    setFormData({ name: "", description: "", image: "", is_active: true });
+    setFormData({ name: "", description: "", image: "", isActive: true });
     setIsDialogOpen(true);
   };
 
@@ -156,8 +156,8 @@ export default function CategoryManagement() {
               <TableCell className="font-medium">{category.name}</TableCell>
               <TableCell>{category.description || "-"}</TableCell>
               <TableCell>
-                <span className={`px-2 py-1 rounded-full text-xs ${category.is_active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
-                  {category.is_active ? "Active" : "Inactive"}
+                <span className={`px-2 py-1 rounded-full text-xs ${category.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}>
+                  {category.isActive ? "Active" : "Inactive"}
                 </span>
               </TableCell>
               <TableCell>
@@ -208,8 +208,8 @@ export default function CategoryManagement() {
             <div className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={formData.is_active}
-                onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                checked={formData.isActive}
+                onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })}
               />
               <Label>Active</Label>
             </div>

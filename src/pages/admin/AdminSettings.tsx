@@ -21,10 +21,210 @@ import {
   Plus,
   ShieldCheck,
   ReceiptText,
+  Truck,
+  AlertTriangle,
 } from "lucide-react";
 import { useState, useEffect, useMemo } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { authAPI } from "@/lib/api";
+
+// ── Delivery Slabs Type ──────────────────────────────────────────────────────
+interface DeliverySlab {
+  upToKm:      number;
+  customerFee: number;
+  riderPayout: number;
+}
+
+// ── DeliverySlabsEditor Component ────────────────────────────────────────────
+function DeliverySlabsEditor({
+  slabs,
+  onChange,
+  maxKm,
+  onMaxKmChange,
+  maxCap,
+  onMaxCapChange,
+}: {
+  slabs: DeliverySlab[];
+  onChange: (slabs: DeliverySlab[]) => void;
+  maxKm: number;
+  onMaxKmChange: (v: number) => void;
+  maxCap: number;
+  onMaxCapChange: (v: number) => void;
+}) {
+  const update = (i: number, field: keyof DeliverySlab, val: number) => {
+    const next = slabs.map((s, idx) => (idx === i ? { ...s, [field]: val } : s));
+    onChange(next);
+  };
+
+  const remove = (i: number) => onChange(slabs.filter((_, idx) => idx !== i));
+
+  const add = () =>
+    onChange([
+      ...slabs,
+      { upToKm: slabs.length > 0 ? slabs[slabs.length - 1].upToKm + 2 : 4, customerFee: 30, riderPayout: 30 },
+    ]);
+
+  return (
+    <div className="space-y-4">
+      {/* Slab table header */}
+      <div className="grid grid-cols-[1fr_1fr_1fr_36px] gap-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider px-1">
+        <span>Up to (km)</span>
+        <span>Customer Fee (₹)</span>
+        <span>Rider Payout (₹)</span>
+        <span />
+      </div>
+
+      {slabs.map((slab, i) => {
+        const prevKm = i === 0 ? 0 : slabs[i - 1].upToKm;
+        return (
+          <div
+            key={i}
+            className="grid grid-cols-[1fr_1fr_1fr_36px] gap-2 items-center p-3 bg-muted/30 rounded-xl border border-border"
+          >
+            {/* km boundary */}
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">
+                {prevKm === 0 ? "0" : `> ${prevKm}`} – {slab.upToKm} km
+              </span>
+              <Input
+                type="number"
+                min={prevKm + 0.1}
+                step="0.5"
+                value={slab.upToKm}
+                onChange={(e) => update(i, "upToKm", Number(e.target.value))}
+                className="h-8 text-sm"
+              />
+            </div>
+
+            {/* customer fee */}
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Charged to customer</span>
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₹</span>
+                <Input
+                  type="number"
+                  min={0}
+                  value={slab.customerFee}
+                  onChange={(e) => update(i, "customerFee", Number(e.target.value))}
+                  className="h-8 pl-6 text-sm"
+                />
+              </div>
+            </div>
+
+            {/* rider payout */}
+            <div className="space-y-1">
+              <span className="text-xs text-muted-foreground">Rider earns</span>
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">₹</span>
+                <Input
+                  type="number"
+                  min={0}
+                  value={slab.riderPayout}
+                  onChange={(e) => update(i, "riderPayout", Number(e.target.value))}
+                  className="h-8 pl-6 text-sm"
+                />
+              </div>
+            </div>
+
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="text-destructive hover:bg-destructive/10 h-8 w-8 self-end mb-0.5"
+              onClick={() => remove(i)}
+              title="Remove slab"
+            >
+              <Trash2 size={14} />
+            </Button>
+          </div>
+        );
+      })}
+
+      {/* Limits & Safety Caps */}
+      <div className="grid sm:grid-cols-2 gap-3">
+        <div className="flex items-center gap-3 p-3 rounded-xl border border-orange-200 bg-orange-50 dark:bg-orange-950/20 dark:border-orange-800">
+          <AlertTriangle size={16} className="text-orange-500 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-orange-700 dark:text-orange-400">
+              Max Serviceable Distance
+            </p>
+            <p className="text-xs text-muted-foreground">Orders &gt; this km will be Not Serviceable</p>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Input
+              type="number"
+              min={1}
+              value={maxKm}
+              onChange={(e) => onMaxKmChange(Number(e.target.value))}
+              className="h-8 w-20 text-sm text-center"
+            />
+            <span className="text-sm text-muted-foreground">km</span>
+          </div>
+        </div>
+
+        <div className="flex items-center gap-3 p-3 rounded-xl border border-blue-200 bg-blue-50 dark:bg-blue-950/20 dark:border-blue-800">
+          <ShieldCheck size={16} className="text-blue-500 shrink-0" />
+          <div className="flex-1">
+            <p className="text-sm font-medium text-blue-700 dark:text-blue-400">
+              Max Charge Cap Safety
+            </p>
+            <p className="text-xs text-muted-foreground">Customer fee will never exceed this cap</p>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="text-sm text-muted-foreground">₹</span>
+            <Input
+              type="number"
+              min={1}
+              value={maxCap}
+              onChange={(e) => onMaxCapChange(Number(e.target.value))}
+              className="h-8 w-20 text-sm text-center"
+            />
+          </div>
+        </div>
+      </div>
+
+      <Button
+        type="button"
+        variant="outline"
+        size="sm"
+        className="gap-2"
+        onClick={add}
+      >
+        <Plus size={14} /> Add Slab
+      </Button>
+
+      {/* Preview table */}
+      {slabs.length > 0 && (
+        <div className="mt-2 rounded-xl overflow-hidden border border-border">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-muted/60">
+                <th className="text-left p-2 font-medium text-muted-foreground">Distance</th>
+                <th className="text-right p-2 font-medium text-muted-foreground">Customer Pays</th>
+                <th className="text-right p-2 font-medium text-muted-foreground">Rider Earns</th>
+              </tr>
+            </thead>
+            <tbody>
+              {slabs.map((s, i) => (
+                <tr key={i} className={i % 2 === 0 ? "bg-background" : "bg-muted/20"}>
+                  <td className="p-2 text-muted-foreground">
+                    {i === 0 ? "0" : `> ${slabs[i - 1].upToKm}`} – {s.upToKm} km
+                  </td>
+                  <td className="p-2 text-right font-semibold text-primary">₹{s.customerFee}</td>
+                  <td className="p-2 text-right font-semibold text-green-600">₹{s.riderPayout}</td>
+                </tr>
+              ))}
+              <tr className="bg-red-50 dark:bg-red-950/20">
+                <td className="p-2 text-muted-foreground">&gt; {maxKm} km</td>
+                <td className="p-2 text-right text-red-500 font-medium" colSpan={2}>🚫 Not Serviceable</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // ── Sections Editor (for static pages) ───────────────────────────────────────
 type Section = { title: string; content: string };
@@ -276,71 +476,30 @@ export default function AdminSettings() {
           </CardContent>
         </Card>
 
-        {/* Pricing & Fees — matches PlatformConfig in DB */}
+        {/* ── Delivery Slabs (Distance-Based Pricing) ────────────────────── */}
         <Card>
           <CardHeader>
             <CardTitle className="font-display text-lg flex items-center gap-2">
-              <Settings size={20} /> Delivery & platform fee
+              <Truck size={20} className="text-orange-500" /> Delivery Pricing Slabs
             </CardTitle>
             <p className="text-sm text-muted-foreground">
-              These values are stored in the database. Leave a field empty and
-              save to skip updating it. Customer checkout uses{" "}
-              <strong>delivery fee</strong> from here; platform fee is for
-              internal records (not added to customer total — commission is set
-              under GST settings).
+              Set customer charge and rider payout for each distance range.
+              Changes take effect immediately for new orders — no restart needed.
             </p>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label>Delivery charge (₹)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={config.deliveryFee ?? ""}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      deliveryFee:
-                        e.target.value === "" ? "" : Number(e.target.value),
-                    })
-                  }
-                  placeholder="e.g. 40"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Platform fee (₹) — internal / settlement</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={config.platformFee ?? ""}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      platformFee:
-                        e.target.value === "" ? "" : Number(e.target.value),
-                    })
-                  }
-                  placeholder="e.g. 5"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Free delivery above (₹)</Label>
-                <Input
-                  type="number"
-                  min={0}
-                  value={config.freeDeliveryThreshold ?? ""}
-                  onChange={(e) =>
-                    setConfig({
-                      ...config,
-                      freeDeliveryThreshold:
-                        e.target.value === "" ? "" : Number(e.target.value),
-                    })
-                  }
-                  placeholder="e.g. 500"
-                />
-              </div>
-            </div>
+          <CardContent>
+            <DeliverySlabsEditor
+              slabs={Array.isArray(config.deliverySlabs) ? config.deliverySlabs : [
+                { upToKm: 4,  customerFee: 30, riderPayout: 30 },
+                { upToKm: 6,  customerFee: 45, riderPayout: 40 },
+                { upToKm: 12, customerFee: 60, riderPayout: 50 },
+              ]}
+              onChange={(slabs) => setConfig({ ...config, deliverySlabs: slabs })}
+              maxKm={config.maxServiceableKm ?? 12}
+              onMaxKmChange={(v) => setConfig({ ...config, maxServiceableKm: v })}
+              maxCap={config.maxDeliveryCap ?? 90}
+              onMaxCapChange={(v) => setConfig({ ...config, maxDeliveryCap: v })}
+            />
           </CardContent>
         </Card>
 
