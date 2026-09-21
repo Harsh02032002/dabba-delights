@@ -201,7 +201,18 @@ function toQuery(params?: Record<string, unknown>) {
 }
 
 // ─── PRODUCT API — matches product.routes.js exactly ───────────────────────
+export { apiRequest, apiUpload };
 export const productAPI = {
+  // ── Helper: pick correct token for /products routes ──────────────────────
+  _token: (): string | null => {
+    if (typeof window === 'undefined') return localStorage.getItem('sellerToken');
+    const path = window.location.pathname;
+    if (path.startsWith('/admin'))  return localStorage.getItem('adminToken');
+    if (path.startsWith('/seller')) return localStorage.getItem('sellerToken');
+    // Fallback: try both
+    return localStorage.getItem('sellerToken') || localStorage.getItem('adminToken');
+  },
+
   // A — BASIC CRUD
   // GET /products  (query: search, category, isVeg, isAvailable, page, limit, sort)
   getProducts: (
@@ -210,86 +221,92 @@ export const productAPI = {
       approvedOnly?: boolean;
     },
   ) => apiRequest(`/products${toQuery(params)}`),
-  // POST /products  (multipart — handleImageUpload middleware)
-  createProduct: (formData: FormData) => apiUpload("/products", formData),
-  // PUT /products/:id  (multipart — handleImageUpload middleware)
+  // POST /products  (multipart — s3Upload middleware)
+  createProduct: (formData: FormData) =>
+    apiUpload('/products', formData, 'POST', 30000, productAPI._token()),
+  // PUT /products/:id  (multipart — s3Upload middleware)
   updateProduct: (id: string, formData: FormData) =>
-    apiUpload(`/products/${id}`, formData, "PUT"),
+    apiUpload(`/products/${id}`, formData, 'PUT', 30000, productAPI._token()),
 
   // B — STATUS / AVAILABILITY
   // PATCH /products/:id/toggle
   toggleAvailability: (id: string) =>
-    apiRequest(`/products/${id}/toggle`, { method: "PATCH" }),
+    apiRequest(`/products/${id}/toggle`, { method: 'PATCH', authToken: productAPI._token() }),
   // PATCH /products/:id/out-of-stock
   markOutOfStock: (id: string) =>
-    apiRequest(`/products/${id}/out-of-stock`, { method: "PATCH" }),
+    apiRequest(`/products/${id}/out-of-stock`, { method: 'PATCH', authToken: productAPI._token() }),
   // PATCH /products/:id/in-stock
   markInStock: (id: string) =>
-    apiRequest(`/products/${id}/in-stock`, { method: "PATCH" }),
+    apiRequest(`/products/${id}/in-stock`, { method: 'PATCH', authToken: productAPI._token() }),
 
   // C — QUICK EDIT
   // PATCH /products/:id/price
   updatePrice: (id: string, price: number) =>
     apiRequest(`/products/${id}/price`, {
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify({ price }),
+      authToken: productAPI._token(),
     }),
   // PATCH /products/:id/category
   updateCategory: (id: string, category: string) =>
     apiRequest(`/products/${id}/category`, {
-      method: "PATCH",
+      method: 'PATCH',
       body: JSON.stringify({ category }),
+      authToken: productAPI._token(),
     }),
   // PATCH /products/:id/veg-toggle
   toggleVeg: (id: string) =>
-    apiRequest(`/products/${id}/veg-toggle`, { method: "PATCH" }),
+    apiRequest(`/products/${id}/veg-toggle`, { method: 'PATCH', authToken: productAPI._token() }),
 
   // D — BULK JSON
   // POST /products/bulk/create
   bulkCreate: (items: any[]) =>
-    apiRequest("/products/bulk/create", {
-      method: "POST",
+    apiRequest('/products/bulk/create', {
+      method: 'POST',
       body: JSON.stringify(items),
+      authToken: productAPI._token(),
     }),
   // PUT /products/bulk/update
   bulkUpdate: (items: any[]) =>
-    apiRequest("/products/bulk/update", {
-      method: "PUT",
+    apiRequest('/products/bulk/update', {
+      method: 'PUT',
       body: JSON.stringify(items),
+      authToken: productAPI._token(),
     }),
 
   // E — CSV BULK
   // POST /products/bulk/csv  (multipart, field: "file")
-  bulkCSV: (formData: FormData) => apiUpload("/products/bulk/csv", formData),
+  bulkCSV: (formData: FormData) =>
+    apiUpload('/products/bulk/csv', formData, 'POST', 30000, productAPI._token()),
 
   // F — DUPLICATE
   // POST /products/:id/duplicate
   duplicateProduct: (id: string) =>
-    apiRequest(`/products/${id}/duplicate`, { method: "POST" }),
+    apiRequest(`/products/${id}/duplicate`, { method: 'POST', authToken: productAPI._token() }),
 
   // I — ARCHIVE / DELETE / RECYCLE BIN
   // PATCH /products/:id/archive
   archiveProduct: (id: string) =>
-    apiRequest(`/products/${id}/archive`, { method: "PATCH" }),
+    apiRequest(`/products/${id}/archive`, { method: 'PATCH', authToken: productAPI._token() }),
   // PATCH /products/:id/restore
   restoreProduct: (id: string) =>
-    apiRequest(`/products/${id}/restore`, { method: "PATCH" }),
+    apiRequest(`/products/${id}/restore`, { method: 'PATCH', authToken: productAPI._token() }),
   // GET /products/recycle-bin
-  getRecycleBin: () => apiRequest("/products/recycle-bin"),
+  getRecycleBin: () => apiRequest('/products/recycle-bin', { authToken: productAPI._token() }),
   // DELETE /products/recycle-bin/empty
   emptyRecycleBin: () =>
-    apiRequest("/products/recycle-bin/empty", { method: "DELETE" }),
+    apiRequest('/products/recycle-bin/empty', { method: 'DELETE', authToken: productAPI._token() }),
   // DELETE /products/:id
   hardDeleteProduct: (id: string) =>
-    apiRequest(`/products/${id}`, { method: "DELETE" }),
+    apiRequest(`/products/${id}`, { method: 'DELETE', authToken: productAPI._token() }),
 
   // J — IMAGE
-  // PATCH /products/:id/image  (multipart — handleImageUpload)
+  // PATCH /products/:id/image  (multipart — s3Upload)
   replaceImage: (id: string, formData: FormData) =>
-    apiUpload(`/products/${id}/image`, formData, "PATCH"),
+    apiUpload(`/products/${id}/image`, formData, 'PATCH', 30000, productAPI._token()),
   // DELETE /products/:id/image
   removeImage: (id: string) =>
-    apiRequest(`/products/${id}/image`, { method: "DELETE" }),
+    apiRequest(`/products/${id}/image`, { method: 'DELETE', authToken: productAPI._token() }),
 
   // K — METRICS
   // GET /products/metrics
