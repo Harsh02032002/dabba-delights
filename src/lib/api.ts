@@ -201,7 +201,6 @@ function toQuery(params?: Record<string, unknown>) {
 }
 
 // ─── PRODUCT API — matches product.routes.js exactly ───────────────────────
-export { apiRequest, apiUpload };
 export const productAPI = {
   // ── Helper: pick correct token for /products routes ──────────────────────
   _token: (): string | null => {
