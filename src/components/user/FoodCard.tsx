@@ -70,7 +70,7 @@ export function FoodCard({ item, seller, className }: FoodCardProps) {
           </button>
           <VegBadge isVeg={item.isVeg} />
         </div>
-        {item.discountPrice && (
+        {item.discountPrice && !item.hasSizes && (
           <div className="absolute bottom-3 left-3 bg-success text-success-foreground px-2 py-1 rounded-lg text-xs font-bold">
             {Math.round(((item.sellingPrice - item.discountPrice) / item.sellingPrice) * 100)}% OFF
           </div>
@@ -95,17 +95,33 @@ export function FoodCard({ item, seller, className }: FoodCardProps) {
             currentRating={item.rating || 0} 
             size="sm" 
           />
-
         </div>
         
         <div className="flex items-center justify-between">
           <div className="flex items-baseline gap-2">
-            <span className="text-lg font-bold text-foreground">₹{item.discountPrice || item.sellingPrice}</span>
-            {item.discountPrice && <span className="text-sm text-muted-foreground line-through">₹{item.sellingPrice}</span>}
+            {!item.hasSizes ? (
+              <>
+                <span className="text-lg font-bold text-foreground">₹{item.discountPrice || item.sellingPrice}</span>
+                {item.discountPrice && <span className="text-sm text-muted-foreground line-through">₹{item.sellingPrice}</span>}
+              </>
+            ) : (
+              <span className="text-sm font-bold text-foreground">₹{item.halfPlatePrice} - ₹{item.fullPlatePrice}</span>
+            )}
           </div>
-          <Button size="sm" variant="gradient" onClick={handleAddToCart} className="h-9 px-4">
-            <Plus size={16} /> Add
-          </Button>
+          {!item.hasSizes ? (
+            <Button size="sm" variant="gradient" onClick={handleAddToCart} className="h-9 px-4">
+              <Plus size={16} /> Add
+            </Button>
+          ) : (
+            <div className="flex gap-1" onClick={e => e.stopPropagation()}>
+              <Button size="sm" variant="outline" className="h-8 px-2 text-xs" onClick={() => addToCart(item, seller._id, seller.businessName, seller.type, 'half')}>
+                Half (₹{item.halfPlatePrice})
+              </Button>
+              <Button size="sm" variant="gradient" className="h-8 px-2 text-xs" onClick={() => addToCart(item, seller._id, seller.businessName, seller.type, 'full')}>
+                Full (₹{item.fullPlatePrice})
+              </Button>
+            </div>
+          )}
         </div>
       </div>
     </div>

@@ -139,8 +139,8 @@ export default function SellerOrders() {
                     <div className="flex gap-2">
                       {order.status === 'pending' && (
                         <>
-                          <Button variant="soft-success" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'confirmed' })} className="gap-1">
-                            <CheckCircle2 size={14} /> Accept Order
+                          <Button variant="soft-success" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'confirmed' })} className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white font-medium shadow-sm">
+                            <CheckCircle2 size={14} /> Confirm & Accept
                           </Button>
                           <Button variant="soft-destructive" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'cancelled' })} className="gap-1">
                             <AlertCircle size={14} /> Reject Order
@@ -148,10 +148,24 @@ export default function SellerOrders() {
                         </>
                       )}
                       {order.status === 'confirmed' && (
-                        <Button variant="gradient" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'preparing' })}>Start Preparing</Button>
+                        <Button variant="gradient" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'preparing' })} className="gap-1">
+                          <Clock size={14} /> Start Preparing
+                        </Button>
                       )}
                       {order.status === 'preparing' && (
-                        <Button variant="gradient" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'ready' })}>Mark Ready</Button>
+                        <Button variant="gradient" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'ready' })} className="gap-1">
+                          <Package size={14} /> Mark Ready
+                        </Button>
+                      )}
+                      {order.status === 'ready' && (
+                        <Button variant="gradient" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'out_for_delivery' })} className="gap-1 bg-amber-600 hover:bg-amber-700 text-white">
+                          <Clock size={14} /> Out For Delivery
+                        </Button>
+                      )}
+                      {order.status === 'out_for_delivery' && (
+                        <Button variant="soft-success" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'delivered' })} className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
+                          <CheckCircle2 size={14} /> Mark Delivered
+                        </Button>
                       )}
                       {order.status === 'delivered' && (
                         <>

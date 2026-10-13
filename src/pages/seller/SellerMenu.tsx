@@ -46,6 +46,8 @@ export default function SellerMenu() {
   const editImageRef = useRef<HTMLInputElement>(null);
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [editSelectedImage, setEditSelectedImage] = useState<File | null>(null);
+  const [hasSizes, setHasSizes] = useState(false);
+  const [editHasSizes, setEditHasSizes] = useState(false);
 
   const handleImageDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -205,7 +207,15 @@ export default function SellerMenu() {
     const fd = new FormData();
     fd.append('name', (form.elements.namedItem('name') as HTMLInputElement).value);
     fd.append('description', (form.elements.namedItem('description') as HTMLTextAreaElement).value);
-    fd.append('sellingPrice', (form.elements.namedItem('sellingPrice') as HTMLInputElement).value);
+    const hasSizes = (form.elements.namedItem('hasSizes') as HTMLInputElement)?.checked || false;
+    fd.append('hasSizes', String(hasSizes));
+    if (hasSizes) {
+      fd.append('halfPlatePrice', (form.elements.namedItem('halfPlatePrice') as HTMLInputElement)?.value || '0');
+      fd.append('fullPlatePrice', (form.elements.namedItem('fullPlatePrice') as HTMLInputElement)?.value || '0');
+      fd.append('sellingPrice', (form.elements.namedItem('halfPlatePrice') as HTMLInputElement)?.value || '0'); // default fallback
+    } else {
+      fd.append('sellingPrice', (form.elements.namedItem('sellingPrice') as HTMLInputElement).value);
+    }
     fd.append('costPrice', (form.elements.namedItem('costPrice') as HTMLInputElement).value || '0');
     fd.append('category', (form.elements.namedItem('category') as HTMLInputElement)?.value || 'Main Course');
     fd.append('preparationTime', (form.elements.namedItem('preparationTime') as HTMLInputElement).value);
@@ -227,7 +237,15 @@ export default function SellerMenu() {
     const fd = new FormData();
     fd.append('name', (form.elements.namedItem('editName') as HTMLInputElement).value);
     fd.append('description', (form.elements.namedItem('editDescription') as HTMLTextAreaElement).value);
-    fd.append('sellingPrice', (form.elements.namedItem('editSellingPrice') as HTMLInputElement).value);
+    const hasSizes = (form.elements.namedItem('editHasSizes') as HTMLInputElement)?.checked || false;
+    fd.append('hasSizes', String(hasSizes));
+    if (hasSizes) {
+      fd.append('halfPlatePrice', (form.elements.namedItem('editHalfPlatePrice') as HTMLInputElement)?.value || '0');
+      fd.append('fullPlatePrice', (form.elements.namedItem('editFullPlatePrice') as HTMLInputElement)?.value || '0');
+      fd.append('sellingPrice', (form.elements.namedItem('editHalfPlatePrice') as HTMLInputElement)?.value || '0'); // default fallback
+    } else {
+      fd.append('sellingPrice', (form.elements.namedItem('editSellingPrice') as HTMLInputElement).value);
+    }
     fd.append('costPrice', (form.elements.namedItem('editCostPrice') as HTMLInputElement).value || '0');
     fd.append('category', (form.elements.namedItem('editCategory') as HTMLInputElement)?.value || editItem.category);
     fd.append('preparationTime', (form.elements.namedItem('editPrepTime') as HTMLInputElement).value);
@@ -379,7 +397,7 @@ export default function SellerMenu() {
                       {item.stock !== undefined && <> · <span>Stock: {item.stock}</span></>}
                     </div>
                     <div className="flex flex-wrap gap-1">
-                      <Button variant="ghost" size="icon-sm" onClick={() => setEditItem(item)} title="Edit"><Edit size={14} /></Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => { setEditItem(item); setEditHasSizes(!!item.hasSizes); }} title="Edit"><Edit size={14} /></Button>
                       <Button variant="ghost" size="icon-sm" onClick={() => toggleAvailMutation.mutate(item._id)} title="Toggle availability"><ToggleLeft size={14} /></Button>
                       <Button variant="ghost" size="icon-sm" onClick={() => toggleVegMutation.mutate(item._id)} title="Toggle veg"><Layers size={14} /></Button>
                       <Button variant="ghost" size="icon-sm" onClick={() => duplicateMutation.mutate(item._id)} title="Duplicate"><Copy size={14} /></Button>
@@ -425,8 +443,24 @@ export default function SellerMenu() {
                   </div>
                 </div>
                 <div className="space-y-2"><Label>Description</Label><Textarea name="description" placeholder="Describe your dish..." rows={3} /></div>
+                <div className="flex items-center gap-3 mb-2">
+                  <Switch name="hasSizes" id="hasSizes" checked={hasSizes} onCheckedChange={setHasSizes} />
+                  <Label htmlFor="hasSizes">Item has sizes (Half/Full Plate)</Label>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <div className="space-y-2"><Label>Selling Price (₹) *</Label><Input name="sellingPrice" type="number" min="1" placeholder="250" required /></div>
+                  {!hasSizes ? (
+                    <div className="space-y-2"><Label>Selling Price (₹) *</Label><Input name="sellingPrice" type="number" min="1" placeholder="250" required={!hasSizes} /></div>
+                  ) : (
+                    <>
+                      <div className="space-y-2"><Label>Half Plate Price (₹) *</Label><Input name="halfPlatePrice" type="number" min="1" placeholder="120" required={hasSizes} onChange={(e) => {
+                        const fullPlateInput = e.target.form?.elements.namedItem('fullPlatePrice') as HTMLInputElement;
+                        if (fullPlateInput && (!fullPlateInput.value || fullPlateInput.value === String(Number(e.target.defaultValue || 0) * 2))) {
+                           fullPlateInput.value = String(Number(e.target.value) * 2);
+                        }
+                      }} /></div>
+                      <div className="space-y-2"><Label>Full Plate Price (₹) *</Label><Input name="fullPlatePrice" type="number" min="1" placeholder="240" required={hasSizes} /></div>
+                    </>
+                  )}
                   <div className="space-y-2"><Label>Cost Price (₹)</Label><Input name="costPrice" type="number" min="0" placeholder="150" defaultValue="0" /></div>
                   <div className="space-y-2"><Label>Prep Time (mins) *</Label><Input name="preparationTime" type="number" placeholder="25" required /></div>
                   <div className="space-y-2"><Label>Stock</Label><Input name="stock" type="number" placeholder="100" defaultValue="100" /></div>
@@ -617,12 +651,34 @@ export default function SellerMenu() {
                 </div>
               </div>
               <div className="space-y-2"><Label>Description</Label><Textarea name="editDescription" defaultValue={editItem.description} rows={3} /></div>
+              <div className="flex items-center gap-3 mb-2 mt-4">
+                <Switch name="editHasSizes" id="editHasSizes" checked={editHasSizes} onCheckedChange={setEditHasSizes} />
+                <Label htmlFor="editHasSizes">Item has sizes (Half/Full Plate)</Label>
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2 p-3 bg-green-50 rounded-lg border border-green-200">
-                  <Label className="text-green-700 font-medium">Selling Price (₹)</Label>
-                  <Input name="editSellingPrice" type="number" defaultValue={editItem.sellingPrice} required className="bg-white" />
-                  <p className="text-xs text-green-600">Price customer pays</p>
-                </div>
+                {!editHasSizes ? (
+                  <div className="space-y-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                    <Label className="text-green-700 font-medium">Selling Price (₹)</Label>
+                    <Input name="editSellingPrice" type="number" defaultValue={editItem.sellingPrice} required={!editHasSizes} className="bg-white" />
+                    <p className="text-xs text-green-600">Price customer pays</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                      <Label className="text-green-700 font-medium">Half Plate Price (₹)</Label>
+                      <Input name="editHalfPlatePrice" type="number" defaultValue={editItem.halfPlatePrice} required={editHasSizes} className="bg-white" onChange={(e) => {
+                        const fullPlateInput = e.target.form?.elements.namedItem('editFullPlatePrice') as HTMLInputElement;
+                        if (fullPlateInput && (!fullPlateInput.value || fullPlateInput.value === String(Number(e.target.defaultValue || 0) * 2))) {
+                           fullPlateInput.value = String(Number(e.target.value) * 2);
+                        }
+                      }} />
+                    </div>
+                    <div className="space-y-2 p-3 bg-green-50 rounded-lg border border-green-200">
+                      <Label className="text-green-700 font-medium">Full Plate Price (₹)</Label>
+                      <Input name="editFullPlatePrice" type="number" defaultValue={editItem.fullPlatePrice} required={editHasSizes} className="bg-white" />
+                    </div>
+                  </>
+                )}
                 <div className="space-y-2 p-3 bg-orange-50 rounded-lg border border-orange-200">
                   <Label className="text-orange-700 font-medium">Cost Price (₹)</Label>
                   <Input name="editCostPrice" type="number" defaultValue={editItem.costPrice || 0} className="bg-white" />

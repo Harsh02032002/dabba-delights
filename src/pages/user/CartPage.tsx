@@ -84,9 +84,14 @@ export default function CartPage() {
         <div className="grid lg:grid-cols-3 gap-8">
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
-            {safeItems.map((item: any) => (
+            {safeItems.map((item: any) => {
+              let price = item?.menuItem?.discountPrice || item?.menuItem?.sellingPrice || 0;
+              if (item?.selectedSize === 'half' && item?.menuItem?.halfPlatePrice) price = item.menuItem.halfPlatePrice;
+              if (item?.selectedSize === 'full' && item?.menuItem?.fullPlatePrice) price = item.menuItem.fullPlatePrice;
+              
+              return (
               <div
-                key={item?.menuItem?._id}
+                key={`${item?.menuItem?._id}-${item?.selectedSize || 'none'}`}
                 className="bg-card rounded-2xl p-4 shadow-card flex gap-4"
               >
                 <img
@@ -102,6 +107,7 @@ export default function CartPage() {
                         <VegBadge isVeg={item?.menuItem?.isVeg} />
                         <h3 className="font-semibold text-foreground">
                           {item?.menuItem?.name}
+                          {item?.selectedSize && <span className="text-sm font-normal text-muted-foreground ml-2">({item.selectedSize === 'half' ? 'Half' : 'Full'} Plate)</span>}
                         </h3>
                       </div>
 
@@ -112,7 +118,7 @@ export default function CartPage() {
 
                     <button
                       onClick={() =>
-                        removeFromCart(item?.menuItem?._id)
+                        removeFromCart(item?.menuItem?._id, item?.selectedSize)
                       }
                       className="text-muted-foreground hover:text-destructive transition-colors"
                     >
@@ -128,7 +134,8 @@ export default function CartPage() {
                         onClick={() =>
                           updateQuantity(
                             item?.menuItem?._id,
-                            item.quantity - 1
+                            item.quantity - 1,
+                            item?.selectedSize
                           )
                         }
                       >
@@ -145,7 +152,8 @@ export default function CartPage() {
                         onClick={() =>
                           updateQuantity(
                             item?.menuItem?._id,
-                            item.quantity + 1
+                            item.quantity + 1,
+                            item?.selectedSize
                           )
                         }
                       >
@@ -155,14 +163,12 @@ export default function CartPage() {
 
                     <p className="font-bold text-foreground">
                       ₹
-                      {((item?.menuItem?.discountPrice ||
-                        item?.menuItem?.sellingPrice ||
-                        0)).toFixed(0) * item.quantity}
+                      {(price).toFixed(0) * item.quantity}
                     </p>
                   </div>
                 </div>
               </div>
-            ))}
+            )})}
 
             <Button
               variant="ghost"

@@ -92,6 +92,9 @@ export interface MenuItem {
   sellingPrice: number;
   costPrice?: number;
   discountPrice?: number;
+  hasSizes?: boolean;
+  halfPlatePrice?: number;
+  fullPlatePrice?: number;
   category: string;
   image: string;
   isVeg: boolean;
@@ -158,6 +161,7 @@ export interface OrderItem {
   sellingPrice: number;
   quantity: number;
   image: string;
+  selectedSize?: 'half' | 'full';
 }
 
 // Subscription Types
@@ -190,6 +194,7 @@ export interface CartItem {
   sellerId: string;
   sellerName: string;
   sellerType: SellerType;
+  selectedSize?: 'half' | 'full';
 }
 
 export interface Cart {

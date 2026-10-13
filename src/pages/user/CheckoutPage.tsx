@@ -331,13 +331,19 @@ export default function CheckoutPage() {
     const remDays = activeSubscription != null ? Math.max(0, (Number(activeSubscription.remaining_days) || 0) - subDays) : 0;
 
     return {
-      items: cartItems.map((item: any) => ({
-        menuItemId: item.menuItem._id,
-        name: item.menuItem.name,
-        sellingPrice: item.menuItem.discountPrice || item.menuItem.sellingPrice,
-        quantity: item.quantity,
-        image: item.menuItem.image,
-      })),
+      items: cartItems.map((item: any) => {
+        let price = item.menuItem.discountPrice || item.menuItem.sellingPrice || 0;
+        if (item.selectedSize === 'half' && item.menuItem.halfPlatePrice) price = item.menuItem.halfPlatePrice;
+        if (item.selectedSize === 'full' && item.menuItem.fullPlatePrice) price = item.menuItem.fullPlatePrice;
+        return {
+          menuItemId: item.menuItem._id,
+          name: `${item.menuItem.name}${item.selectedSize ? ` (${item.selectedSize === 'half' ? 'Half' : 'Full'} Plate)` : ''}`,
+          sellingPrice: price,
+          quantity: item.quantity,
+          image: item.menuItem.image,
+          selectedSize: item.selectedSize,
+        };
+      }),
       sellerId: cart.sellerId,
       deliveryAddress,
       paymentMethod: isHybrid ? "hybrid" : method,
@@ -644,12 +650,14 @@ export default function CheckoutPage() {
               <h2 className="text-lg font-semibold text-foreground mb-4">Order Summary</h2>
               <div className="space-y-3 text-sm">
                 {cartItems.map((item: any) => {
-                  const itemPrice = item.menuItem.discountPrice || item.menuItem.sellingPrice;
+                  let itemPrice = item.menuItem.discountPrice || item.menuItem.sellingPrice || 0;
+                  if (item.selectedSize === 'half' && item.menuItem.halfPlatePrice) itemPrice = item.menuItem.halfPlatePrice;
+                  if (item.selectedSize === 'full' && item.menuItem.fullPlatePrice) itemPrice = item.menuItem.fullPlatePrice;
                   const itemTotal = itemPrice * item.quantity;
                   return (
-                    <div key={item.menuItem._id}>
+                    <div key={`${item.menuItem._id}-${item.selectedSize || 'none'}`}>
                       <div className="flex justify-between">
-                        <span className="text-muted-foreground">{item.menuItem.name} x{item.quantity}</span>
+                        <span className="text-muted-foreground">{item.menuItem.name}{item.selectedSize ? ` (${item.selectedSize === 'half' ? 'Half' : 'Full'})` : ''} x{item.quantity}</span>
                         <span>₹{itemTotal.toFixed(0)}</span>
                       </div>
                       {gstCalculation && gstSettings?.gstApplicable && gstSettings?.foodGSTEnabled ? (

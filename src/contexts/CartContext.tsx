@@ -5,9 +5,9 @@ import { GST_RATES } from '@/lib/gst';
 
 interface CartContextType {
   cart: Cart;
-  addToCart: (item: MenuItem, sellerId: string, sellerName: string, sellerType: SellerType) => void;
-  removeFromCart: (itemId: string) => void;
-  updateQuantity: (itemId: string, quantity: number) => void;
+  addToCart: (item: MenuItem, sellerId: string, sellerName: string, sellerType: SellerType, selectedSize?: 'half' | 'full') => void;
+  removeFromCart: (itemId: string, selectedSize?: 'half' | 'full') => void;
+  updateQuantity: (itemId: string, quantity: number, selectedSize?: 'half' | 'full') => void;
   clearCart: () => void;
   getTotal: () => { subtotal: number; deliveryFee: number; platformFee: number; gst: number; total: number };
   itemCount: number;
@@ -39,7 +39,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     localStorage.setItem('cart', JSON.stringify(cart));
   }, [cart]);
 
-  const addToCart = (item: MenuItem, sellerId: string, sellerName: string, sellerType: SellerType) => {
+  const addToCart = (item: MenuItem, sellerId: string, sellerName: string, sellerType: SellerType, selectedSize?: 'half' | 'full') => {
     // Check if cart has items from different seller
     if (cart.sellerId && cart.sellerId !== sellerId && cart.items.length > 0) {
       toast({
@@ -51,13 +51,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
 
     setCart(prevCart => {
-      const existingItem = prevCart.items.find(i => i.menuItem._id === item._id);
+      const existingItem = prevCart.items.find(i => i.menuItem._id === item._id && i.selectedSize === selectedSize);
       
       if (existingItem) {
         return {
           ...prevCart,
           items: prevCart.items.map(i =>
-            i.menuItem._id === item._id
+            (i.menuItem._id === item._id && i.selectedSize === selectedSize)
               ? { ...i, quantity: i.quantity + 1 }
               : i
           ),
@@ -65,7 +65,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       }
       
       return {
-        items: [...prevCart.items, { menuItem: item, quantity: 1, sellerId, sellerName, sellerType }],
+        items: [...prevCart.items, { menuItem: item, quantity: 1, sellerId, sellerName, sellerType, selectedSize }],
         sellerId,
         sellerName,
       };
@@ -73,13 +73,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
     toast({
       title: "Added to Cart",
-      description: `${item.name} added to your cart`,
+      description: `${item.name}${selectedSize ? ` (${selectedSize === 'half' ? 'Half' : 'Full'} Plate)` : ''} added to your cart`,
     });
   };
 
-  const removeFromCart = (itemId: string) => {
+  const removeFromCart = (itemId: string, selectedSize?: 'half' | 'full') => {
     setCart(prevCart => {
-      const newItems = prevCart.items.filter(i => i.menuItem._id !== itemId);
+      const newItems = prevCart.items.filter(i => !(i.menuItem._id === itemId && i.selectedSize === selectedSize));
       return {
         items: newItems,
         sellerId: newItems.length > 0 ? prevCart.sellerId : null,
@@ -88,16 +88,16 @@ export function CartProvider({ children }: { children: ReactNode }) {
     });
   };
 
-  const updateQuantity = (itemId: string, quantity: number) => {
+  const updateQuantity = (itemId: string, quantity: number, selectedSize?: 'half' | 'full') => {
     if (quantity <= 0) {
-      removeFromCart(itemId);
+      removeFromCart(itemId, selectedSize);
       return;
     }
 
     setCart(prevCart => ({
       ...prevCart,
       items: prevCart.items.map(i =>
-        i.menuItem._id === itemId ? { ...i, quantity } : i
+        (i.menuItem._id === itemId && i.selectedSize === selectedSize) ? { ...i, quantity } : i
       ),
     }));
   };
@@ -108,7 +108,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   const getTotal = () => {
     const subtotal = cart.items.reduce(
-      (sum, item) => sum + ((item.menuItem.discountPrice || item.menuItem.sellingPrice || 0) * item.quantity),
+      (sum, item) => {
+        let price = item.menuItem.discountPrice || item.menuItem.sellingPrice || 0;
+        if (item.selectedSize === 'half' && item.menuItem.halfPlatePrice) price = item.menuItem.halfPlatePrice;
+        if (item.selectedSize === 'full' && item.menuItem.fullPlatePrice) price = item.menuItem.fullPlatePrice;
+        return sum + (price * item.quantity);
+      },
       0
     );
     // Use dynamic GST rate from backend (GST_RATES.FOOD.TOTAL is 0-1 decimal)
