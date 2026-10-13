@@ -157,12 +157,19 @@ export default function SellerOrders() {
                           <Package size={14} /> Mark Ready
                         </Button>
                       )}
-                      {order.status === 'ready' && (
+                      {order.status === 'ready' && !order.deliveryPartnerId && (
                         <Button variant="gradient" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'out_for_delivery' })} className="gap-1 bg-amber-600 hover:bg-amber-700 text-white">
                           <Clock size={14} /> Out For Delivery
                         </Button>
                       )}
-                      {order.status === 'out_for_delivery' && (
+                      {order.deliveryPartnerId && ['confirmed', 'preparing', 'ready', 'out_for_delivery'].includes(order.status) && (
+                        <span className="text-xs font-medium text-muted-foreground self-center">
+                          🛵 {order.deliveryStatus === 'picked_up' || order.status === 'out_for_delivery'
+                            ? 'Picked up by rider'
+                            : order.deliveryStatus === 'arrived_at_restaurant' ? 'Rider at restaurant' : 'Rider assigned'}
+                        </span>
+                      )}
+                      {order.status === 'out_for_delivery' && !order.deliveryPartnerId && (
                         <Button variant="soft-success" size="sm" onClick={() => updateStatusMutation.mutate({ id: order._id, status: 'delivered' })} className="gap-1 bg-emerald-600 hover:bg-emerald-700 text-white">
                           <CheckCircle2 size={14} /> Mark Delivered
                         </Button>

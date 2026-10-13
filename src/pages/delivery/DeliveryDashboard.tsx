@@ -200,7 +200,7 @@ export default function DeliveryDashboard() {
 
   // 🔌 Socket Connection
   useEffect(() => {
-    const newSocket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000');
+    const newSocket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', { auth: { token: localStorage.getItem('deliveryToken') } });
     setSocket(newSocket);
 
     newSocket.on('connect', () => {

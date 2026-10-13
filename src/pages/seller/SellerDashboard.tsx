@@ -50,7 +50,7 @@ export default function SellerDashboard() {
 
   // Socket.io connection for real-time order updates
   useEffect(() => {
-    const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000');
+    const socket = io(import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000', { auth: { token: localStorage.getItem('sellerToken') } });
     
     if (socket) {
       socket.on('connect', () => {

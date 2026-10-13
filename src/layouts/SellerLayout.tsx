@@ -83,7 +83,7 @@ export function SellerLayout({ children, title, subtitle, headerActions }: Selle
   // Socket.io connection for real-time order updates
   useEffect(() => {
     const socketUrl = import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5000';
-    const socket = io(socketUrl);
+    const socket = io(socketUrl, { auth: { token: localStorage.getItem('sellerToken') } });
     
     socket.on('connect', () => {
       console.log('Seller connected to socket');
