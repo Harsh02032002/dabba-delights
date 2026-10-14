@@ -93,7 +93,7 @@ export default function SubscriptionPlans() {
       
       // Razorpay options
       const options = {
-        key: "rzp_test_1234567890", // Replace with your actual key
+        key: orderRes.key || "rzp_test_TnuGwHi19zjhSx",
         amount: order.amount,
         currency: order.currency || "INR",
         name: "Dabba Delights",
