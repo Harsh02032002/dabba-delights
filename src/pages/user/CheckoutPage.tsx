@@ -40,7 +40,7 @@ export default function CheckoutPage() {
   const totalAmount = totals?.total || 0;
 
   const [isLoading, setIsLoading] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("razorpay");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
   const [isOnlineModalOpen, setIsOnlineModalOpen] = useState(false);
 
   const [deliveryAddress, setDeliveryAddress] = useState({
@@ -615,7 +615,7 @@ export default function CheckoutPage() {
                   </div>
                 </label>
 
-                {/* Pay Online */}
+                {/* Pay Online (Razorpay) - Commented out for now
                 <label className={cn(
                   "flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-all",
                   paymentMethod === "razorpay" ? "border-primary bg-primary/5" : "border-border hover:border-primary/30"
@@ -627,6 +627,7 @@ export default function CheckoutPage() {
                     <p className="text-xs text-muted-foreground">UPI • PhonePe • GPay • Paytm</p>
                   </div>
                 </label>
+                */}
 
                 {/* COD */}
                 <label className={cn(

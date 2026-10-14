@@ -924,6 +924,32 @@ const authAPI = {
       authToken: null,
     }),
 
+  sendLoginOtp: (data: { identifier: string; password?: string; role?: string }) =>
+    apiRequest("/auth/send-login-otp", {
+      method: "POST",
+      body: JSON.stringify({
+        identifier: data.identifier,
+        email: data.identifier,
+        phone: data.identifier,
+        password: data.password,
+        role: data.role,
+      }),
+      authToken: null,
+    }),
+
+  verifyLoginOtp: (data: { identifier: string; otp: string; role?: string }) =>
+    apiRequest("/auth/verify-login-otp", {
+      method: "POST",
+      body: JSON.stringify({
+        identifier: data.identifier,
+        email: data.identifier,
+        phone: data.identifier,
+        otp: data.otp,
+        role: data.role,
+      }),
+      authToken: null,
+    }),
+
   getProfile: () => apiRequest("/auth/me"),
 
   /** Use when loading a stored session so the request always uses that role's JWT (not pathname). */

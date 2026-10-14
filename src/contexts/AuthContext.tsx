@@ -24,6 +24,8 @@ interface AuthContextType {
   
   // Actions
   login: (email: string, password: string, role?: UserRoleType) => Promise<any>;
+  sendLoginOtp: (identifier: string, password?: string, role?: UserRoleType) => Promise<any>;
+  verifyLoginOtp: (identifier: string, otp: string, role?: UserRoleType) => Promise<any>;
   register: (data: {
     name: string;
     email: string;
@@ -177,6 +179,36 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       localStorage.setItem(STORAGE_KEYS[role].user, JSON.stringify(response.user));
 
       // Update session state
+      const newSession = { token: response.token, user: response.user };
+      if (role === 'user') setUserSession(newSession);
+      else if (role === 'seller') setSellerSession(newSession);
+      else if (role === 'admin') setAdminSession(newSession);
+      else if (role === 'delivery') setDeliverySession(newSession);
+
+      return response;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 🔹 SEND LOGIN OTP (Dual SMS + Email)
+  const sendLoginOtp = async (identifier: string, password?: string, role: UserRoleType = 'user') => {
+    setIsLoading(true);
+    try {
+      return await authAPI.sendLoginOtp({ identifier, password, role });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // 🔹 VERIFY LOGIN OTP & CREATE SESSION
+  const verifyLoginOtp = async (identifier: string, otp: string, role: UserRoleType = 'user') => {
+    setIsLoading(true);
+    try {
+      const response: any = await authAPI.verifyLoginOtp({ identifier, otp, role });
+      localStorage.setItem(STORAGE_KEYS[role].token, response.token);
+      localStorage.setItem(STORAGE_KEYS[role].user, JSON.stringify(response.user));
+
       const newSession = { token: response.token, user: response.user };
       if (role === 'user') setUserSession(newSession);
       else if (role === 'seller') setSellerSession(newSession);
@@ -346,6 +378,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isLoggedIn,
         currentRole,
         login,
+        sendLoginOtp,
+        verifyLoginOtp,
         register,
         logout,
         logoutAll,
