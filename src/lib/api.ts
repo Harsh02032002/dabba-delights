@@ -834,6 +834,12 @@ export const userAPI = {
       method: "POST",
       body: JSON.stringify(data),
     }),
+  /** Authoritative checkout totals from the backend (same pricing used to place the order) */
+  quoteOrder: (data: Record<string, unknown>) =>
+    apiRequest<any>("/user/orders/quote", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   placeOrder: (data: Record<string, unknown>) =>
     apiRequest("/user/orders/place", {
       method: "POST",
@@ -863,6 +869,8 @@ export const userAPI = {
     }),
   getSellerRatingBreakdown: (sellerId: string) =>
     apiRequest(`/user/sellers/${sellerId}/rating-breakdown`),
+  /** Authoritative receipt (same data the mobile app and the invoice PDF use) */
+  getOrderReceipt: (orderId: string) => apiRequest<any>(`/invoice/receipt/${orderId}`),
   downloadInvoice: (orderId: string) => {
     const token = getTokenForCurrentRole();
     if (!token) {
@@ -1014,8 +1022,7 @@ const authAPI = {
     address: string;
   }) => authAPI.register({ ...data, role: "seller" }),
 
-  adminRegister: (data: { name: string; email: string; password: string }) =>
-    authAPI.register({ ...data, role: "admin" }),
+  // Admin accounts are created by setup scripts / existing admins — never via public registration
 
   // Profile image uploads
   uploadAvatar: (formData: FormData) =>

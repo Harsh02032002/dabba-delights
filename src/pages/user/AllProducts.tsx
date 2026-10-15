@@ -14,6 +14,7 @@ import { VegBadge } from '@/components/shared/Badge';
 import { useCart } from '@/contexts/CartContext';
 import { toast } from '@/hooks/use-toast';
 import { safeArray } from '@/utils/safeArray';
+import { getItemUnitPrice } from "@/lib/pricing";
 
 export default function AllProducts() {
   const navigate = useNavigate();
@@ -179,7 +180,7 @@ export default function AllProducts() {
                     <div className="flex items-center justify-between">
                       <div>
                         <span className="text-lg font-bold text-foreground">
-                          ₹{item.discountPrice || item.sellingPrice || 0}
+                          ₹{getItemUnitPrice(item)}
                         </span>
                         {item.discountPrice && item.sellingPrice && (
                           <span className="text-sm text-muted-foreground line-through ml-2">

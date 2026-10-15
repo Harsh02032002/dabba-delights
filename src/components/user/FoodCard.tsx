@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { toast } from '@/hooks/use-toast';
 import { getImageUrl } from '@/lib/api';
 import logo from '@/assets/logo.png';
+import { getItemUnitPrice } from "@/lib/pricing";
 
 interface FoodCardProps {
   item: MenuItem;
@@ -101,8 +102,8 @@ export function FoodCard({ item, seller, className }: FoodCardProps) {
           <div className="flex items-baseline gap-2">
             {!item.hasSizes ? (
               <>
-                <span className="text-lg font-bold text-foreground">₹{item.discountPrice || item.sellingPrice}</span>
-                {item.discountPrice && <span className="text-sm text-muted-foreground line-through">₹{item.sellingPrice}</span>}
+                <span className="text-lg font-bold text-foreground">₹{getItemUnitPrice(item)}</span>
+                {getItemUnitPrice(item) < (Number(item.sellingPrice) || 0) && <span className="text-sm text-muted-foreground line-through">₹{item.sellingPrice}</span>}
               </>
             ) : (
               <span className="text-sm font-bold text-foreground">₹{item.halfPlatePrice} - ₹{item.fullPlatePrice}</span>

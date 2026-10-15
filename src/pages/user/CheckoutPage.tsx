@@ -10,11 +10,13 @@ import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { toast } from "@/hooks/use-toast";
-import { MapPin, IndianRupee, Loader2, CreditCard, Banknote, ArrowLeft, Wallet, Receipt, Crown } from "lucide-react";
+import { MapPin, IndianRupee, Loader2, CreditCard, Banknote, ArrowLeft, Wallet, Receipt, Crown, Truck, AlertTriangle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useQuery } from "@tanstack/react-query";
 import { formatGSTPercentage, GST_RATES, updateGSTSettings } from "@/lib/gst";
 import { OnlinePaymentModal } from "@/components/OnlinePaymentModal";
+import { getItemUnitPrice } from "@/lib/pricing";
+import { SERVICE_RADIUS_KM } from "@/lib/serviceArea";
 
 // Load Razorpay SDK dynamically
 function loadRazorpayScript(): Promise<boolean> {
@@ -43,12 +45,17 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cod");
   const [isOnlineModalOpen, setIsOnlineModalOpen] = useState(false);
 
-  const [deliveryAddress, setDeliveryAddress] = useState({
-    street: "",
-    city: "",
-    state: "",
-    pincode: "",
-    location: null,
+  // Start from the delivery location the customer picked for discovery (navbar), so checkout is
+  // validated against the same point the seller list was filtered by. The backend requires it.
+  const [deliveryAddress, setDeliveryAddress] = useState(() => {
+    let location: { type: "Point"; coordinates: [number, number] } | null = null;
+    try {
+      const saved = JSON.parse(localStorage.getItem("userLocationCoords") || "null");
+      if (saved && Number.isFinite(Number(saved.lat)) && Number.isFinite(Number(saved.lng))) {
+        location = { type: "Point", coordinates: [Number(saved.lng), Number(saved.lat)] };
+      }
+    } catch { /* no saved location */ }
+    return { street: "", city: "", state: "", pincode: "", location };
   });
 
   // 🗺️ Location Detection Function
@@ -283,7 +290,25 @@ export default function CheckoutPage() {
   });
   const walletBalance = Number(walletData?.balance || 0);
 
-  const orderGrandTotal = gstCalculation?.grandTotal ?? totalAmount;
+  // The backend prices the cart (items, distance-based delivery fee, GST) exactly as it will when
+  // the order is placed; the client-side calculation above is only a fallback while it loads.
+  const quoteItems = cartItems.map((item: any) => ({
+    menuItemId: item.menuItem._id,
+    quantity: item.quantity,
+    selectedSize: item.selectedSize,
+  }));
+  const { data: quoteRes, error: quoteError } = useQuery({
+    queryKey: ["order-quote", cart?.sellerId, custLng, custLat, deliveryAddress.state, JSON.stringify(quoteItems)],
+    queryFn: () => userAPI.quoteOrder({ sellerId: cart?.sellerId, items: quoteItems, deliveryAddress }),
+    enabled: !!cart?.sellerId && quoteItems.length > 0 && custLng != null && custLat != null,
+    retry: false,
+  });
+  const serverQuote = (quoteRes as any)?.quote as
+    | { subtotal: number; deliveryFee: number; taxTotal: number; grandTotal: number; distanceKm: number }
+    | undefined;
+  const quoteProblem = quoteError ? (quoteError as any)?.message || "We couldn't price this order" : null;
+
+  const orderGrandTotal = serverQuote?.grandTotal ?? gstCalculation?.grandTotal ?? totalAmount;
   const remSub = Number(activeSubscription?.remaining_amount) || 0;
   const pdVal = Number(activeSubscription?.per_day_value) || 0;
 
@@ -332,9 +357,7 @@ export default function CheckoutPage() {
 
     return {
       items: cartItems.map((item: any) => {
-        let price = item.menuItem.discountPrice || item.menuItem.sellingPrice || 0;
-        if (item.selectedSize === 'half' && item.menuItem.halfPlatePrice) price = item.menuItem.halfPlatePrice;
-        if (item.selectedSize === 'full' && item.menuItem.fullPlatePrice) price = item.menuItem.fullPlatePrice;
+        const price = getItemUnitPrice(item.menuItem, item.selectedSize);
         return {
           menuItemId: item.menuItem._id,
           name: `${item.menuItem.name}${item.selectedSize ? ` (${item.selectedSize === 'half' ? 'Half' : 'Full'} Plate)` : ''}`,
@@ -651,9 +674,7 @@ export default function CheckoutPage() {
               <h2 className="text-lg font-semibold text-foreground mb-4">Order Summary</h2>
               <div className="space-y-3 text-sm">
                 {cartItems.map((item: any) => {
-                  let itemPrice = item.menuItem.discountPrice || item.menuItem.sellingPrice || 0;
-                  if (item.selectedSize === 'half' && item.menuItem.halfPlatePrice) itemPrice = item.menuItem.halfPlatePrice;
-                  if (item.selectedSize === 'full' && item.menuItem.fullPlatePrice) itemPrice = item.menuItem.fullPlatePrice;
+                  const itemPrice = getItemUnitPrice(item.menuItem, item.selectedSize);
                   const itemTotal = itemPrice * item.quantity;
                   return (
                     <div key={`${item.menuItem._id}-${item.selectedSize || 'none'}`}>
@@ -711,7 +732,7 @@ export default function CheckoutPage() {
                     ) : null}
                   </span>
                   <span className="font-semibold text-foreground">
-                    ₹{(gstCalculation?.deliveryFee ?? totals.deliveryFee).toFixed(2)}
+                    ₹{(serverQuote?.deliveryFee ?? gstCalculation?.deliveryFee ?? totals.deliveryFee).toFixed(2)}
                   </span>
                 </div>
 
@@ -737,12 +758,16 @@ export default function CheckoutPage() {
                   </>
                 ) : null}
 
-                {gstCalculation && gstSettings?.gstApplicable ? (
+                {(serverQuote ? serverQuote.taxTotal > 0 : gstCalculation && gstSettings?.gstApplicable) ? (
                   <div className="flex justify-between text-green-700 font-medium pt-1">
                     <span>Total GST</span>
-                    <span>₹{gstCalculation.totalGST.toFixed(2)}</span>
+                    <span>₹{(serverQuote?.taxTotal ?? gstCalculation?.totalGST ?? 0).toFixed(2)}</span>
                   </div>
                 ) : null}
+
+                {quoteProblem && (
+                  <p className="text-xs text-destructive" role="alert">{quoteProblem}</p>
+                )}
 
                 <div className="flex justify-between font-bold text-base border-t border-border pt-3">
                   <span>You pay</span>
@@ -844,7 +869,7 @@ export default function CheckoutPage() {
                   <div>
                     <p className="font-semibold">🚫 Order Not Serviceable</p>
                     <p className="text-xs mt-0.5">
-                      Your location is <strong>{deliveryFeeRes.distanceKm} km</strong> away. We deliver up to <strong>{platformConfig?.maxServiceableKm || 12} km</strong>.
+                      Your location is <strong>{deliveryFeeRes.distanceKm} km</strong> away. We deliver up to <strong>{platformConfig?.maxServiceableKm || SERVICE_RADIUS_KM} km</strong>.
                     </p>
                   </div>
                 </div>
@@ -859,7 +884,7 @@ export default function CheckoutPage() {
                 {isLoading ? (
                   <><Loader2 size={16} className="mr-2 animate-spin" /> Processing...</>
                 ) : deliveryFeeRes?.serviceable === false ? (
-                  <>🚫 Not Serviceable (&gt;{platformConfig?.maxServiceableKm || 12}km)</>
+                  <>🚫 Not Serviceable (&gt;{platformConfig?.maxServiceableKm || SERVICE_RADIUS_KM}km)</>
                 ) : paymentMethod === "subscription" ? (
                   <><Crown size={16} className="mr-2" /> Pay ₹{potentialSubUsed.toFixed(0)} from My Plan</>
                 ) : paymentMethod === "wallet" ? (
@@ -894,7 +919,11 @@ export default function CheckoutPage() {
             try {
               await userAPI.generateInvoice(orderResponse.order?._id || orderResponse._id);
             } catch (invErr) {}
-            toast({ title: "Payment successful! Order placed. 🎉" });
+            const paid = orderResponse?.order?.paymentStatus === "paid";
+            toast({
+              title: "Order placed! 🎉",
+              description: paid ? "Payment received." : "We'll confirm your UPI payment shortly.",
+            });
             clearCart();
             navigate("/orders");
           } catch (err: any) {

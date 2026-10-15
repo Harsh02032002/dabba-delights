@@ -336,6 +336,10 @@ export default function SellerSubscriptions() {
                     <span>Subscribed on {format(new Date(selectedSubscription.createdAt), 'MMMM d, yyyy')}</span>
                   </div>
                 </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Subscribe Restaurant Plan Dialog */}
         <Dialog open={isSubscribeDialogOpen} onOpenChange={setIsSubscribeDialogOpen}>

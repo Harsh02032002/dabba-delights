@@ -44,7 +44,6 @@ export default function SellerRegister() {
 
   const mutation = useMutation({
     mutationFn: async () => {
-      console.log("Sending Data:", form);
       return await authAPI.sellerRegister(form);
     },
 

@@ -10,6 +10,7 @@ import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { fetchPublicGSTSettings } from '@/lib/api';
 import { updateGSTSettings, GST_RATES, formatGSTPercentage } from '@/lib/gst';
+import { getItemUnitPrice } from "@/lib/pricing";
 
 export default function CartPage() {
   const {
@@ -85,9 +86,7 @@ export default function CartPage() {
           {/* Cart Items */}
           <div className="lg:col-span-2 space-y-4">
             {safeItems.map((item: any) => {
-              let price = item?.menuItem?.discountPrice || item?.menuItem?.sellingPrice || 0;
-              if (item?.selectedSize === 'half' && item?.menuItem?.halfPlatePrice) price = item.menuItem.halfPlatePrice;
-              if (item?.selectedSize === 'full' && item?.menuItem?.fullPlatePrice) price = item.menuItem.fullPlatePrice;
+              const price = getItemUnitPrice(item?.menuItem, item?.selectedSize);
               
               return (
               <div
@@ -163,7 +162,7 @@ export default function CartPage() {
 
                     <p className="font-bold text-foreground">
                       ₹
-                      {(price).toFixed(0) * item.quantity}
+                      {Math.round(price * item.quantity)}
                     </p>
                   </div>
                 </div>

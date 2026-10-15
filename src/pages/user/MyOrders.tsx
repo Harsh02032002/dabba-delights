@@ -5,12 +5,13 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Download, Star, Clock, CheckCircle, Package, Truck, ShoppingBag, MapPin,Trash2 } from "lucide-react";
+import { ArrowLeft, Download, Receipt, Star, Clock, CheckCircle, Package, Truck, ShoppingBag, MapPin,Trash2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { LoadingSpinner } from "@/components/shared/LoadingSpinner";
 import { toast } from "@/hooks/use-toast";
 import { UserRatingModal } from "@/components/user/UserRatingModal";
 import OrderTrackingMap from "@/components/user/OrderTrackingMap";
+import { OrderReceiptDialog } from "@/components/user/OrderReceiptDialog";
 import { io } from 'socket.io-client';
 import {
   AlertDialog,
@@ -94,6 +95,7 @@ export default function MyOrders() {
   const [selectedOrder, setSelectedOrder] = useState<any>(null);
   const [isCancelDialogOpen, setIsCancelDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [receiptOrderId, setReceiptOrderId] = useState<string | null>(null);
   const [orderToAction, setOrderToAction] = useState<any>(null);
 
   // Socket.io connection for real-time order updates
@@ -330,6 +332,10 @@ export default function MyOrders() {
                         </div>
                       )}
                       
+                      <Button size="sm" variant="ghost" className="gap-1 text-xs" onClick={() => setReceiptOrderId(order._id)}>
+                        <Receipt size={14} /> Receipt
+                      </Button>
+
                       {/* Invoice Download Button - Always Visible */}
                       <Button 
                         size="sm" 
@@ -460,6 +466,7 @@ export default function MyOrders() {
           onRatingSubmit={handleRatingSubmit}
         />
       )}
+      <OrderReceiptDialog orderId={receiptOrderId} onClose={() => setReceiptOrderId(null)} />
     </UserLayout>
   );
 }

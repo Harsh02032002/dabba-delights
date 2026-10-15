@@ -27,6 +27,7 @@ import {
 import { useState, useEffect, useMemo } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { authAPI } from "@/lib/api";
+import { SERVICE_RADIUS_KM } from "@/lib/serviceArea";
 
 // ── Delivery Slabs Type ──────────────────────────────────────────────────────
 interface DeliverySlab {
@@ -148,14 +149,17 @@ function DeliverySlabsEditor({
             <p className="text-sm font-medium text-orange-700 dark:text-orange-400">
               Max Serviceable Distance
             </p>
-            <p className="text-xs text-muted-foreground">Orders &gt; this km will be Not Serviceable</p>
+            <p className="text-xs text-muted-foreground">
+              Platform service radius (straight-line). The same limit decides which kitchens customers see and which orders are accepted.
+            </p>
           </div>
           <div className="flex items-center gap-1.5 shrink-0">
             <Input
               type="number"
-              min={1}
               value={maxKm}
-              onChange={(e) => onMaxKmChange(Number(e.target.value))}
+              readOnly
+              disabled
+              aria-label="Service radius in km (fixed)"
               className="h-8 w-20 text-sm text-center"
             />
             <span className="text-sm text-muted-foreground">km</span>
@@ -495,8 +499,8 @@ export default function AdminSettings() {
                 { upToKm: 12, customerFee: 60, riderPayout: 50 },
               ]}
               onChange={(slabs) => setConfig({ ...config, deliverySlabs: slabs })}
-              maxKm={config.maxServiceableKm ?? 12}
-              onMaxKmChange={(v) => setConfig({ ...config, maxServiceableKm: v })}
+              maxKm={SERVICE_RADIUS_KM}
+              onMaxKmChange={() => {}}
               maxCap={config.maxDeliveryCap ?? 90}
               onMaxCapChange={(v) => setConfig({ ...config, maxDeliveryCap: v })}
             />

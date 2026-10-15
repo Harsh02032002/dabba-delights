@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 import { Cart, CartItem, MenuItem, SellerType } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { GST_RATES } from '@/lib/gst';
+import { getItemUnitPrice } from "@/lib/pricing";
 
 interface CartContextType {
   cart: Cart;
@@ -109,9 +110,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const getTotal = () => {
     const subtotal = cart.items.reduce(
       (sum, item) => {
-        let price = item.menuItem.discountPrice || item.menuItem.sellingPrice || 0;
-        if (item.selectedSize === 'half' && item.menuItem.halfPlatePrice) price = item.menuItem.halfPlatePrice;
-        if (item.selectedSize === 'full' && item.menuItem.fullPlatePrice) price = item.menuItem.fullPlatePrice;
+        const price = getItemUnitPrice(item.menuItem, item.selectedSize);
         return sum + (price * item.quantity);
       },
       0
