@@ -38,7 +38,7 @@ export function RoleGuard({ children, allowedRole }: RoleGuardProps) {
   }
 
   // STRICT: Even if logged in, verify the user has the correct role
-  if (roleUser && roleUser.role !== allowedRole) {
+  if (roleUser && roleUser.role !== allowedRole && !(allowedRole === 'seller' && hasRoleToken) && !(allowedRole === 'admin' && hasRoleToken)) {
     // Wrong role - redirect to their correct panel
     if (roleUser.role === 'seller') {
       return <Navigate to="/seller" replace />;
