@@ -8,7 +8,7 @@ import { VegBadge } from '@/components/shared/Badge';
 import { Separator } from '@/components/ui/separator';
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { fetchPublicGSTSettings } from '@/lib/api';
+import { fetchPublicGSTSettings, getImageUrl } from '@/lib/api';
 import { updateGSTSettings, GST_RATES, formatGSTPercentage } from '@/lib/gst';
 import { getItemUnitPrice } from "@/lib/pricing";
 
@@ -94,7 +94,7 @@ export default function CartPage() {
                 className="bg-card rounded-2xl p-4 shadow-card flex gap-4"
               >
                 <img
-                  src={item?.menuItem?.image}
+                  src={getImageUrl(item?.menuItem?.image)}
                   alt={item?.menuItem?.name}
                   className="w-24 h-24 rounded-xl object-cover"
                 />
