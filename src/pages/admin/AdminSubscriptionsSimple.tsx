@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, getImageUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -228,7 +228,7 @@ export default function AdminSubscriptionsSimple() {
               {plan.banner_image && (
                 <div className="h-40 overflow-hidden">
                   <img
-                    src={plan.banner_image}
+                    src={getImageUrl(plan.banner_image)}
                     alt={plan.plan_name}
                     className="w-full h-full object-cover"
                   />
