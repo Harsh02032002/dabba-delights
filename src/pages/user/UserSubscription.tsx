@@ -15,7 +15,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { apiRequest, paymentAPI } from "@/lib/api";
+import { apiRequest, paymentAPI, getImageUrl } from "@/lib/api";
 import { Loader2, Crown, CheckCircle, Clock, AlertCircle, Zap, Gift, Star, Store, Image as ImageIcon, Utensils, ChefHat, ShoppingBag } from "lucide-react";
 import { format } from "date-fns";
 
@@ -942,7 +942,7 @@ export default function UserSubscription() {
                         <div className="w-12 h-12 rounded-full overflow-hidden flex-shrink-0 bg-orange-100 flex items-center justify-center">
                           {seller.logo ? (
                             <img
-                              src={seller.logo}
+                              src={getImageUrl(seller.logo)}
                               alt={seller.businessName}
                               className="w-full h-full object-cover"
                               onError={(e) => {
