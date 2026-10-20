@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { UserLayout } from "@/layouts/UserLayout";
-import { userAPI } from "@/lib/api";
+import { userAPI, getImageUrl } from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -303,7 +303,7 @@ export default function SubscriptionPlans() {
                               <div key={index} className="flex items-center gap-1 bg-orange-50 rounded p-1 border border-orange-200 text-xs">
                                 {item.image ? (
                                   <img 
-                                    src={item.image} 
+                                    src={getImageUrl(item.image)} 
                                     alt={item.name}
                                     className="w-4 h-4 rounded object-cover"
                                   />
@@ -418,7 +418,7 @@ export default function SubscriptionPlans() {
               {selectedPlan.poster_bg_image && (
                 <div className="mb-6 rounded-lg overflow-hidden">
                   <img 
-                    src={selectedPlan.poster_bg_image} 
+                    src={getImageUrl(selectedPlan.poster_bg_image)} 
                     alt={selectedPlan.plan_name}
                     className="w-full h-64 object-cover"
                   />
@@ -479,7 +479,7 @@ export default function SubscriptionPlans() {
                       <div key={index} className="flex items-center gap-3 bg-gray-50 rounded-lg p-3">
                         {product.image && (
                           <img 
-                            src={product.image} 
+                            src={getImageUrl(product.image)} 
                             alt={product.name}
                             className="w-12 h-12 rounded object-cover"
                           />
