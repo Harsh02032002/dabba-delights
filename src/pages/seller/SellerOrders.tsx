@@ -9,7 +9,7 @@ import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Search, Filter, Clock, CheckCircle2, AlertCircle, MapPin, Download, Package } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { sellerAPI } from '@/lib/api';
+import { sellerAPI, getImageUrl } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { safeArray } from '@/utils/safeArray';
 
@@ -121,7 +121,7 @@ export default function SellerOrders() {
                     <div className="flex flex-wrap gap-3 mb-4">
                       {(order.items || []).map((item: any, idx: number) => (
                         <div key={idx} className="flex items-center gap-2 bg-secondary rounded-lg p-2">
-                          {item.image && <img src={item.image} alt={item.name} className="w-10 h-10 rounded-md object-cover" />}
+                          {item.image && <img src={getImageUrl(item.image)} alt={item.name} className="w-10 h-10 rounded-md object-cover" />}
                           <div><p className="text-sm font-medium">{item.name}</p><p className="text-xs text-muted-foreground">Qty: {item.quantity}</p></div>
                         </div>
                       ))}
