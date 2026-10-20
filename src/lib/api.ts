@@ -33,7 +33,7 @@ export const getImageUrl = (path: string | undefined): string => {
 };
 
 // Request timeout in milliseconds
-const REQUEST_TIMEOUT = 10000; // 10 seconds
+const REQUEST_TIMEOUT = 25000; // 25 seconds
 
 // Helper to add timeout to fetch
 async function fetchWithTimeout(
@@ -129,9 +129,12 @@ async function apiRequest<T = any>(
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error(
+      const err: any = new Error(
         (error as any).message || `API request failed: ${response.status}`,
       );
+      err.status = response.status;
+      err.data = error;
+      throw err;
     }
 
     return response.json();
@@ -175,7 +178,10 @@ async function apiUpload<T = any>(
 
     if (!response.ok) {
       const error = await response.json().catch(() => ({}));
-      throw new Error((error as any).message || "API upload failed");
+      const err: any = new Error((error as any).message || "API upload failed");
+      err.status = response.status;
+      err.data = error;
+      throw err;
     }
     return response.json();
   } catch (error: any) {
@@ -593,8 +599,8 @@ export const adminAPI = {
     }),
   approveSeller: (id: string) =>
     apiRequest(`/admin/sellers/${id}/approve`, { method: "POST" }),
-  rejectSeller: (id: string) =>
-    apiRequest(`/admin/sellers/${id}/reject`, { method: "POST" }),
+  rejectSeller: (id: string, reason?: string) =>
+    apiRequest(`/admin/sellers/${id}/reject`, { method: "POST", body: JSON.stringify({ reason }) }),
   getUsers: (params?: { search?: string; status?: string }) =>
     apiRequest(`/admin/users${toQuery(params as Record<string, unknown>)}`),
   blockUser: (id: string) =>

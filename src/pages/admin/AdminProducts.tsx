@@ -21,7 +21,7 @@ import {
   Link as LinkIcon, CheckCircle2, XCircle,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productAPI, adminAPI } from '@/lib/api';
+import { productAPI, adminAPI, getImageUrl } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { safeArray } from '@/utils/safeArray';
@@ -300,7 +300,7 @@ export default function AdminProducts() {
                     <Checkbox checked={selectedIds.includes(item._id)} onCheckedChange={() => toggleSelect(item._id)} />
                   </div>
                   <div className="relative aspect-[4/3]">
-                    <img src={item.image || '/placeholder.svg'} alt={item.name} className="w-full h-full object-cover" />
+                    <img src={getImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover" />
                     <div className="absolute top-2 right-2"><VegBadge isVeg={item.isVeg} /></div>
                     <div className={`absolute bottom-2 right-2 px-2 py-1 rounded text-xs font-medium ${item.isAvailable ? 'bg-green-500/90 text-white' : 'bg-destructive/90 text-white'}`}>
                       {item.isAvailable ? 'Available' : 'Unavailable'}
@@ -353,7 +353,7 @@ export default function AdminProducts() {
               {pendingProducts.map((item: any) => (
                 <Card key={item._id} className="overflow-hidden border-amber-500/30">
                   <div className="relative aspect-[4/3]">
-                    <img src={item.image || '/placeholder.svg'} alt={item.name} className="w-full h-full object-cover" />
+                    <img src={getImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover" />
                     <div className="absolute top-2 right-2 bg-amber-500 text-white text-xs px-2 py-0.5 rounded">Pending</div>
                   </div>
                   <CardContent className="p-3 space-y-2">

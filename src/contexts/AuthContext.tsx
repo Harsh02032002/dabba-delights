@@ -124,20 +124,49 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       try {
         const res: any = await authAPI.getProfileWithToken(token);
-        const userData = res.user || res;
-        localStorage.setItem(STORAGE_KEYS[role].user, JSON.stringify(userData));
+        const rawUser = res.user || (res._id ? res : null);
+        if (rawUser && rawUser._id) {
+          let currentStored = {};
+          try {
+            const raw = localStorage.getItem(STORAGE_KEYS[role].user);
+            if (raw) currentStored = JSON.parse(raw);
+          } catch {
+            currentStored = {};
+          }
 
-        if (role === 'user') setUserSession({ token, user: userData });
-        else if (role === 'seller') setSellerSession({ token, user: userData });
-        else if (role === 'admin') setAdminSession({ token, user: userData });
-        else if (role === 'delivery') setDeliverySession({ token, user: userData });
-      } catch {
-        localStorage.removeItem(STORAGE_KEYS[role].token);
-        localStorage.removeItem(STORAGE_KEYS[role].user);
-        if (role === 'user') setUserSession({ token: null, user: null });
-        else if (role === 'seller') setSellerSession({ token: null, user: null });
-        else if (role === 'admin') setAdminSession({ token: null, user: null });
-        else if (role === 'delivery') setDeliverySession({ token: null, user: null });
+          const userData = {
+            ...currentStored,
+            ...rawUser,
+            // Ensure role matches the portal session if verified seller/admin
+            role: rawUser.role || currentStored.role || role,
+          };
+
+          localStorage.setItem(STORAGE_KEYS[role].user, JSON.stringify(userData));
+
+          if (role === 'user') setUserSession({ token, user: userData });
+          else if (role === 'seller') setSellerSession({ token, user: userData });
+          else if (role === 'admin') setAdminSession({ token, user: userData });
+          else if (role === 'delivery') setDeliverySession({ token, user: userData });
+        }
+      } catch (err: any) {
+        const isAuthError =
+          err?.status === 401 ||
+          err?.message?.includes('401') ||
+          err?.message?.includes('Invalid token') ||
+          err?.message?.includes('Token expired') ||
+          err?.message?.includes('User not found');
+
+        if (isAuthError) {
+          console.warn('[AuthContext] Session invalid/expired for ' + role + ', clearing token:', err?.message);
+          localStorage.removeItem(STORAGE_KEYS[role].token);
+          localStorage.removeItem(STORAGE_KEYS[role].user);
+          if (role === 'user') setUserSession({ token: null, user: null });
+          else if (role === 'seller') setSellerSession({ token: null, user: null });
+          else if (role === 'admin') setAdminSession({ token: null, user: null });
+          else if (role === 'delivery') setDeliverySession({ token: null, user: null });
+        } else {
+          console.warn('[AuthContext] Temporary error loading ' + role + ' profile, preserving cached session:', err?.message);
+        }
       }
     };
 

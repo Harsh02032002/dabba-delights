@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productAPI } from '@/lib/api';
+import { productAPI, getImageUrl } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { AlertTriangle, Clock, Save } from 'lucide-react';
 
@@ -72,7 +72,7 @@ export default function SellerInventory() {
                       <tr key={item._id} className="border-b border-border/50">
                         <td className="p-4">
                           <div className="flex items-center gap-3">
-                            {item.image && <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover" />}
+                            {item.image && <img src={getImageUrl(item.image)} alt={item.name} className="w-10 h-10 rounded-lg object-cover" />}
                             <div>
                               <span className="font-medium text-foreground">{item.name}</span>
                               <p className="text-xs text-muted-foreground">₹{item.sellingPrice} · {item.category}</p>

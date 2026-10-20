@@ -7,7 +7,7 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useQuery } from '@tanstack/react-query';
-import { userAPI } from '@/lib/api';
+import { userAPI, getImageUrl } from '@/lib/api';
 import { Search, ArrowLeft, Clock, Plus, Heart } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { VegBadge } from '@/components/shared/Badge';
@@ -141,7 +141,7 @@ export default function AllProducts() {
                 <div key={item._id} className="food-card overflow-hidden rounded-xl border bg-card shadow-sm hover:shadow-md transition-all">
                   <div className="relative aspect-[4/3] overflow-hidden">
                     <img
-                      src={item.image}
+                      src={getImageUrl(item.image)}
                       alt={item.name}
                       className="w-full h-full object-cover"
                     />

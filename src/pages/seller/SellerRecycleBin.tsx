@@ -11,7 +11,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Trash2, RotateCcw, Search, Trash, Package } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productAPI } from '@/lib/api';
+import { productAPI, getImageUrl } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { safeArray } from '@/utils/safeArray';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -169,7 +169,7 @@ export default function SellerRecycleBin() {
                 </div>
                 <div className="relative aspect-[4/3]">
                   <img
-                    src={item.image || '/placeholder.svg'}
+                    src={getImageUrl(item.image)}
                     alt={item.name}
                     className="w-full h-full object-cover grayscale opacity-70"
                   />

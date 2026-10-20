@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Search, Filter, Eye, CheckCircle2, XCircle, MoreVertical, MapPin, Phone, Mail, Clock, Store, FileCheck, IndianRupee, ExternalLink, Download, Image, FileText, AlertTriangle, Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminAPI, API_BASE_URL } from '@/lib/api';
+import { adminAPI, API_BASE_URL, getImageUrl } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { safeArray } from '@/utils/safeArray';
 
@@ -59,7 +59,7 @@ export default function AdminSellers() {
   });
 
   const rejectMutation = useMutation({
-    mutationFn: (id: string) => adminAPI.rejectSeller(id),
+    mutationFn: ({ id, reason }: { id: string; reason?: string }) => adminAPI.rejectSeller(id, reason),
     onSuccess: () => { queryClient.invalidateQueries({ queryKey: ['admin-sellers'] }); toast({ title: 'Seller rejected' }); },
   });
 
@@ -141,7 +141,7 @@ export default function AdminSellers() {
             <Card key={seller._id}>
               <CardContent className="p-6">
                 <div className="flex gap-6">
-                  {seller.logo && <img src={seller.logo} alt={seller.businessName} className="w-20 h-20 rounded-xl object-cover" />}
+                  {seller.logo && <img src={getImageUrl(seller.logo)} alt={seller.businessName} className="w-20 h-20 rounded-xl object-cover" />}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-start justify-between mb-2">
                       <div>
@@ -185,7 +185,7 @@ export default function AdminSellers() {
                     {(seller.kycStatus === 'pending' || seller.kycStatus === 'submitted') && (
                       <>
                         <Button variant="soft-success" size="sm" className="gap-2" onClick={() => approveMutation.mutate(seller._id)}><CheckCircle2 size={14} /> Approve</Button>
-                        <Button variant="soft-destructive" size="sm" className="gap-2" onClick={() => rejectMutation.mutate(seller._id)}><XCircle size={14} /> Reject</Button>
+                        <Button variant="soft-destructive" size="sm" className="gap-2" onClick={() => { const reason = window.prompt('Reason for rejection (shown to the seller)'); if (reason !== null) rejectMutation.mutate({ id: seller._id, reason }); }}><XCircle size={14} /> Reject</Button>
                       </>
                     )}
                   </div>
@@ -204,7 +204,7 @@ export default function AdminSellers() {
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
-              {viewSeller?.logo && <img src={viewSeller.logo} alt="" className="w-10 h-10 rounded-lg object-cover" />}
+              {viewSeller?.logo && <img src={getImageUrl(viewSeller.logo)} alt="" className="w-10 h-10 rounded-lg object-cover" />}
               {viewSeller?.businessName}
               <SellerBadge type={viewSeller?.type} />
             </DialogTitle>
@@ -400,7 +400,7 @@ export default function AdminSellers() {
                   <Button variant="soft-success" className="flex-1 gap-2" onClick={() => { approveMutation.mutate(viewSeller._id); setViewSeller(null); }}>
                     <CheckCircle2 size={18} /> Approve Seller
                   </Button>
-                  <Button variant="soft-destructive" className="flex-1 gap-2" onClick={() => { rejectMutation.mutate(viewSeller._id); setViewSeller(null); }}>
+                  <Button variant="soft-destructive" className="flex-1 gap-2" onClick={() => { const reason = window.prompt('Reason for rejection (shown to the seller)'); if (reason === null) return; rejectMutation.mutate({ id: viewSeller._id, reason }); setViewSeller(null); }}>
                     <XCircle size={18} /> Reject Seller
                   </Button>
                 </div>

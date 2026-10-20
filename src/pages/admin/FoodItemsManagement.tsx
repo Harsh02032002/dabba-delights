@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { apiRequest, apiUpload } from "@/lib/api";
+import { apiRequest, apiUpload, getImageUrl } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -236,7 +236,7 @@ export default function FoodItemsManagement() {
             <TableRow key={item._id}>
               <TableCell>
                 {item.image ? (
-                  <img src={item.image} alt={item.name} className="w-10 h-10 rounded-lg object-cover" />
+                  <img src={getImageUrl(item.image)} alt={item.name} className="w-10 h-10 rounded-lg object-cover" />
                 ) : (
                   <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center text-gray-400 text-xs">No img</div>
                 )}

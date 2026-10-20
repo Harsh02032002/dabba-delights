@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
-import { apiRequest } from "@/lib/api";
+import { apiRequest, getImageUrl } from "@/lib/api";
 import { Loader2, Plus, Edit2, Trash2, Users, CreditCard, TrendingUp, Clock, Store, Eye } from "lucide-react";
 import { format } from "date-fns";
 
@@ -605,7 +605,7 @@ export default function AdminSubscriptions() {
                     </CardHeader>
                     {plan.image ? (
                       <img
-                        src={plan.image}
+                        src={getImageUrl(plan.image)}
                         alt={plan.plan_name}
                         className="w-full h-32 object-cover"
                       />
@@ -938,7 +938,7 @@ export default function AdminSubscriptions() {
                   )}
                   {editingPlan?.image && !imagePreview && (
                     <img
-                      src={editingPlan.image}
+                      src={getImageUrl(editingPlan.image)}
                       alt="Current"
                       className="w-16 h-16 object-cover rounded-md"
                     />
@@ -985,7 +985,7 @@ export default function AdminSubscriptions() {
                 {viewingPlan.image && (
                   <div className="w-full h-64 rounded-lg overflow-hidden">
                     <img
-                      src={viewingPlan.image}
+                      src={getImageUrl(viewingPlan.image)}
                       alt={viewingPlan.plan_name}
                       className="w-full h-full object-cover"
                     />

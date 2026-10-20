@@ -21,7 +21,7 @@ import {
   Link as LinkIcon, Zap, Check, X, FileUp, Layers,
 } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { productAPI, sellerAPI } from '@/lib/api';
+import { productAPI, sellerAPI, getImageUrl } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Checkbox } from '@/components/ui/checkbox';
 import { safeArray } from '@/utils/safeArray';
@@ -370,12 +370,12 @@ export default function SellerMenu() {
                     <Checkbox checked={selectedIds.includes(item._id)} onCheckedChange={() => toggleSelect(item._id)} />
                   </div>
                   <div className="relative aspect-[4/3]">
-                    <img src={item.image || '/placeholder.svg'} alt={item.name} className="w-full h-full object-cover" />
+                    <img src={getImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover" />
                     <div className="absolute top-2 right-2"><VegBadge isVeg={item.isVeg} /></div>
                     <div className={`absolute bottom-2 right-2 px-2 py-1 rounded text-xs font-medium ${item.isAvailable ? 'bg-green-500/90 text-white' : 'bg-destructive/90 text-white'}`}>
                       {item.isAvailable ? 'Available' : 'Unavailable'}
                     </div>
-                    {item.stock !== undefined && item.stock <= 5 && (
+                    {typeof item.stock === 'number' && item.stock > 0 && item.stock <= 5 && (
                       <div className="absolute bottom-2 left-8 px-2 py-1 rounded text-xs font-medium bg-yellow-500/90 text-white">
                         Low Stock: {item.stock}
                       </div>
@@ -394,7 +394,7 @@ export default function SellerMenu() {
                     <p className="text-xs text-muted-foreground line-clamp-1 mb-2">{item.description}</p>
                     <div className="flex items-center gap-1 text-xs text-muted-foreground mb-2">
                       <span>{item.category}</span> · <span>{item.preparationTime}m</span>
-                      {item.stock !== undefined && <> · <span>Stock: {item.stock}</span></>}
+                      {typeof item.stock === 'number' && <> · <span>{item.stock < 0 ? 'Unlimited stock' : item.stock === 0 ? 'Sold out' : `Stock: ${item.stock}`}</span></>}
                     </div>
                     <div className="flex flex-wrap gap-1">
                       <Button variant="ghost" size="icon-sm" onClick={() => { setEditItem(item); setEditHasSizes(!!item.hasSizes); }} title="Edit"><Edit size={14} /></Button>
@@ -573,7 +573,7 @@ export default function SellerMenu() {
               {archivedProducts.map((item: any) => (
                 <Card key={item._id} className="overflow-hidden opacity-75">
                   <div className="relative aspect-[4/3]">
-                    <img src={item.image || '/placeholder.svg'} alt={item.name} className="w-full h-full object-cover grayscale" />
+                    <img src={getImageUrl(item.image)} alt={item.name} className="w-full h-full object-cover grayscale" />
                   </div>
                   <CardContent className="p-3">
                     <h3 className="font-semibold text-sm mb-2">{item.name} — ₹{item.sellingPrice}</h3>
