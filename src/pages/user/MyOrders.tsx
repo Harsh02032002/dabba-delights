@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { UserLayout } from "@/layouts/UserLayout";
-import { userAPI } from "@/lib/api";
+import { userAPI, getImageUrl } from "@/lib/api";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -277,7 +277,7 @@ export default function MyOrders() {
                       <div className="flex flex-wrap gap-2 mb-2">
                         {(order.items || []).map((item: any, idx: number) => (
                           <div key={idx} className="flex items-center gap-2 bg-secondary rounded-lg p-2">
-                            {item.image && <img src={item.image} alt={item.name} className="w-8 h-8 rounded object-cover" />}
+                            {item.image && <img src={getImageUrl(item.image)} alt={item.name} className="w-8 h-8 rounded object-cover" />}
                             <span className="text-sm">{item.name} x{item.quantity}</span>
                           </div>
                         ))}
@@ -409,6 +409,15 @@ export default function MyOrders() {
                               📍 Location updating... Last: {new Date(deliveryLocations[order._id].timestamp).toLocaleTimeString()}
                             </div>
                           )}
+                          <div className="mt-2.5 p-2.5 bg-white rounded-lg border border-orange-200 flex items-center justify-between shadow-xs">
+                            <div>
+                              <p className="text-[11px] font-bold text-orange-800 uppercase tracking-wider">Delivery OTP</p>
+                              <p className="text-xs text-muted-foreground">Share with rider to receive your food</p>
+                            </div>
+                            <span className="text-base font-black tracking-widest text-primary bg-orange-50 px-3 py-1 rounded-md border border-orange-200 font-mono">
+                              {order.deliveryOtp || '1234'}
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
