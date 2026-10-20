@@ -2,7 +2,7 @@ import { UserLayout } from '@/layouts/UserLayout';
 import { Button } from '@/components/ui/button';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { userAPI } from '@/lib/api';
+import { userAPI, getImageUrl } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Heart, ShoppingCart, ArrowLeft, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -108,7 +108,7 @@ export default function UserWishlist() {
               >
                 <div className="relative aspect-[4/3] overflow-hidden">
                   <img
-                    src={item?.image}
+                    src={getImageUrl(item?.image)}
                     alt={item?.name}
                     className="w-full h-full object-cover"
                   />
