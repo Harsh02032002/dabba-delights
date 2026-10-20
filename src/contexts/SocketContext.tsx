@@ -17,7 +17,12 @@ export function SocketProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
+    const token =
+      localStorage.getItem('sellerToken') ||
+      localStorage.getItem('adminToken') ||
+      localStorage.getItem('userToken') ||
+      localStorage.getItem('deliveryToken') ||
+      localStorage.getItem('token');
     if (!token) return;
 
     const socket = io(API_BASE_URL, {
