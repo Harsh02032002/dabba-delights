@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminAPI } from '@/lib/api';
+import { adminAPI, getImageUrl } from '@/lib/api';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { toast } from '@/hooks/use-toast';
 import { Search, Eye, Users, Ban, CheckCircle2, Mail, Phone, Calendar, Wallet, ShoppingBag, MapPin, Trash2 } from 'lucide-react';
@@ -84,7 +84,7 @@ export default function AdminUsers() {
               <CardContent className="p-6">
                 <div className="flex items-center gap-6">
                   <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center text-lg font-bold text-primary">
-                    {user.avatar ? <img src={user.avatar} alt="" className="w-full h-full rounded-full object-cover" /> : user.name?.charAt(0)}
+                    {user.avatar ? <img src={getImageUrl(user.avatar)} alt="" className="w-full h-full rounded-full object-cover" /> : user.name?.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-1">
@@ -141,7 +141,7 @@ export default function AdminUsers() {
           <DialogHeader>
             <DialogTitle className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-lg font-bold text-primary">
-                {viewUser?.avatar ? <img src={viewUser.avatar} alt="" className="w-full h-full rounded-full object-cover" /> : viewUser?.name?.charAt(0)}
+                {viewUser?.avatar ? <img src={getImageUrl(viewUser.avatar)} alt="" className="w-full h-full rounded-full object-cover" /> : viewUser?.name?.charAt(0)}
               </div>
               {viewUser?.name}
             </DialogTitle>
