@@ -41,7 +41,8 @@ export function ProtectedRoute({ children, requiredRole }: ProtectedRouteProps) 
 
   // STRICT: Logged in but trying to access different role's panel
   // e.g., Seller trying to access /admin, or User trying to access /seller
-  if (requiredRole && roleUser.role !== requiredRole) {
+  // If logged in under dedicated role session, allow access
+  if (requiredRole && roleUser.role !== requiredRole && !(requiredRole === 'seller' && hasRoleToken) && !(requiredRole === 'admin' && hasRoleToken)) {
     // Redirect to their correct dashboard
     if (roleUser.role === 'seller') {
       return <Navigate to="/seller" replace />;
