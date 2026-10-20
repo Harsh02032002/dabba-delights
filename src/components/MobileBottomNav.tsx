@@ -27,7 +27,7 @@ export function MobileBottomNav() {
   const navItems = [
     { icon: Home, label: "Home", path: "/home" },
     { icon: ShoppingBag, label: "Orders", path: "/orders" },
-    { icon: Crown, label: "Subscribe", path: "/subscription-plans" },
+    { icon: Crown, label: "Subscribe", path: "/subscriptions" },
     { icon: Heart, label: "Wishlist", path: "/wishlist" },
     { icon: User, label: "Profile", path: "/settings" },
   ];
