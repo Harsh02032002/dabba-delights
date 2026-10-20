@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { CartProvider } from "@/contexts/CartContext";
 import { SocketProvider } from "@/contexts/SocketContext";
@@ -14,7 +14,6 @@ import React, { Suspense, lazy } from "react";
 // Lazy load components
 import LandingPage from "./pages/user/LandingPage";
 const UserHome = lazy(() => import("./pages/user/UserHome"));
-const SubscriptionPlans = lazy(() => import("./pages/user/SubscriptionPlans"));
 const UserLogin = lazy(() => import("./pages/user/UserLogin"));
 const UserRegister = lazy(() => import("./pages/user/UserRegister"));
 const VerifyEmail = lazy(() => import("./pages/auth/VerifyEmail"));
@@ -30,7 +29,6 @@ const MyOrders = lazy(() => import("./pages/user/MyOrders"));
 const UserSettings = lazy(() => import("./pages/user/UserSettings"));
 const SellerDetail = lazy(() => import("./pages/user/SellerDetail"));
 const SubscriptionItems = lazy(() => import("./pages/user/SubscriptionItems"));
-const UserSubscriptionPlans = lazy(() => import("./pages/user/UserSubscriptionPlans"));
 const HelpCenter = lazy(() => import("./pages/user/HelpCenter"));
 const ContactUs = lazy(() => import("./pages/user/ContactUs"));
 
@@ -144,7 +142,8 @@ const App = () => (
 
                 {/* User Routes - Protected for users only */}
                 <Route path="/home" element={<RoleGuard allowedRole="user"><UserHome /></RoleGuard>} />
-                <Route path="/subscription-plans" element={<RoleGuard allowedRole="user"><SubscriptionPlans /></RoleGuard>} />
+                {/* Plans are bought on /subscriptions (verified Razorpay checkout); keep old links working */}
+                <Route path="/subscription-plans" element={<Navigate to="/subscriptions" replace />} />
                 <Route path="/cart" element={<RoleGuard allowedRole="user"><CartPage /></RoleGuard>} />
                 <Route path="/checkout" element={<RoleGuard allowedRole="user"><CheckoutPage /></RoleGuard>} />
                 <Route path="/wishlist" element={<RoleGuard allowedRole="user"><UserWishlist /></RoleGuard>} />
@@ -154,7 +153,6 @@ const App = () => (
                 <Route path="/orders" element={<RoleGuard allowedRole="user"><MyOrders /></RoleGuard>} />
                 <Route path="/subscriptions" element={<RoleGuard allowedRole="user"><UserSubscription /></RoleGuard>} />
                 <Route path="/subscription-items" element={<ProtectedRoute><SubscriptionItems /></ProtectedRoute>} />
-                <Route path="/subscription-plans" element={<ProtectedRoute><UserSubscriptionPlans /></ProtectedRoute>} />
                 <Route path="/settings" element={<RoleGuard allowedRole="user"><UserSettings /></RoleGuard>} />
                 <Route path="/seller/:id" element={<RoleGuard allowedRole="user"><SellerDetail /></RoleGuard>} />
 
