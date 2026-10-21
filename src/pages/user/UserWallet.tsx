@@ -6,17 +6,15 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { userAPI, apiRequest, paymentAPI } from '@/lib/api';
+import { userAPI, apiRequest } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Wallet, Plus, ArrowLeft, ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import { OnlinePaymentModal } from '@/components/OnlinePaymentModal';
 
 export default function UserWallet() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [topupAmount, setTopupAmount] = useState('');
-  const [isOnlineModalOpen, setIsOnlineModalOpen] = useState(false);
   const [subAmount, setSubAmount] = useState('3000');
   const [subDays, setSubDays] = useState('30');
 
@@ -50,10 +48,8 @@ export default function UserWallet() {
     | undefined;
 
   const topupMutation = useMutation({
-    mutationFn: async (amount: number) => {
-      // Create Razorpay order first
-      return paymentAPI.createRazorpayOrder({ amount, currency: 'INR' });
-    },
+    // The server creates the order; money is added only after it verifies the payment
+    mutationFn: async (amount: number) => userAPI.topupWallet(amount),
     onSuccess: async (razorpayOrder: any) => {
       if (razorpayOrder.success && razorpayOrder.key) {
         console.log('🔍 Starting Razorpay payment logic...');
@@ -69,18 +65,16 @@ export default function UserWallet() {
             image: '/logo.png',
             handler: async (response: any) => {
               try {
-                const verification = await paymentAPI.verifyRazorpayPayment({
-                  razorpayOrderId: response.razorpay_order_id,
-                  razorpayPaymentId: response.razorpay_payment_id,
-                  razorpaySignature: response.razorpay_signature,
-                  amount: Number(topupAmount)
+                const verification: any = await userAPI.verifyPayment({
+                  razorpay_order_id: response.razorpay_order_id,
+                  razorpay_payment_id: response.razorpay_payment_id,
+                  razorpay_signature: response.razorpay_signature,
                 });
 
                 if (verification.success) {
-                  await userAPI.topupWallet(Number(topupAmount));
                   toast({
                     title: 'Payment Successful',
-                    description: `₹${topupAmount} added to your wallet`,
+                    description: `₹${verification.amount ?? topupAmount} added to your wallet`,
                   });
                   queryClient.invalidateQueries({ queryKey: ['user-wallet'] });
                   setTopupAmount('');
@@ -220,8 +214,8 @@ export default function UserWallet() {
                   <Button
                     variant="gradient"
                     className="self-end gap-2"
-                    disabled={!topupAmount || Number(topupAmount) <= 0}
-                    onClick={() => setIsOnlineModalOpen(true)}
+                    disabled={!topupAmount || Number(topupAmount) <= 0 || topupMutation.isPending}
+                    onClick={() => topupMutation.mutate(Number(topupAmount))}
                   >
                     <Plus size={18} />
                     Add Money
@@ -306,24 +300,6 @@ export default function UserWallet() {
         )}
       </div>
 
-      <OnlinePaymentModal
-        isOpen={isOnlineModalOpen}
-        onClose={() => setIsOnlineModalOpen(false)}
-        amount={Number(topupAmount) || 0}
-        title="Topup Wallet via PhonePe / UPI"
-        onPaymentSuccess={async (txnId) => {
-          const amt = Number(topupAmount);
-          if (amt > 0) {
-            await userAPI.topupWallet(amt);
-            toast({
-              title: 'Payment Successful',
-              description: `₹${amt} added to your wallet`,
-            });
-            queryClient.invalidateQueries({ queryKey: ['user-wallet'] });
-            setTopupAmount('');
-          }
-        }}
-      />
     </UserLayout>
   );
 }
