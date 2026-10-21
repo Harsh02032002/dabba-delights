@@ -1,6 +1,6 @@
 import { UserLayout } from '@/layouts/UserLayout';
 import { Card, CardContent } from '@/components/ui/card';
-import { Shield, Lock, Eye, Database, Share2, UserCheck, Bell } from 'lucide-react';
+import { Shield, Lock, Eye, Database, Share2, UserCheck, Bell, BadgeCheck, Trash2 } from 'lucide-react';
 
 const sections = [
   {
@@ -11,7 +11,18 @@ const sections = [
     • Payment information (processed securely through our payment partners)
     • Order history and preferences
     • Location data (with your permission) for delivery purposes
+    • Photos you choose to upload (profile picture, menu photos, verification documents)
     • Device and usage information to improve our services`
+  },
+  {
+    icon: BadgeCheck,
+    title: 'Kitchen and Delivery Partner Verification',
+    content: `Kitchens and delivery partners upload identity and business documents so we can verify them:
+    • Kitchens: Aadhaar, PAN, FSSAI licence, and optionally GST certificate and bank proof
+    • Delivery partners: Aadhaar, PAN, driving licence and vehicle RC, plus bank details for payouts
+    • These documents are used only for verification, compliance and payouts
+    • They are visible only to our verification team, never to customers
+    • They are erased when the account is deleted`
   },
   {
     icon: Lock,
@@ -49,7 +60,7 @@ const sections = [
     content: `You have control over your personal information:
     • Access and update your profile information anytime
     • Opt-out of promotional communications
-    • Request deletion of your account and data
+    • Delete your account and personal data at any time (see "Deleting Your Account")
     • Disable location services through device settings
     • Choose payment methods and manage saved cards`
   },
@@ -62,6 +73,16 @@ const sections = [
     • Payment records: As required by financial regulations
     • Marketing preferences: Until you opt-out
     • Anonymized usage data: Indefinitely for analytics`
+  },
+  {
+    icon: Trash2,
+    title: 'Deleting Your Account',
+    content: `You can delete your account at any time:
+    • In the customer app: Settings, then Delete account
+    • In the delivery partner app: Profile, then Delete Account
+    • On the web: dabbanation.in/delete-account
+    • We erase your name, contact details, password, addresses, photos, documents and wallet balance
+    • Past orders and invoices are kept without your name for tax and accounting purposes`
   },
   {
     icon: Bell,
@@ -85,7 +106,7 @@ export default function PrivacyPolicy() {
             <Shield className="text-primary" size={32} />
           </div>
           <h1 className="text-3xl font-bold mb-4">Privacy Policy</h1>
-          <p className="text-muted-foreground">Last updated: April 1, 2025</p>
+          <p className="text-muted-foreground">Last updated: October 22, 2026</p>
         </div>
 
         {/* Introduction */}
