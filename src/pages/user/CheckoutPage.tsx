@@ -682,12 +682,7 @@ export default function CheckoutPage() {
                         <span className="text-muted-foreground">{item.menuItem.name}{item.selectedSize ? ` (${item.selectedSize === 'half' ? 'Half' : 'Full'})` : ''} x{item.quantity}</span>
                         <span>₹{itemTotal.toFixed(0)}</span>
                       </div>
-                      {gstCalculation && gstSettings?.gstApplicable && gstSettings?.foodGSTEnabled ? (
-                        <div className="flex justify-between text-xs text-muted-foreground ml-4">
-                          <span>+ GST ({formatGSTPercentage(GST_RATES.FOOD.TOTAL)})</span>
-                          <span>₹{(itemTotal * GST_RATES.FOOD.TOTAL).toFixed(2)}</span>
-                        </div>
-                      ) : null}
+                      
                     </div>
                   );
                 })}
@@ -696,29 +691,7 @@ export default function CheckoutPage() {
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>₹{totals.subtotal.toFixed(2)}</span></div>
 
-                {/* 🧾 GST Breakup - Only show if GST is enabled */}
-                {gstCalculation && gstSettings?.gstApplicable && gstSettings?.foodGSTEnabled ? (
-                  <>
-                    <p className="text-xs text-muted-foreground italic">Food GST (collected on behalf of seller)</p>
-                    {gstCalculation.foodIGST > 0 ? (
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">IGST on items</span>
-                        <span>₹{gstCalculation.foodIGST.toFixed(2)}</span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">CGST ({formatGSTPercentage(GST_RATES.FOOD.CGST)})</span>
-                          <span>₹{gstCalculation.totalCGST.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-muted-foreground">SGST ({formatGSTPercentage(GST_RATES.FOOD.SGST)})</span>
-                          <span>₹{gstCalculation.totalSGST.toFixed(2)}</span>
-                        </div>
-                      </>
-                    )}
-                  </>
-                ) : null}
+                
 
                 {/* Delivery Fee Breakdown */}
                 <div className="flex justify-between text-sm">
@@ -736,34 +709,9 @@ export default function CheckoutPage() {
                   </span>
                 </div>
 
-                {gstCalculation && gstSettings?.gstApplicable && gstSettings?.deliveryGSTEnabled && (gstCalculation.deliveryFee ?? 0) > 0 ? (
-                  <>
-                    {gstCalculation.deliveryIGST > 0 ? (
-                      <div className="flex justify-between text-xs text-muted-foreground ml-5">
-                        <span>+ IGST on delivery</span>
-                        <span>₹{gstCalculation.deliveryIGST.toFixed(2)}</span>
-                      </div>
-                    ) : (
-                      <>
-                        <div className="flex justify-between text-xs text-muted-foreground ml-5">
-                          <span>+ CGST on delivery</span>
-                          <span>₹{gstCalculation.deliveryCGST.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between text-xs text-muted-foreground ml-5">
-                          <span>+ SGST on delivery</span>
-                          <span>₹{gstCalculation.deliverySGST.toFixed(2)}</span>
-                        </div>
-                      </>
-                    )}
-                  </>
-                ) : null}
+                
 
-                {(serverQuote ? serverQuote.taxTotal > 0 : gstCalculation && gstSettings?.gstApplicable) ? (
-                  <div className="flex justify-between text-green-700 font-medium pt-1">
-                    <span>Total GST</span>
-                    <span>₹{(serverQuote?.taxTotal ?? gstCalculation?.totalGST ?? 0).toFixed(2)}</span>
-                  </div>
-                ) : null}
+                
 
                 {quoteProblem && (
                   <p className="text-xs text-destructive" role="alert">{quoteProblem}</p>

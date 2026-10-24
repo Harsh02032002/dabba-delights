@@ -217,15 +217,7 @@ export default function CartPage() {
                 </div>
                 */}
 
-                {/* GST - Dynamic rate from backend */}
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">
-                    GST ({gstPercentage.toFixed(0)}%)
-                  </span>
-                  <span className="font-medium">
-                    ₹{totals.gst.toFixed(2)}
-                  </span>
-                </div>
+                
               </div>
 
               <Separator className="my-4" />
