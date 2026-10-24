@@ -48,6 +48,8 @@ export default function SellerMenu() {
   const [editSelectedImage, setEditSelectedImage] = useState<File | null>(null);
   const [hasSizes, setHasSizes] = useState(false);
   const [editHasSizes, setEditHasSizes] = useState(false);
+  const [isVeg, setIsVeg] = useState(true);
+  const [editIsVeg, setEditIsVeg] = useState(true);
 
   const handleImageDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
@@ -205,22 +207,24 @@ export default function SellerMenu() {
     e.preventDefault();
     const form = e.currentTarget;
     const fd = new FormData();
-    fd.append('name', (form.elements.namedItem('name') as HTMLInputElement).value);
-    fd.append('description', (form.elements.namedItem('description') as HTMLTextAreaElement).value);
-    const hasSizes = (form.elements.namedItem('hasSizes') as HTMLInputElement)?.checked || false;
+    fd.append('name', (form.elements.namedItem('name') as HTMLInputElement)?.value || '');
+    fd.append('description', (form.elements.namedItem('description') as HTMLTextAreaElement)?.value || '');
     fd.append('hasSizes', String(hasSizes));
     if (hasSizes) {
-      fd.append('halfPlatePrice', (form.elements.namedItem('halfPlatePrice') as HTMLInputElement)?.value || '0');
-      fd.append('fullPlatePrice', (form.elements.namedItem('fullPlatePrice') as HTMLInputElement)?.value || '0');
-      fd.append('sellingPrice', (form.elements.namedItem('halfPlatePrice') as HTMLInputElement)?.value || '0'); // default fallback
+      const halfPrice = (form.elements.namedItem('halfPlatePrice') as HTMLInputElement)?.value || '0';
+      const fullPrice = (form.elements.namedItem('fullPlatePrice') as HTMLInputElement)?.value || '0';
+      fd.append('halfPlatePrice', halfPrice);
+      fd.append('fullPlatePrice', fullPrice);
+      fd.append('sellingPrice', halfPrice); // default fallback
     } else {
-      fd.append('sellingPrice', (form.elements.namedItem('sellingPrice') as HTMLInputElement).value);
+      const sellingPrice = (form.elements.namedItem('sellingPrice') as HTMLInputElement)?.value || '0';
+      fd.append('sellingPrice', sellingPrice);
     }
-    fd.append('costPrice', (form.elements.namedItem('costPrice') as HTMLInputElement).value || '0');
+    fd.append('costPrice', (form.elements.namedItem('costPrice') as HTMLInputElement)?.value || '0');
     fd.append('category', (form.elements.namedItem('category') as HTMLInputElement)?.value || 'Main Course');
-    fd.append('preparationTime', (form.elements.namedItem('preparationTime') as HTMLInputElement).value);
-    fd.append('stock', (form.elements.namedItem('stock') as HTMLInputElement).value || '100');
-    fd.append('isVeg', String((form.elements.namedItem('isVeg') as HTMLInputElement)?.checked || false));
+    fd.append('preparationTime', (form.elements.namedItem('preparationTime') as HTMLInputElement)?.value || '20');
+    fd.append('stock', (form.elements.namedItem('stock') as HTMLInputElement)?.value || '100');
+    fd.append('isVeg', String(isVeg));
     // prefer selectedImage (drag/drop or paste) else file input
     if (selectedImage) fd.append('image', selectedImage);
     else {
@@ -235,22 +239,24 @@ export default function SellerMenu() {
     if (!editItem) return;
     const form = e.currentTarget;
     const fd = new FormData();
-    fd.append('name', (form.elements.namedItem('editName') as HTMLInputElement).value);
-    fd.append('description', (form.elements.namedItem('editDescription') as HTMLTextAreaElement).value);
-    const hasSizes = (form.elements.namedItem('editHasSizes') as HTMLInputElement)?.checked || false;
-    fd.append('hasSizes', String(hasSizes));
-    if (hasSizes) {
-      fd.append('halfPlatePrice', (form.elements.namedItem('editHalfPlatePrice') as HTMLInputElement)?.value || '0');
-      fd.append('fullPlatePrice', (form.elements.namedItem('editFullPlatePrice') as HTMLInputElement)?.value || '0');
-      fd.append('sellingPrice', (form.elements.namedItem('editHalfPlatePrice') as HTMLInputElement)?.value || '0'); // default fallback
+    fd.append('name', (form.elements.namedItem('editName') as HTMLInputElement)?.value || '');
+    fd.append('description', (form.elements.namedItem('editDescription') as HTMLTextAreaElement)?.value || '');
+    fd.append('hasSizes', String(editHasSizes));
+    if (editHasSizes) {
+      const halfPrice = (form.elements.namedItem('editHalfPlatePrice') as HTMLInputElement)?.value || '0';
+      const fullPrice = (form.elements.namedItem('editFullPlatePrice') as HTMLInputElement)?.value || '0';
+      fd.append('halfPlatePrice', halfPrice);
+      fd.append('fullPlatePrice', fullPrice);
+      fd.append('sellingPrice', halfPrice); // default fallback
     } else {
-      fd.append('sellingPrice', (form.elements.namedItem('editSellingPrice') as HTMLInputElement).value);
+      const sellingPrice = (form.elements.namedItem('editSellingPrice') as HTMLInputElement)?.value || '0';
+      fd.append('sellingPrice', sellingPrice);
     }
-    fd.append('costPrice', (form.elements.namedItem('editCostPrice') as HTMLInputElement).value || '0');
+    fd.append('costPrice', (form.elements.namedItem('editCostPrice') as HTMLInputElement)?.value || '0');
     fd.append('category', (form.elements.namedItem('editCategory') as HTMLInputElement)?.value || editItem.category);
-    fd.append('preparationTime', (form.elements.namedItem('editPrepTime') as HTMLInputElement).value);
-    fd.append('stock', (form.elements.namedItem('editStock') as HTMLInputElement).value || '0');
-    fd.append('isVeg', String((form.elements.namedItem('editIsVeg') as HTMLInputElement)?.checked || false));
+    fd.append('preparationTime', (form.elements.namedItem('editPrepTime') as HTMLInputElement)?.value || '20');
+    fd.append('stock', (form.elements.namedItem('editStock') as HTMLInputElement)?.value || '0');
+    fd.append('isVeg', String(editIsVeg));
     // prefer editSelectedImage else file input
     if (editSelectedImage) fd.append('image', editSelectedImage);
     else {
@@ -397,7 +403,7 @@ export default function SellerMenu() {
                       {typeof item.stock === 'number' && <> · <span>{item.stock < 0 ? 'Unlimited stock' : item.stock === 0 ? 'Sold out' : `Stock: ${item.stock}`}</span></>}
                     </div>
                     <div className="flex flex-wrap gap-1">
-                      <Button variant="ghost" size="icon-sm" onClick={() => { setEditItem(item); setEditHasSizes(!!item.hasSizes); }} title="Edit"><Edit size={14} /></Button>
+                      <Button variant="ghost" size="icon-sm" onClick={() => { setEditItem(item); setEditHasSizes(!!item.hasSizes); setEditIsVeg(!!item.isVeg); }} title="Edit"><Edit size={14} /></Button>
                       <Button variant="ghost" size="icon-sm" onClick={() => toggleAvailMutation.mutate(item._id)} title="Toggle availability"><ToggleLeft size={14} /></Button>
                       <Button variant="ghost" size="icon-sm" onClick={() => toggleVegMutation.mutate(item._id)} title="Toggle veg"><Layers size={14} /></Button>
                       <Button variant="ghost" size="icon-sm" onClick={() => duplicateMutation.mutate(item._id)} title="Duplicate"><Copy size={14} /></Button>
@@ -492,7 +498,7 @@ export default function SellerMenu() {
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
-                  <Switch name="isVeg" id="addIsVeg" />
+                  <Switch name="isVeg" id="addIsVeg" checked={isVeg} onCheckedChange={setIsVeg} />
                   <Label htmlFor="addIsVeg">Vegetarian</Label>
                 </div>
                 <Button type="submit" disabled={createMutation.isPending} className="w-full md:w-auto">
@@ -710,7 +716,7 @@ export default function SellerMenu() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Switch name="editIsVeg" id="editIsVeg" defaultChecked={editItem.isVeg} />
+                <Switch name="editIsVeg" id="editIsVeg" checked={editIsVeg} onCheckedChange={setEditIsVeg} />
                 <Label htmlFor="editIsVeg">Vegetarian</Label>
               </div>
               <DialogFooter>
