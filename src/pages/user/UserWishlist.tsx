@@ -7,6 +7,7 @@ import { toast } from '@/hooks/use-toast';
 import { Heart, ShoppingCart, ArrowLeft, Trash2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { VegBadge } from '@/components/shared/Badge';
+import { useCart } from '@/contexts/CartContext';
 
 export default function UserWishlist() {
   const navigate = useNavigate();
@@ -38,23 +39,12 @@ export default function UserWishlist() {
       }),
   });
 
-  const addToCartMutation = useMutation({
-    mutationFn: (item: any) =>
-      userAPI.addToCart({
-        menuItemId: item?._id,
-        quantity: 1,
-      }),
-    onSuccess: () => {
-      toast({ title: 'Added to cart!' });
-      queryClient.invalidateQueries({ queryKey: ['user-cart'] });
-    },
-    onError: (err: any) =>
-      toast({
-        title: 'Error',
-        description: err?.message || 'Something went wrong',
-        variant: 'destructive',
-      }),
-  });
+  const { addToCart } = useCart();
+  const handleAddToCart = (item: any) => {
+    const seller = item?.sellerId;
+    const sellerId = typeof seller === 'object' ? seller?._id : seller;
+    addToCart(item, String(sellerId || ''), seller?.businessName || 'Restaurant', seller?.type || 'home_chef');
+  };
 
   return (
     <UserLayout>
@@ -145,10 +135,7 @@ export default function UserWishlist() {
                     <Button
                       size="sm"
                       variant="gradient"
-                      onClick={() =>
-                        addToCartMutation.mutate(item)
-                      }
-                      disabled={addToCartMutation.isPending}
+                      onClick={() => handleAddToCart(item)}
                       className="gap-1"
                     >
                       <ShoppingCart size={14} /> Add

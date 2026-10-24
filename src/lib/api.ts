@@ -804,19 +804,17 @@ export const userAPI = {
     };
   },
   getRecommendations: () => apiRequest("/user/recommendations"),
-  getCart: () => apiRequest("/user/cart"),
-  addToCart: (data: Record<string, unknown>) =>
-    apiRequest("/user/cart/add", {
-      method: "POST",
+  // Server cart, shared with the mobile app. Token is passed explicitly so it is always the customer's.
+  getCart: (authToken?: string | null) => apiRequest("/user/cart", { authToken }),
+  saveCart: (
+    data: { sellerId: string | null; items: { menuItemId: string; quantity: number; selectedSize?: string | null }[] },
+    authToken?: string | null,
+  ) =>
+    apiRequest("/user/cart", {
+      method: "PUT",
       body: JSON.stringify(data),
+      authToken,
     }),
-  updateQuantity: (itemId: string, quantity: number) =>
-    apiRequest("/user/cart/update", {
-      method: "PATCH",
-      body: JSON.stringify({ itemId, quantity }),
-    }),
-  removeFromCart: (itemId: string) =>
-    apiRequest(`/user/cart/remove/${itemId}`, { method: "DELETE" }),
   // Wallet
   getActiveSubscription: () => apiRequest("/user/subscriptions/active"),
   purchaseSubscription: (totalAmount: number, totalDays: number) =>

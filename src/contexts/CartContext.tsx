@@ -1,8 +1,35 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
 import { Cart, CartItem, MenuItem, SellerType } from '@/types';
 import { toast } from '@/hooks/use-toast';
 import { GST_RATES } from '@/lib/gst';
 import { getItemUnitPrice } from "@/lib/pricing";
+import { userAPI } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
+
+const EMPTY_CART: Cart = { items: [], sellerId: null, sellerName: null };
+
+// Server cart (GET/PUT /api/user/cart) is shared with the mobile app
+const toServerCart = (cart: Cart) => ({
+  sellerId: cart.items.length > 0 ? cart.sellerId : null,
+  items: cart.items.map(i => ({ menuItemId: i.menuItem._id, quantity: i.quantity, selectedSize: i.selectedSize || null })),
+});
+
+const fromServerCart = (data: any): Cart => {
+  const items: CartItem[] = (Array.isArray(data?.items) ? data.items : [])
+    .filter((i: any) => i?.menuItem?._id)
+    .map((i: any) => ({
+      menuItem: i.menuItem,
+      quantity: i.quantity,
+      sellerId: String(data.sellerId || ''),
+      sellerName: data.sellerName || 'Restaurant',
+      sellerType: data.sellerType || 'home_chef',
+      selectedSize: i.selectedSize || undefined,
+    }));
+  if (items.length === 0) return EMPTY_CART;
+  return { items, sellerId: String(data.sellerId || ''), sellerName: data.sellerName || null };
+};
+
+const sameCart = (a: Cart, b: Cart) => JSON.stringify(toServerCart(a)) === JSON.stringify(toServerCart(b));
 
 interface CartContextType {
   cart: Cart;
@@ -36,8 +63,80 @@ export function CartProvider({ children }: { children: ReactNode }) {
     return { items: [], sellerId: null, sellerName: null };
   });
 
+  const { userSession } = useAuth();
+  const token = userSession?.token || null;
+  const cartRef = useRef(cart);
+  cartRef.current = cart;
+  const prevTokenRef = useRef(token);
+  // Token whose server cart has been loaded; local changes are pushed only after that
+  const syncedTokenRef = useRef<string | null>(null);
+  const skipPushRef = useRef(false);
+  const pendingPushRef = useRef(false);
+
+  const applyRemoteCart = (next: Cart) => {
+    if (sameCart(next, cartRef.current)) return;
+    skipPushRef.current = true;
+    setCart(next);
+  };
+
+  const pullServerCart = (authToken: string, isLogin: boolean) =>
+    userAPI.getCart(authToken)
+      .then((res: any) => {
+        const server = fromServerCart(res?.data);
+        if (server.items.length > 0 || !isLogin) {
+          applyRemoteCart(server);
+        } else if (cartRef.current.items.length > 0) {
+          // Server empty at login: keep what was added before logging in
+          userAPI.saveCart(toServerCart(cartRef.current), authToken).catch(() => {});
+        }
+        syncedTokenRef.current = authToken;
+      })
+      .catch((err) => console.warn('[Cart] Failed to load server cart:', err?.message));
+
+  // Load the account's cart on login; drop it on logout so the next person doesn't see it
+  useEffect(() => {
+    const prevToken = prevTokenRef.current;
+    prevTokenRef.current = token;
+    if (!token) {
+      syncedTokenRef.current = null;
+      if (prevToken) applyRemoteCart(EMPTY_CART);
+      return;
+    }
+    pullServerCart(token, true);
+  }, [token]);
+
+  // Pick up changes made in the app when this tab comes back into focus
+  useEffect(() => {
+    if (!token) return;
+    const onVisible = () => {
+      if (document.visibilityState !== 'visible' || pendingPushRef.current) return;
+      pullServerCart(token, syncedTokenRef.current !== token);
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    window.addEventListener('focus', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      window.removeEventListener('focus', onVisible);
+    };
+  }, [token]);
+
   useEffect(() => {
     localStorage.setItem('cart', JSON.stringify(cart));
+    if (skipPushRef.current) {
+      skipPushRef.current = false;
+      return;
+    }
+    if (!token || syncedTokenRef.current !== token) return;
+    pendingPushRef.current = true;
+    const timer = setTimeout(() => {
+      userAPI.saveCart(toServerCart(cart), token)
+        .catch((err) => console.warn('[Cart] Failed to save server cart:', err?.message))
+        .finally(() => { pendingPushRef.current = false; });
+    }, 400);
+    return () => {
+      clearTimeout(timer);
+      pendingPushRef.current = false;
+    };
   }, [cart]);
 
   const addToCart = (item: MenuItem, sellerId: string, sellerName: string, sellerType: SellerType, selectedSize?: 'half' | 'full') => {
@@ -104,7 +203,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const clearCart = () => {
-    setCart({ items: [], sellerId: null, sellerName: null });
+    setCart(EMPTY_CART);
   };
 
   const getTotal = () => {
