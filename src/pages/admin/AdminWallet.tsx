@@ -134,7 +134,7 @@ export default function AdminWallet() {
           {/* 4 Main Stats Cards */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card className="stat-card border-l-4 border-l-green-500">
-              <CardContent className="p-4">
+              <CardContent className="p-0">
                 <p className="text-sm text-muted-foreground mb-1">💰 Total Received</p>
                 <p className="text-2xl font-bold text-success">₹{totalReceived.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -146,7 +146,7 @@ export default function AdminWallet() {
               </CardContent>
             </Card>
             <Card className="stat-card border-l-4 border-l-orange-500">
-              <CardContent className="p-4">
+              <CardContent className="p-0">
                 <p className="text-sm text-muted-foreground mb-1">📝 To Pay Sellers</p>
                 <p className="text-2xl font-bold text-orange-600">₹{totalToPaySellers.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -158,7 +158,7 @@ export default function AdminWallet() {
               </CardContent>
             </Card>
             <Card className="stat-card border-l-4 border-l-blue-500">
-              <CardContent className="p-4">
+              <CardContent className="p-0">
                 <p className="text-sm text-muted-foreground mb-1">📊 Admin Commission</p>
                 <p className="text-2xl font-bold text-blue-600">₹{adminCommissionEarned.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-1">
@@ -170,7 +170,7 @@ export default function AdminWallet() {
               </CardContent>
             </Card>
             <Card className="stat-card border-l-4 border-l-purple-500">
-              <CardContent className="p-4">
+              <CardContent className="p-0">
                 <p className="text-sm text-muted-foreground mb-1">✅ Already Paid</p>
                 <p className="text-2xl font-bold text-purple-600">₹{alreadyPaidToSellers.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-1">

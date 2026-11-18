@@ -40,7 +40,7 @@ export default function SellerWallet() {
   return (
     <SellerLayout title="My Wallet" subtitle="Track your earnings from orders and subscriptions">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
-        <TabsList className="bg-secondary p-1">
+        <TabsList className="bg-secondary p-1 mb-6">
           <TabsTrigger value="overview" className="data-[state=active]:bg-card">Overview</TabsTrigger>
           <TabsTrigger value="orders" className="data-[state=active]:bg-card">Orders</TabsTrigger>
           <TabsTrigger value="subscriptions" className="data-[state=active]:bg-card">Subscriptions</TabsTrigger>
@@ -51,7 +51,7 @@ export default function SellerWallet() {
           {/* 3 Main Stats */}
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             <Card className="stat-card border-l-4 border-l-green-500">
-              <CardContent className="p-4">
+              <CardContent className="p-0">
                 <p className="text-sm text-muted-foreground mb-1">💰 Total Earnings</p>
                 <p className="text-3xl font-bold text-success">₹{totalEarnings.toLocaleString()}</p>
                 <div className="flex items-center gap-2 mt-2 text-xs">
@@ -71,7 +71,7 @@ export default function SellerWallet() {
             </Card>
 
             <Card className="stat-card border-l-4 border-l-orange-500">
-              <CardContent className="p-4">
+              <CardContent className="p-0">
                 <p className="text-sm text-muted-foreground mb-1">⏳ Pending Payout</p>
                 <p className="text-3xl font-bold text-orange-600">₹{pendingPayout.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-2">
@@ -84,7 +84,7 @@ export default function SellerWallet() {
             </Card>
 
             <Card className="stat-card border-l-4 border-l-blue-500">
-              <CardContent className="p-4">
+              <CardContent className="p-0">
                 <p className="text-sm text-muted-foreground mb-1">✅ Already Paid</p>
                 <p className="text-3xl font-bold text-blue-600">₹{paidOut.toLocaleString()}</p>
                 <p className="text-xs text-muted-foreground mt-2">
