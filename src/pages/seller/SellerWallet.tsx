@@ -45,7 +45,6 @@ export default function SellerWallet() {
           <TabsTrigger value="orders" className="data-[state=active]:bg-card">Orders</TabsTrigger>
           <TabsTrigger value="subscriptions" className="data-[state=active]:bg-card">Subscriptions</TabsTrigger>
         </TabsList>
-      </Tabs>
 
       {isLoading ? <LoadingSpinner /> : (
         <>
@@ -300,6 +299,7 @@ export default function SellerWallet() {
           )}
         </>
       )}
+      </Tabs>
     </SellerLayout>
   );
 }

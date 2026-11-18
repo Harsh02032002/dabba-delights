@@ -1,4 +1,4 @@
-import { SellerLayout } from '@/layouts/SellerLayout';
+﻿import { SellerLayout } from '@/layouts/SellerLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -8,14 +8,16 @@ import { useQuery } from '@tanstack/react-query';
 import { sellerAPI } from '@/lib/api';
 import { LoadingSpinner } from '@/components/shared/LoadingSpinner';
 import { Receipt, CheckCircle2, Clock, DollarSign } from 'lucide-react';
+import { safeArray } from '@/utils/safeArray';
 
 export default function SellerSettlements() {
   const [statusFilter, setStatusFilter] = useState('all');
 
-  const { data: settlements, isLoading } = useQuery({
+  const { data: settlementsRaw, isLoading } = useQuery({
     queryKey: ['seller-settlements', statusFilter],
     queryFn: () => sellerAPI.getSettlements(statusFilter === 'all' ? undefined : statusFilter),
   });
+  const settlements = safeArray(settlementsRaw);
 
   return (
     <SellerLayout title="Settlements" subtitle="Track your payment settlements">
@@ -44,11 +46,11 @@ export default function SellerSettlements() {
                   </div>
                   <div className="text-right">
                     <div className="flex items-center gap-3 mb-1">
-                      <span className="text-sm text-muted-foreground">Order: ₹{s.orderAmount}</span>
-                      <span className="text-sm text-destructive">Commission: ₹{s.commission}</span>
-                      <span className="text-sm text-muted-foreground">GST: ₹{s.gst}</span>
+                      <span className="text-sm text-muted-foreground">Order: â‚¹{s.orderAmount}</span>
+                      <span className="text-sm text-destructive">Commission: â‚¹{s.commission}</span>
+                      <span className="text-sm text-muted-foreground">GST: â‚¹{s.gst}</span>
                     </div>
-                    <p className="text-xl font-bold text-success">Net: ₹{s.netAmount}</p>
+                    <p className="text-xl font-bold text-success">Net: â‚¹{s.netAmount}</p>
                   </div>
                   <StatusBadge status={s.status} />
                 </div>

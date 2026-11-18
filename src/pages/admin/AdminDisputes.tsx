@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -10,6 +10,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAPI } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { safeArray } from '@/utils/safeArray';
 
 export default function AdminDisputes() {
   const queryClient = useQueryClient();
@@ -17,10 +18,11 @@ export default function AdminDisputes() {
   const [resolution, setResolution] = useState('');
   const [resolveStatus, setResolveStatus] = useState('resolved');
 
-  const { data: disputes = [], isLoading } = useQuery({
+  const { data: disputesRaw, isLoading } = useQuery({
     queryKey: ['admin-disputes'],
     queryFn: () => adminAPI.getDisputes(),
   });
+  const disputes = safeArray(disputesRaw);
 
   const resolveMutation = useMutation({
     mutationFn: () => adminAPI.resolveDispute(selected._id, resolveStatus, resolution),
@@ -47,7 +49,7 @@ export default function AdminDisputes() {
                     <div>
                       <p className="font-semibold text-foreground">Order #{d.orderId}</p>
                       <p className="text-sm text-muted-foreground">{d.reason}</p>
-                      <p className="text-xs text-muted-foreground mt-1">Customer: {d.customerName} • Seller: {d.sellerName} • {new Date(d.createdAt).toLocaleDateString()}</p>
+                      <p className="text-xs text-muted-foreground mt-1">Customer: {d.customerName} â€¢ Seller: {d.sellerName} â€¢ {new Date(d.createdAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-3">

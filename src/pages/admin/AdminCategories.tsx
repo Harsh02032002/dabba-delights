@@ -1,4 +1,4 @@
-import { useState } from 'react';
+﻿import { useState } from 'react';
 import { AdminLayout } from '@/layouts/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -11,15 +11,17 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { adminAPI } from '@/lib/api';
 import { toast } from '@/hooks/use-toast';
 import { Plus, Layers, Trash2 } from 'lucide-react';
+import { safeArray } from '@/utils/safeArray';
 
 export default function AdminCategories() {
   const queryClient = useQueryClient();
   const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-  const { data: categories = [], isLoading } = useQuery({
+  const { data: categoriesRaw, isLoading } = useQuery({
     queryKey: ['admin-categories'],
     queryFn: () => adminAPI.getCategories(),
   });
+  const categories = safeArray(categoriesRaw);
 
   const createMutation = useMutation({
     mutationFn: (data: any) => adminAPI.createCategory(data),

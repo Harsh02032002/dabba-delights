@@ -20,17 +20,17 @@ export default function SellerEarnings() {
     queryFn: () => sellerAPI.getEarnings(period),
   });
 
-  // Fetch seller's wallet balance (seller is also a User)
+  // Earned balance waiting to be paid out (same source as the My Wallet page)
   const { data: walletData } = useQuery({
-    queryKey: ['seller-wallet'],
+    queryKey: ['seller-wallet-earned'],
     queryFn: async () => {
-      const res = await apiRequest('/user/wallet/transactions');
-      return res?.data || res || {};
+      const res = await apiRequest('/wallet/seller/my-wallet');
+      return res?.wallet || res?.data || res || {};
     },
   });
 
   const e = earnings as any;
-  const walletBalance = Number(walletData?.balance || 0);
+  const walletBalance = Number(walletData?.pending_payout || 0);
 
   return (
     <SellerLayout title="Earnings" subtitle="Track your revenue, commission, and payouts">
@@ -46,7 +46,7 @@ export default function SellerEarnings() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             <Card className="stat-card">
               <CardContent className="p-0">
-                <p className="text-sm text-muted-foreground mb-1">Wallet Balance</p>
+                <p className="text-sm text-muted-foreground mb-1">Available to Withdraw</p>
                 <p className="text-3xl font-bold text-success">₹{walletBalance.toLocaleString()}</p>
                 <div className="mt-2 w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
                   <Wallet size={24} className="text-success" />
@@ -89,7 +89,7 @@ export default function SellerEarnings() {
                 <Wallet size={20} className="text-primary mt-0.5 shrink-0" />
                 <div className="text-sm text-muted-foreground">
                   <p className="font-medium text-foreground mb-1">How payouts work</p>
-                  <p>When your order is delivered → Settlement is created (revenue - {e?.commissionRate || 15}% commission - GST - TDS) → Admin processes settlement → Amount credited to your wallet.</p>
+                  <p>When an order is delivered, its food value minus {e?.commissionRate ?? 15}% commission is added to your wallet automatically. Request a payout from the Wallet page and the admin transfers it to your bank.</p>
                 </div>
               </div>
             </CardContent>

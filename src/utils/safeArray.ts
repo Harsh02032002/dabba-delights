@@ -1,4 +1,4 @@
-export const safeArray = (val: any): any[] => {
+﻿export const safeArray = (val: any): any[] => {
   if (!val) return [];
 
   // already array
@@ -16,6 +16,10 @@ export const safeArray = (val: any): any[] => {
   if (Array.isArray(val.notifications)) return val.notifications;
   if (Array.isArray(val.settlements)) return val.settlements;
   if (Array.isArray(val.customers)) return val.customers;
+
+  if (Array.isArray(val.reviews)) return val.reviews;
+  if (Array.isArray(val.disputes)) return val.disputes;
+  if (Array.isArray(val.categories)) return val.categories;
 
   return [];
 };
